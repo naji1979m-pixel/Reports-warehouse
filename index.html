@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>منصة بلاغات إدارة المخالفات والتفتيش</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f7fa;--card:#fff;--ink:#12303f;--mut:#5d7684;--line:#cfdde5;--pri:#0b7fa8;--soft:#e6f2f8;--bad:#c23b3b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1c24;--card:#142934;--ink:#e6f1f6;--mut:#93aab7;--line:#28414f;--pri:#2aa6d2;--soft:#183545;--bad:#ef7373}}
+:root[data-theme="dark"]{--bg:#0d1c24;--card:#142934;--ink:#e6f1f6;--mut:#93aab7;--line:#28414f;--pri:#2aa6d2;--soft:#183545;--bad:#ef7373}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.7 "IBM Plex Sans Arabic",Tahoma,system-ui,sans-serif}
+header{background:linear-gradient(135deg,#0a5f80,#0b7fa8);color:#fff;padding:22px 18px 26px}
+header h1{margin:0 0 6px;font-size:22px;line-height:1.4}
+header p{margin:0;font-size:14px;opacity:.92}
+main{max-width:640px;margin:0 auto;padding:14px}
+nav{display:flex;gap:6px;background:var(--soft);padding:5px;border-radius:14px;margin-bottom:14px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+nav button{flex:1;border:0;background:none;color:var(--mut);font:600 14px inherit;font-family:inherit;padding:10px 4px;border-radius:10px;cursor:pointer}
+nav button[aria-selected=true]{background:var(--card);color:var(--pri);box-shadow:0 1px 3px #0002}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
+label i{color:var(--bad);font-style:normal}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+textarea{min-height:110px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--pri);outline-offset:1px}
+.bad{border-color:var(--bad)}
+.err{color:var(--bad);font-size:13.5px;margin:8px 0 0}
+.hint{color:var(--mut);font-size:13px;margin:6px 0 0}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:13px;font:700 16px inherit;font-family:inherit;cursor:pointer;background:var(--pri);color:#fff;margin-top:16px}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.alt{background:var(--soft);color:var(--pri);margin-top:8px}
+.btn.sm{padding:9px;font-size:14px;margin-top:8px}
+.note{border:1px dashed var(--line);background:var(--soft);border-radius:12px;padding:12px;font-size:13.5px;color:var(--mut);margin-top:16px}
+.id{font:700 30px/1.3 ui-monospace,Menlo,monospace;direction:ltr;text-align:center;background:var(--soft);border-radius:14px;padding:14px;color:var(--pri)}
+.tl{list-style:none;margin:14px 0 0;padding:0 14px 0 0;border-right:2px solid var(--line)}
+.tl li{position:relative;padding:0 14px 14px 0}
+.tl li:before{content:"";position:absolute;right:-21px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--pri)}
+.tl small{color:var(--mut)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tag{font-size:12.5px;font-weight:600;padding:2px 10px;border-radius:99px;background:var(--soft);color:var(--pri)}
+.tag.u1{background:#f6e3c0;color:#7a4a05}.tag.u2{background:#f7d0d0;color:#8a1f1f}
+.item{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px}
+.item p{margin:6px 0}
+.item a{color:var(--pri);font-weight:600}
+.imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.imgs img{width:84px;height:84px;object-fit:cover;border-radius:10px}
+[hidden]{display:none!important}
+footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px}
+</style>
+</head>
+<body>
+<header>
+<h1>منصة بلاغات إدارة المخالفات والتفتيش</h1>
+<p>استقبال البلاغات المتعلقة بالتعديات والمخالفات على خدمات وشبكات المياه ومتابعتها إلكترونياً.</p>
+</header>
+<main>
+<nav role="tablist">
+<button role="tab" data-v="new" aria-selected="true">تقديم بلاغ</button>
+<button role="tab" data-v="track" aria-selected="false">متابعة بلاغ</button>
+<button role="tab" data-v="insp" aria-selected="false">دخول الموظفين</button>
+</nav>
+
+<section id="v-new" class="card">
+<form id="f" novalidate>
+<label for="name">اسم المبلّغ <i>*</i></label>
+<input id="name" placeholder="الاسم الثلاثي" autocomplete="name">
+<label for="phone">رقم الجوال <i>*</i></label>
+<input id="phone" inputmode="tel" placeholder="05XXXXXXXX" autocomplete="tel" dir="ltr" style="text-align:right">
+<label for="role">صفة المبلّغ</label>
+<select id="role"><option>فرد</option><option>موظف شركة المياه</option><option>مقاول</option><option>جهة حكومية</option><option>جهة أخرى</option></select>
+<label for="city">المدينة / المحافظة <i>*</i></label>
+<select id="city"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option><option>أخرى</option></select>
+<label for="type">نوع البلاغ <i>*</i></label>
+<select id="type"><option value="">اختر نوع المخالفة</option><option>توصيلة مياه غير نظامية / تعدٍ على الشبكة</option><option>توصيلة مباشرة قبل العداد</option><option>إخفاء عداد أو صندوق عداد</option><option>عبث أو كسر في العداد</option><option>إزالة عداد دون إجراء نظامي</option><option>اشتباه في استهلاك غير نظامي</option><option>صهريج أو تعبئة مياه غير نظامية</option><option>تعدٍ ظاهر آخر</option><option>اشتباه بتعدٍ غير ظاهر</option><option>أخرى</option></select>
+<label for="urg">درجة الاستعجال</label>
+<select id="urg"><option value="0">عادي</option><option value="1">عاجل - يوجد هدر مياه مستمر</option><option value="2">عاجل جداً - خطر أو تسرب كبير</option></select>
+<label for="loc">موقع البلاغ <i>*</i></label>
+<input id="loc" placeholder="الصق رابط Google Maps أو الإحداثيات" dir="ltr" style="text-align:right">
+<button type="button" class="btn alt sm" id="gps">استخدام موقعي الحالي</button>
+<p class="hint" id="gpsmsg">يمكن إدخال رابط الموقع أو الإحداثية مثل: 28.4302277, 45.9685779</p>
+<label for="meter">رقم العداد إن وجد</label>
+<input id="meter" placeholder="اختياري" inputmode="numeric">
+<label for="acct">رقم الحصر إن وجد</label>
+<input id="acct" placeholder="اختياري" inputmode="numeric">
+<label for="desc">وصف البلاغ <i>*</i></label>
+<textarea id="desc" placeholder="اشرح الحالة باختصار، ومتى تمت ملاحظتها، وأي معلومات تساعد الفريق الميداني."></textarea>
+<label for="pics">إرفاق صور البلاغ (حتى 5 صور)</label>
+<input id="pics" type="file" accept="image/*" multiple>
+<p class="hint">يفضل إرفاق صورة واضحة للموقع والمخالفة وما يثبت رقم العداد إن كان ظاهراً.</p>
+<div class="note">بإرسال البلاغ، يقر المبلّغ بصحة المعلومات المقدمة حسب علمه، وتستخدم البيانات لغرض دراسة البلاغ واتخاذ الإجراء النظامي. تقديم البلاغ لا يعني ثبوت المخالفة قبل التحقق الميداني والمراجعة.</div>
+<button class="btn" id="sub" type="submit">إرسال البلاغ</button>
+<p class="err" id="ferr" hidden></p>
+</form>
+<div id="done" hidden>
+<h2 style="margin:0 0 6px;font-size:18px">تم استلام البلاغ</h2>
+<p class="hint" style="margin:0 0 12px">احتفظ برقم البلاغ. ستحتاجه مع آخر 4 أرقام من جوالك لمتابعة الحالة.</p>
+<div class="id" id="newid"></div>
+<button class="btn" id="copy">نسخ رقم البلاغ</button>
+<button class="btn alt" id="again">تقديم بلاغ جديد</button>
+</div>
+</section>
+
+<section id="v-track" class="card" hidden>
+<label for="tid" style="margin-top:0">رقم البلاغ</label>
+<input id="tid" placeholder="مثال: B482913" dir="ltr" style="text-align:right">
+<label for="tph">آخر 4 أرقام من الجوال</label>
+<input id="tph" inputmode="numeric" maxlength="4" placeholder="1234" dir="ltr" style="text-align:right">
+<button class="btn" id="tgo">استعلام</button>
+<div id="tres"></div>
+</section>
+
+<section id="v-insp" class="card" hidden>
+<div id="login">
+<label for="em" style="margin-top:0">البريد الإلكتروني</label>
+<input id="em" type="email" dir="ltr" style="text-align:right" autocomplete="username">
+<label for="pw">كلمة المرور</label>
+<input id="pw" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
+<button class="btn" id="lg">تسجيل الدخول</button>
+<p class="err" id="lerr" hidden></p>
+</div>
+<div id="panel" hidden>
+<div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></div>
+<label for="flt">تصفية حسب الحالة</label>
+<select id="flt"></select>
+<div id="list"></div>
+<p class="err" id="perr" hidden></p>
+</div>
+</section>
+</main>
+<footer>إدارة المخالفات والتفتيش</footer>
+
+<script>
+var U='https://ahsvlqmensttzxbgkcwo.supabase.co',K='sb_publishable_ETq2Ug9ids2iqpvCsPjsGg_eiRpd_AE';
+var $=function(s){return document.querySelector(s)};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var SK=['new','verifying','confirmed','no_violation','closed'];
+var SL={new:'جديد',verifying:'قيد التحقق الميداني',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
+var UR=['عادي','عاجل','عاجل جداً'];
+var ERR={invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.'};
+var tok=null;
+function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';return 'حدث خطأ: '+m}
+function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.auth&&tok)h.Authorization='Bearer '+tok;
+  return fetch(U+path,{method:o.m||'GET',headers:h,body:o.body}).then(function(r){return r.text().then(function(t){var j=null;try{j=JSON.parse(t)}catch(e){}
+    if(!r.ok)throw new Error((j&&(j.message||j.msg||j.error_description))||('HTTP '+r.status));return j})})}
+function rpc(n,a,auth){return api('/rest/v1/rpc/'+n,{m:'POST',body:JSON.stringify(a),auth:auth})}
+function dig(s){return String(s).replace(/[٠-٩]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.indexOf(d)}).trim()}
+function fmt(t){return new Date(t).toLocaleString('ar-SA',{dateStyle:'medium',timeStyle:'short'})}
+function mapUrl(l){return /^https?:\/\//i.test(l)?l:'https://www.google.com/maps?q='+encodeURIComponent(l)}
+
+document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){
+  document.querySelectorAll('nav button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+  ['new','track','insp'].forEach(function(v){$('#v-'+v).hidden=v!==b.dataset.v});}});
+
+$('#gps').onclick=function(){var m=$('#gpsmsg');
+  if(!navigator.geolocation){m.textContent='المتصفح لا يدعم تحديد الموقع. الصق الرابط أو الإحداثيات يدوياً.';return}
+  m.textContent='جارٍ تحديد الموقع…';
+  navigator.geolocation.getCurrentPosition(function(p){$('#loc').value=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6);$('#loc').classList.remove('bad');m.textContent='تم تحديد موقعك الحالي.'},
+  function(){m.textContent='تعذّر تحديد الموقع. اسمح بالوصول للموقع أو الصق الرابط يدوياً.'},{enableHighAccuracy:true,timeout:12000})};
+
+function shrink(f){return new Promise(function(res,rej){var im=new Image(),u=URL.createObjectURL(f);
+  im.onload=function(){var s=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){URL.revokeObjectURL(u);b?res(b):rej(new Error('تعذر معالجة الصورة'))},'image/jpeg',.8)};
+  im.onerror=function(){rej(new Error('تعذر قراءة الصورة'))};im.src=u})}
+function upload(f){var p='pending/'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random().toString(36).slice(2))+'.jpg';
+  return shrink(f).then(function(b){return fetch(U+'/storage/v1/object/report-photos/'+p,{method:'POST',headers:{apikey:K,'Content-Type':'image/jpeg'},body:b})})
+  .then(function(r){if(!r.ok)throw new Error('فشل رفع صورة');return p})}
+
+$('#f').onsubmit=function(e){e.preventDefault();
+  var ok=true,er=$('#ferr');
+  ['name','phone','city','type','loc','desc'].forEach(function(k){var el=$('#'+k),v=el.value.trim();
+    if(k==='phone'&&!/^05\d{8}$/.test(dig(v)))v='';
+    if(!v){el.classList.add('bad');ok=false}else el.classList.remove('bad')});
+  if(!ok){er.hidden=false;er.textContent='أكمل الحقول المطلوبة المعلّمة بالأحمر، وتأكد أن الجوال بصيغة 05XXXXXXXX.';return}
+  var files=Array.prototype.slice.call($('#pics').files);
+  if(files.length>5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
+  er.hidden=true;var btn=$('#sub');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
+  var loc=$('#loc').value.trim(),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
+  Promise.all(files.map(upload)).then(function(paths){
+    return rpc('submit_report',{p_name:$('#name').value.trim(),p_phone:dig($('#phone').value),p_role:$('#role').value,p_city:$('#city').value,p_type:$('#type').value,
+      p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths})})
+  .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id})
+  .catch(function(x){er.hidden=false;er.textContent=fe(x)})
+  .then(function(){btn.disabled=false;btn.textContent='إرسال البلاغ'})};
+$('#again').onclick=function(){$('#f').reset();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
+$('#copy').onclick=function(){var t=$('#newid').textContent;
+  try{navigator.clipboard.writeText(t).then(function(){$('#copy').textContent='تم النسخ'},function(){$('#copy').textContent='انسخ الرقم يدوياً'})}catch(e){$('#copy').textContent='انسخ الرقم يدوياً'}};
+
+$('#tgo').onclick=function(){var out=$('#tres'),b=$('#tgo');b.disabled=true;out.innerHTML='';
+  rpc('track_report',{p_id:$('#tid').value.trim(),p_last4:dig($('#tph').value)}).then(function(r){
+    if(!r){out.innerHTML='<p class="err">لم نجد بلاغاً بهذه البيانات. تحقق من الرقم وآخر 4 أرقام من الجوال.</p>';return}
+    out.innerHTML='<div class="item"><div class="row"><b>'+esc(r.id)+'</b><span class="tag">'+esc(SL[r.status])+'</span></div><p>'+esc(r.type)+' — '+esc(r.city)+'</p><small class="hint">قُدّم في '+fmt(r.created_at)+'</small><ul class="tl">'+
+      (r.history||[]).slice().reverse().map(function(h){return '<li><b>'+esc(SL[h.status])+'</b><br><small>'+fmt(h.at)+'</small></li>'}).join('')+'</ul></div>'})
+  .catch(function(x){out.innerHTML='<p class="err">'+esc(fe(x))+'</p>'}).then(function(){b.disabled=false})};
+
+/* الموظفون */
+$('#flt').innerHTML='<option value="">كل الحالات</option>'+SK.map(function(k){return '<option value="'+k+'">'+SL[k]+'</option>'}).join('');
+$('#flt').onchange=loadList;
+function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.removeItem('tk')}catch(e){}$('#login').hidden=!!t;$('#panel').hidden=!t;if(t)loadList()}
+$('#lg').onclick=function(){var er=$('#lerr');er.hidden=true;
+  api('/auth/v1/token?grant_type=password',{m:'POST',body:JSON.stringify({email:$('#em').value.trim(),password:$('#pw').value})})
+  .then(function(r){$('#pw').value='';setSess(r.access_token)}).catch(function(x){er.hidden=false;er.textContent=fe(x)})};
+$('#out').onclick=function(){setSess(null)};
+try{var st=sessionStorage.getItem('tk');if(st)setSess(st)}catch(e){}
+function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;
+  api('/rest/v1/reports?select=*&order=urgency.desc,created_at.desc&limit=100'+(f?'&status=eq.'+f:''),{auth:true}).then(function(a){
+    if(!a.length){$('#list').innerHTML='<p class="hint" style="text-align:center;padding:20px 0">لا توجد بلاغات.</p>';return}
+    $('#list').innerHTML=a.map(function(r){return '<div class="item"><div class="row"><b>'+esc(r.id)+'</b>'+(r.urgency?'<span class="tag u'+r.urgency+'">'+UR[r.urgency]+'</span>':'')+'<span class="tag">'+esc(r.city)+'</span></div>'+
+      '<p><b>'+esc(r.type)+'</b></p><p>'+esc(r.description)+'</p><p class="hint">'+(r.meter_no?'عداد: '+esc(r.meter_no)+' — ':'')+(r.account_no?'حصر: '+esc(r.account_no)+' — ':'')+fmt(r.created_at)+'</p>'+
+      '<p><a href="'+esc(mapUrl(r.location_text))+'" target="_blank" rel="noopener">فتح الموقع على الخريطة</a></p>'+
+      '<select data-id="'+esc(r.id)+'" aria-label="حالة البلاغ '+esc(r.id)+'">'+SK.map(function(k){return '<option value="'+k+'"'+(k===r.status?' selected':'')+'>'+SL[k]+'</option>'}).join('')+'</select>'+
+      '<div class="row"><button class="btn alt sm" data-ph="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الجوال</button><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور</button></div><div data-o="'+esc(r.id)+'"></div></div>'}).join('');
+    document.querySelectorAll('#list select').forEach(function(s){s.onchange=function(){
+      rpc('set_status',{p_id:s.dataset.id,p_status:s.value,p_note:null},true).catch(function(x){pe.hidden=false;pe.textContent=fe(x);loadList()})}});
+    document.querySelectorAll('[data-ph]').forEach(function(b){b.onclick=function(){var o=document.querySelector('[data-o="'+b.dataset.ph+'"]');
+      api('/rest/v1/report_contacts?report_id=eq.'+encodeURIComponent(b.dataset.ph)+'&select=name,phone,role',{auth:true}).then(function(c){
+        o.innerHTML=c.length?'<p>'+esc(c[0].name)+' ('+esc(c[0].role)+') — <span dir="ltr">'+esc(c[0].phone)+'</span></p>':'<p class="hint">رقم الجوال يظهر بعد إسناد البلاغ إليك.</p>'}).catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
+    document.querySelectorAll('[data-im]').forEach(function(b){b.onclick=function(){var o=document.querySelector('[data-o="'+b.dataset.im+'"]');
+      api('/rest/v1/report_photos?report_id=eq.'+encodeURIComponent(b.dataset.im)+'&select=file_path',{auth:true}).then(function(ps){
+        if(!ps.length){o.innerHTML='<p class="hint">لا توجد صور.</p>';return}
+        return Promise.all(ps.map(function(p){return api('/storage/v1/object/sign/report-photos/'+p.file_path,{m:'POST',auth:true,body:JSON.stringify({expiresIn:600})})})).then(function(s){
+          o.innerHTML='<div class="imgs">'+s.map(function(x){return '<a href="'+U+'/storage/v1'+x.signedURL+'" target="_blank" rel="noopener"><img alt="صورة البلاغ" src="'+U+'/storage/v1'+x.signedURL+'"></a>'}).join('')+'</div>'})})
+      .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
+  }).catch(function(x){if(/JWT|expired|401/i.test(x.message)){setSess(null);return}pe.hidden=false;pe.textContent=fe(x)})}
+</script>
+</body>
+</html>

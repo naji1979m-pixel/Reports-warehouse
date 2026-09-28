@@ -3,7 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>منصة بلاغات إدارة المخالفات والتفتيش</title>
+<title>منصة البلاغات لإدارة المخالفات والتفتيش بالوحدة الشمالية</title>
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ar_SA">
+<meta property="og:title" content="منصة البلاغات لإدارة المخالفات والتفتيش بالوحدة الشمالية">
+<meta property="og:description" content="قدّم بلاغك عن التعديات والمخالفات على خدمات وشبكات المياه وتابع حالته إلكترونياً.">
+<meta name="description" content="قدّم بلاغك عن التعديات والمخالفات على خدمات وشبكات المياه وتابع حالته إلكترونياً.">
+<meta name="twitter:card" content="summary">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f2f7fa;--card:#fff;--ink:#12303f;--mut:#5d7684;--line:#cfdde5;--pri:#0b7fa8;--soft:#e6f2f8;--bad:#c23b3b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -46,13 +52,21 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .item a{color:var(--pri);font-weight:600}
 .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .imgs img{width:84px;height:84px;object-fit:cover;border-radius:10px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.kv span{color:var(--mut);white-space:nowrap}
+.kv b{font-weight:600;text-align:left;word-break:break-word}
+.lbl{color:var(--mut);font-size:13px;margin:10px 0 0}
+.vn{margin-top:12px;padding:12px;border-radius:12px;background:var(--soft)}
+.vn label{margin:0 0 6px}
+.vn .row input{flex:1;min-width:0}
+.vn .row .btn{width:auto;margin:0;padding:11px 18px}
 [hidden]{display:none!important}
 footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px}
 </style>
 </head>
 <body>
 <header>
-<h1>منصة بلاغات إدارة المخالفات والتفتيش</h1>
+<h1>منصة البلاغات لإدارة المخالفات والتفتيش بالوحدة الشمالية</h1>
 <p>استقبال البلاغات المتعلقة بالتعديات والمخالفات على خدمات وشبكات المياه ومتابعتها إلكترونياً.</p>
 </header>
 <main>
@@ -82,6 +96,8 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <p class="hint" id="gpsmsg">يمكن إدخال رابط الموقع أو الإحداثية مثل: 28.4302277, 45.9685779</p>
 <label for="meter">رقم العداد إن وجد</label>
 <input id="meter" placeholder="اختياري" inputmode="numeric">
+<label for="subs">رقم الحساب إن وجد</label>
+<input id="subs" placeholder="اختياري" inputmode="numeric">
 <label for="acct">رقم الحصر إن وجد</label>
 <input id="acct" placeholder="اختياري" inputmode="numeric">
 <label for="desc">وصف البلاغ <i>*</i></label>
@@ -124,6 +140,7 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></div>
 <label for="flt">تصفية حسب الحالة</label>
 <select id="flt"></select>
+<button class="btn alt sm" id="xls">تصدير البلاغات إلى Excel (ملف CSV)</button>
 <div id="list"></div>
 <p class="err" id="perr" hidden></p>
 </div>
@@ -138,7 +155,7 @@ var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){r
 var SK=['new','verifying','confirmed','no_violation','closed'];
 var SL={new:'جديد',verifying:'قيد التحقق الميداني',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
 var UR=['عادي','عاجل','عاجل جداً'];
-var ERR={invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.'};
+var ERR={invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
 var tok=null;
 function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';return 'حدث خطأ: '+m}
 function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.auth&&tok)h.Authorization='Bearer '+tok;
@@ -179,7 +196,7 @@ $('#f').onsubmit=function(e){e.preventDefault();
   var loc=$('#loc').value.trim(),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
   Promise.all(files.map(upload)).then(function(paths){
     return rpc('submit_report',{p_name:$('#name').value.trim(),p_phone:dig($('#phone').value),p_role:$('#role').value,p_city:$('#city').value,p_type:$('#type').value,
-      p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths})})
+      p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths})})
   .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id})
   .catch(function(x){er.hidden=false;er.textContent=fe(x)})
   .then(function(){btn.disabled=false;btn.textContent='إرسال البلاغ'})};
@@ -204,18 +221,30 @@ $('#lg').onclick=function(){var er=$('#lerr');er.hidden=true;
 $('#out').onclick=function(){setSess(null)};
 try{var st=sessionStorage.getItem('tk');if(st)setSess(st)}catch(e){}
 function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;
-  api('/rest/v1/reports?select=*&order=urgency.desc,created_at.desc&limit=100'+(f?'&status=eq.'+f:''),{auth:true}).then(function(a){
+  Promise.all([
+    api('/rest/v1/reports?select=*&order=urgency.desc,created_at.desc&limit=100'+(f?'&status=eq.'+f:''),{auth:true}),
+    api('/rest/v1/report_contacts?select=report_id,name,phone,role&limit=1000',{auth:true})
+  ]).then(function(res){var a=res[0],cm={};res[1].forEach(function(c){cm[c.report_id]=c});
     if(!a.length){$('#list').innerHTML='<p class="hint" style="text-align:center;padding:20px 0">لا توجد بلاغات.</p>';return}
-    $('#list').innerHTML=a.map(function(r){return '<div class="item"><div class="row"><b>'+esc(r.id)+'</b>'+(r.urgency?'<span class="tag u'+r.urgency+'">'+UR[r.urgency]+'</span>':'')+'<span class="tag">'+esc(r.city)+'</span></div>'+
-      '<p><b>'+esc(r.type)+'</b></p><p>'+esc(r.description)+'</p><p class="hint">'+(r.meter_no?'عداد: '+esc(r.meter_no)+' — ':'')+(r.account_no?'حصر: '+esc(r.account_no)+' — ':'')+fmt(r.created_at)+'</p>'+
+    var kv=function(l,v){return '<div class="kv"><span>'+l+'</span><b>'+(v?esc(v):'—')+'</b></div>'};
+    $('#list').innerHTML=a.map(function(r){var c=cm[r.id];
+      return '<div class="item"><div class="row"><b>'+esc(r.id)+'</b>'+(r.urgency?'<span class="tag u'+r.urgency+'">'+UR[r.urgency]+'</span>':'')+'<span class="tag">'+esc(r.city)+'</span></div>'+
+      '<p><b>'+esc(r.type)+'</b></p>'+
+      kv('رقم الحصر',r.account_no)+kv('رقم الحساب',r.subscription_no)+kv('رقم العداد',r.meter_no)+
+      kv('اسم المبلّغ',c&&c.name)+
+      '<div class="kv"><span>جوال المبلّغ</span><b>'+(c?'<span dir="ltr">'+esc(c.phone)+'</span>':'<small class="hint">يظهر بعد إسناد البلاغ إليك</small>')+'</b></div>'+
+      '<p class="lbl">وصف البلاغ</p><p>'+esc(r.description)+'</p>'+
+      '<p class="hint">'+fmt(r.created_at)+'</p>'+
       '<p><a href="'+esc(mapUrl(r.location_text))+'" target="_blank" rel="noopener">فتح الموقع على الخريطة</a></p>'+
       '<select data-id="'+esc(r.id)+'" aria-label="حالة البلاغ '+esc(r.id)+'">'+SK.map(function(k){return '<option value="'+k+'"'+(k===r.status?' selected':'')+'>'+SL[k]+'</option>'}).join('')+'</select>'+
-      '<div class="row"><button class="btn alt sm" data-ph="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الجوال</button><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور</button></div><div data-o="'+esc(r.id)+'"></div></div>'}).join('');
+      (r.status==='confirmed'
+        ?'<div class="vn"><label for="vn-'+esc(r.id)+'">رقم المخالفة</label><div class="row"><input id="vn-'+esc(r.id)+'" value="'+esc(r.violation_no||'')+'" placeholder="أدخل رقم المخالفة" dir="ltr" style="text-align:right"><button class="btn sm" data-vn="'+esc(r.id)+'">حفظ</button></div></div>'
+        :(r.violation_no?kv('رقم المخالفة',r.violation_no):''))+
+      '<div class="row"><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور</button></div><div data-o="'+esc(r.id)+'"></div></div>'}).join('');
     document.querySelectorAll('#list select').forEach(function(s){s.onchange=function(){
-      rpc('set_status',{p_id:s.dataset.id,p_status:s.value,p_note:null},true).catch(function(x){pe.hidden=false;pe.textContent=fe(x);loadList()})}});
-    document.querySelectorAll('[data-ph]').forEach(function(b){b.onclick=function(){var o=document.querySelector('[data-o="'+b.dataset.ph+'"]');
-      api('/rest/v1/report_contacts?report_id=eq.'+encodeURIComponent(b.dataset.ph)+'&select=name,phone,role',{auth:true}).then(function(c){
-        o.innerHTML=c.length?'<p>'+esc(c[0].name)+' ('+esc(c[0].role)+') — <span dir="ltr">'+esc(c[0].phone)+'</span></p>':'<p class="hint">رقم الجوال يظهر بعد إسناد البلاغ إليك.</p>'}).catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
+      rpc('set_status',{p_id:s.dataset.id,p_status:s.value,p_note:null},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);loadList()})}});
+    document.querySelectorAll('[data-vn]').forEach(function(b){b.onclick=function(){var id=b.dataset.vn,v=document.getElementById('vn-'+id).value.trim();b.disabled=true;
+      rpc('set_violation_no',{p_id:id,p_no:v},true).then(function(){b.textContent='تم الحفظ'}).catch(function(x){pe.hidden=false;pe.textContent=fe(x)}).then(function(){b.disabled=false;setTimeout(function(){b.textContent='حفظ'},1500)})}});
     document.querySelectorAll('[data-im]').forEach(function(b){b.onclick=function(){var o=document.querySelector('[data-o="'+b.dataset.im+'"]');
       api('/rest/v1/report_photos?report_id=eq.'+encodeURIComponent(b.dataset.im)+'&select=file_path',{auth:true}).then(function(ps){
         if(!ps.length){o.innerHTML='<p class="hint">لا توجد صور.</p>';return}
@@ -223,6 +252,23 @@ function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;
           o.innerHTML='<div class="imgs">'+s.map(function(x){return '<a href="'+U+'/storage/v1'+x.signedURL+'" target="_blank" rel="noopener"><img alt="صورة البلاغ" src="'+U+'/storage/v1'+x.signedURL+'"></a>'}).join('')+'</div>'})})
       .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
   }).catch(function(x){if(/JWT|expired|401/i.test(x.message)){setSess(null);return}pe.hidden=false;pe.textContent=fe(x)})}
+
+/* تصدير إلى شيت */
+$('#xls').onclick=function(){var pe=$('#perr'),b=$('#xls');pe.hidden=true;b.disabled=true;var f=$('#flt').value;
+  Promise.all([
+    api('/rest/v1/reports?select=*&order=created_at.desc&limit=1000'+(f?'&status=eq.'+f:''),{auth:true}),
+    api('/rest/v1/report_contacts?select=report_id,name,phone,role&limit=1000',{auth:true})
+  ]).then(function(r){
+    var cm={};r[1].forEach(function(c){cm[c.report_id]=c});
+    var q=function(v){v=String(v==null?'':v);if(/^[=+\-@]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
+    var tx=function(v){v=String(v==null?'':v);return /^\d+$/.test(v)?'="'+v+'"':q(v)};
+    var H=['رقم البلاغ','التاريخ','المدينة','نوع المخالفة','الاستعجال','الحالة','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','جوال المبلّغ','وصف البلاغ','رقم المخالفة','الموقع'].map(q).join(',');
+    var rows=r[0].map(function(x){var c=cm[x.id]||{};
+      return [q(x.id),q(fmt(x.created_at)),q(x.city),q(x.type),q(UR[x.urgency]),q(SL[x.status]),tx(x.account_no),tx(x.subscription_no),tx(x.meter_no),q(c.name),tx(c.phone),q(x.description),tx(x.violation_no),q(x.location_text)].join(',')});
+    var csv='\ufeff'+[H].concat(rows).join('\r\n');
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download='balaghat-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove();
+  }).catch(function(x){pe.hidden=false;pe.textContent=fe(x)}).then(function(){b.disabled=false})};
 </script>
 </body>
 </html>

@@ -141,6 +141,7 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <label for="flt">تصفية حسب الحالة</label>
 <select id="flt"></select>
 <button class="btn alt sm" id="xls">تصدير البلاغات إلى Excel (ملف CSV)</button>
+<div id="xout"></div>
 <div id="list"></div>
 <p class="err" id="perr" hidden></p>
 </div>
@@ -253,8 +254,9 @@ function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;
       .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
   }).catch(function(x){if(/JWT|expired|401/i.test(x.message)){setSess(null);return}pe.hidden=false;pe.textContent=fe(x)})}
 
-/* تصدير إلى شيت */
-$('#xls').onclick=function(){var pe=$('#perr'),b=$('#xls');pe.hidden=true;b.disabled=true;var f=$('#flt').value;
+/* تصدير إلى شيت: خطوتان ليعمل على الآيفون */
+var xCsv='',xTsv='',xName='balaghat.csv';
+$('#xls').onclick=function(){var pe=$('#perr'),b=$('#xls'),out=$('#xout');pe.hidden=true;out.innerHTML='';b.disabled=true;b.textContent='جارٍ تجهيز الجدول…';var f=$('#flt').value;
   Promise.all([
     api('/rest/v1/reports?select=*&order=created_at.desc&limit=1000'+(f?'&status=eq.'+f:''),{auth:true}),
     api('/rest/v1/report_contacts?select=report_id,name,phone,role&limit=1000',{auth:true})
@@ -262,13 +264,29 @@ $('#xls').onclick=function(){var pe=$('#perr'),b=$('#xls');pe.hidden=true;b.disa
     var cm={};r[1].forEach(function(c){cm[c.report_id]=c});
     var q=function(v){v=String(v==null?'':v);if(/^[=+\-@]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
     var tx=function(v){v=String(v==null?'':v);return /^\d+$/.test(v)?'="'+v+'"':q(v)};
-    var H=['رقم البلاغ','التاريخ','المدينة','نوع المخالفة','الاستعجال','الحالة','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','جوال المبلّغ','وصف البلاغ','رقم المخالفة','الموقع'].map(q).join(',');
-    var rows=r[0].map(function(x){var c=cm[x.id]||{};
+    var hd=['رقم البلاغ','التاريخ','المدينة','نوع المخالفة','الاستعجال','الحالة','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','جوال المبلّغ','وصف البلاغ','رقم المخالفة','الموقع'];
+    var raw=r[0].map(function(x){var c=cm[x.id]||{};return [x.id,fmt(x.created_at),x.city,x.type,UR[x.urgency],SL[x.status],x.account_no,x.subscription_no,x.meter_no,c.name,c.phone,x.description,x.violation_no,x.location_text]});
+    var rowsCsv=r[0].map(function(x){var c=cm[x.id]||{};
       return [q(x.id),q(fmt(x.created_at)),q(x.city),q(x.type),q(UR[x.urgency]),q(SL[x.status]),tx(x.account_no),tx(x.subscription_no),tx(x.meter_no),q(c.name),tx(c.phone),q(x.description),tx(x.violation_no),q(x.location_text)].join(',')});
-    var csv='\ufeff'+[H].concat(rows).join('\r\n');
-    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-    a.download='balaghat-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove();
-  }).catch(function(x){pe.hidden=false;pe.textContent=fe(x)}).then(function(){b.disabled=false})};
+    xCsv='\ufeff'+[hd.map(q).join(',')].concat(rowsCsv).join('\r\n');
+    var t=function(v){return String(v==null?'':v).replace(/[\t\r\n]+/g,' ')};
+    xTsv=[hd.join('\t')].concat(raw.map(function(a){return a.map(t).join('\t')})).join('\n');
+    xName='balaghat-'+new Date().toISOString().slice(0,10)+'.csv';
+    out.innerHTML='<p class="hint">الجدول جاهز: '+raw.length+' بلاغ. اختر:</p>'+
+      '<button class="btn sm" id="xshare">حفظ / مشاركة الملف</button>'+
+      '<button class="btn alt sm" id="xcopy">نسخ الجدول للصقه في Excel أو Sheets</button><p class="hint" id="xmsg"></p>';
+    $('#xshare').onclick=function(){var m=$('#xmsg'),file;
+      try{file=new File([xCsv],xName,{type:'text/csv'})}catch(e){file=null}
+      if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+        navigator.share({files:[file],title:'البلاغات'}).catch(function(e){if(e&&e.name!=='AbortError')m.textContent='تعذرت المشاركة. جرّب زر النسخ.'});
+      }else{
+        var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([xCsv],{type:'text/csv;charset=utf-8'}));a.download=xName;document.body.appendChild(a);a.click();a.remove();
+        m.textContent='إن لم ينزل الملف فاستخدم زر النسخ.';
+      }};
+    $('#xcopy').onclick=function(){var m=$('#xmsg');
+      var fb=function(){var ta=document.createElement('textarea');ta.value=xTsv;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,xTsv.length);var ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();m.textContent=ok?'تم النسخ. افتح Excel أو Google Sheets والصق في الخلية الأولى.':'تعذر النسخ التلقائي.'};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(xTsv).then(function(){m.textContent='تم النسخ. افتح Excel أو Google Sheets والصق في الخلية الأولى.'}).catch(fb)}else fb()};
+  }).catch(function(x){pe.hidden=false;pe.textContent=fe(x)}).then(function(){b.disabled=false;b.textContent='تصدير البلاغات إلى Excel (ملف CSV)'})};
 </script>
 </body>
 </html>

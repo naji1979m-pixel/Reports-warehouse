@@ -183,7 +183,7 @@ var SK=['new','verifying','confirmed','no_violation','closed'];
 var SL={new:'جديد',verifying:'قيد التحقق الميداني',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
 var TITLE={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور ضبط'};
 var UR=['عادي','عاجل','عاجل جداً'];
-var ERR={not_authorized:'هذا الحساب غير مصرّح له بتقديم البلاغات.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
+var ERR={not_authorized:'هذا الحساب غير مصرّح له بتقديم البلاغات.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',admin_only:'حذف البلاغات متاح لمدير الرقابة فقط.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
 var tok=null;
 function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';return 'حدث خطأ: '+m}
 function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.tk)h.Authorization='Bearer '+o.tk;else if(o.auth&&tok)h.Authorization='Bearer '+tok;
@@ -323,13 +323,17 @@ function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;loadDash(
       (r.status==='confirmed'
         ?'<div class="vn"><label for="vn-'+esc(r.id)+'">رقم المخالفة</label><div class="row"><input id="vn-'+esc(r.id)+'" value="'+esc(r.violation_no||'')+'" placeholder="أدخل رقم المخالفة" dir="ltr" style="text-align:right"><button class="btn sm" data-vn="'+esc(r.id)+'">حفظ</button></div></div>'
         :(r.violation_no?kv('رقم المخالفة',r.violation_no):''))+
-      '<div class="row"><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور</button></div><div data-o="'+esc(r.id)+'"></div></div>'}).join('');
+      '<div class="row"><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور</button>'+(me&&me.role==='admin'?'<button class="btn alt sm" data-del="'+esc(r.id)+'" style="width:auto;padding:8px 14px;color:var(--bad)">حذف البلاغ</button>':'')+'</div><div data-o="'+esc(r.id)+'"></div></div>'}).join('');
     document.querySelectorAll('#list select[data-id]').forEach(function(s){s.onchange=function(){
       rpc('set_status',{p_id:s.dataset.id,p_status:s.value,p_note:null},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);loadList()})}});
     document.querySelectorAll('[data-vn]').forEach(function(b){b.onclick=function(){var id=b.dataset.vn,v=document.getElementById('vn-'+id).value.trim();b.disabled=true;
       rpc('set_violation_no',{p_id:id,p_no:v},true).then(function(){b.textContent='تم الحفظ'}).catch(function(x){pe.hidden=false;pe.textContent=fe(x)}).then(function(){b.disabled=false;setTimeout(function(){b.textContent='حفظ'},1500)})}});
     document.querySelectorAll('.as-sel').forEach(function(s){s.onchange=function(){var id=s.dataset.as,v=s.value;if(!v)return;
       s.disabled=true;rpc('assign_report',{p_id:id,p_staff:v},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);s.disabled=false})}});
+    document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){var id=b.dataset.del;
+      if(!confirm('حذف البلاغ '+id+' نهائياً مع سجله وصوره؟ لا يمكن التراجع عن الحذف.'))return;
+      b.disabled=true;b.textContent='جارٍ الحذف…';
+      rpc('delete_report',{p_id:id},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false;b.textContent='حذف البلاغ'})}});
     document.querySelectorAll('[data-im]').forEach(function(b){b.onclick=function(){var o=document.querySelector('[data-o="'+b.dataset.im+'"]');
       api('/rest/v1/report_photos?report_id=eq.'+encodeURIComponent(b.dataset.im)+'&select=file_path',{auth:true}).then(function(ps){
         if(!ps.length){o.innerHTML='<p class="hint">لا توجد صور.</p>';return}

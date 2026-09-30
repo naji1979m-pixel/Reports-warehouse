@@ -75,6 +75,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .evl{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .evl .ch{font-size:12.5px;padding:4px 10px;border-radius:99px;background:var(--card);border:1px solid var(--line);cursor:pointer}
 .vid{width:100%;max-height:280px;border-radius:10px;margin-top:6px;background:#000}
+.bell{margin:10px 0;padding:12px;border-radius:12px;background:#fff4d6;color:#6b4a00;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bell .btn{width:auto;margin:0;padding:6px 14px}
 .rme{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border-radius:12px;background:var(--soft)}
 .rme b{display:block;font-size:15.5px}
 .rme small{color:var(--mut);font-size:13px}
@@ -168,11 +170,17 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 </div>
 <div id="panel" hidden>
 <div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></div>
+<p class="hint" id="rolehint"></p>
+<div class="bell" id="bell" hidden></div>
+<div class="vn"><label for="q">الاستعلام عن بلاغ</label><div class="row"><input id="q" placeholder="رقم البلاغ مثل B482913" dir="ltr" style="text-align:right"><button class="btn sm" id="qgo">بحث</button></div><div id="qres"></div></div>
+<div id="admbox" hidden>
 <div id="dash"></div>
 <label for="flt">تصفية حسب الحالة</label>
 <select id="flt"></select>
 <button class="btn alt sm" id="xls">تصدير البلاغات إلى Excel (ملف CSV)</button>
 <div id="xout"></div>
+</div>
+<p class="lbl" id="listttl"></p>
 <div id="list"></div>
 <p class="err" id="perr" hidden></p>
 </div>
@@ -188,7 +196,7 @@ var SK=['new','verifying','confirmed','no_violation','closed'];
 var SL={new:'جديد',verifying:'قيد التحقق الميداني',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
 var TITLE={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور ضبط'};
 var UR=['عادي','عاجل','عاجل جداً'];
-var ERR={not_authorized:'هذا الحساب غير مصرّح له بتقديم البلاغات.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',report_closed:'البلاغ مغلق نهائياً ولا يمكن تعديله.',use_close:'الإغلاق يتم من زر «حفظ وإغلاق البلاغ» مع إرفاق الإثبات.',evidence_required:'أرفق صورة أو فيديو إثبات.',confirm_requirements:'إغلاق المخالفة يتطلب رقم المخالفة وصورة واحدة على الأقل.',invalid_file:'ملف غير صالح.',too_big:'حجم الفيديو أكبر من 50 ميجا. صوّر مقطعاً أقصر.',admin_only:'حذف البلاغات متاح لمدير الرقابة فقط.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
+var ERR={not_authorized:'هذا الحساب غير مصرّح له بتقديم البلاغات.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',report_closed:'البلاغ مغلق ولا يمكن تعديله إلا بإعادة فتحه من مدير الرقابة.',inspector_only:'تحديد الحالة من صلاحية مأمور الضبط المسند إليه البلاغ.',not_assigned:'هذا البلاغ غير مسند إليك.',invalid_target:'يجب الإسناد إلى مأمور ضبط.',not_closed:'البلاغ غير مغلق.',use_close:'الإغلاق يتم من زر «حفظ وإغلاق البلاغ» مع إرفاق الإثبات.',evidence_required:'أرفق صورة أو فيديو إثبات.',confirm_requirements:'إغلاق المخالفة يتطلب رقم المخالفة وصورة واحدة على الأقل.',invalid_file:'ملف غير صالح.',too_big:'حجم الفيديو أكبر من 50 ميجا. صوّر مقطعاً أقصر.',admin_only:'حذف البلاغات متاح لمدير الرقابة فقط.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
 var tok=null;
 function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/maximum allowed size|Payload too large|413/i.test(m))return ERR.too_big;if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';return 'حدث خطأ: '+m}
 function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.tk)h.Authorization='Bearer '+o.tk;else if(o.auth&&tok)h.Authorization='Bearer '+tok;
@@ -292,7 +300,10 @@ function isSup(){return !!me&&(me.role==='supervisor'||me.role==='admin')}
 function staffName(id){var x=staffList.filter(function(z){return z.id===id})[0];return x?staffLabel(x):''}
 function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities&active=eq.true',{auth:true}).then(function(a){
   staffList=a;me=a.filter(function(x){return x.id===uid()})[0]||null;
-  $('#who').textContent=me?('البلاغات — '+staffLabel(me)):'البلاغات'})}
+  $('#who').textContent=me?('البلاغات — '+staffLabel(me)):'البلاغات';var ro=me&&me.role;
+  $('#admbox').hidden=ro!=='admin';
+  $('#rolehint').textContent=ro==='supervisor'?'تظهر لك البلاغات الجديدة التي تحتاج إسناداً. بعد الإسناد تجدها عبر الاستعلام برقم البلاغ.':ro==='inspector'?'تظهر لك البلاغات المسندة إليك. حدّد الحالة وأثبتها بالصور والفيديو.':'جميع البلاغات، ومنها المغلقة. يمكنك إعادة فتح البلاغ وإسناده عند الحاجة.';
+  $('#listttl').textContent=ro==='supervisor'?'بلاغات تحتاج إسناد':ro==='inspector'?'البلاغات المسندة إليك':'كل البلاغات'})}
 function loadDash(){api('/rest/v1/reports?select=status,city,urgency,created_at&limit=1000',{auth:true}).then(function(a){
   var cnt=function(f){return a.filter(f).length},open=function(x){return x.status!=='closed'&&x.status!=='no_violation'};
   var late=cnt(function(x){return x.status==='new'&&Date.now()-new Date(x.created_at)>48*36e5});
@@ -307,40 +318,65 @@ function loadDash(){api('/rest/v1/reports?select=status,city,urgency,created_at&
     '<div><b>'+cnt(function(x){return x.status==='verifying'})+'</b>قيد التحقق الميداني</div></div>'+
     (cities.length?'<p class="lbl">البلاغات حسب المدينة</p><div class="bars">'+cities.map(function(k){return '<div class="bar"><span>'+esc(k)+'</span><i style="width:'+Math.round(byCity[k]/mx*100)+'%"></i><em>'+byCity[k]+'</em></div>'}).join('')+'</div>':'')
   }).catch(function(){})}
-function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;loadDash();
-  Promise.all([
-    api('/rest/v1/reports?select=*&order=urgency.desc,created_at.desc&limit=100'+(f?'&status=eq.'+f:''),{auth:true}),
-    api('/rest/v1/report_contacts?select=report_id,name,phone,role&limit=1000',{auth:true})
-  ]).then(function(res){var a=res[0],cm={};res[1].forEach(function(c){cm[c.report_id]=c});
-    if(!a.length){$('#list').innerHTML='<p class="hint" style="text-align:center;padding:20px 0">لا توجد بلاغات.</p>';return}
-    var kv=function(l,v){return '<div class="kv"><span>'+l+'</span><b>'+(v?esc(v):'—')+'</b></div>'};
-    $('#list').innerHTML=a.map(function(r){var c=cm[r.id];
-      return '<div class="item"><div class="row"><b>'+esc(r.id)+'</b>'+(r.urgency?'<span class="tag u'+r.urgency+'">'+UR[r.urgency]+'</span>':'')+'<span class="tag">'+esc(r.city)+'</span></div>'+
-      '<p><b>'+esc(r.type)+'</b></p>'+
-      kv('رقم الحصر',r.account_no)+kv('رقم الحساب',r.subscription_no)+kv('رقم العداد',r.meter_no)+
-      kv('اسم المبلّغ',c&&c.name)+kv('صفة المبلّغ',c&&c.role)+
-      '<div class="kv"><span>جوال المبلّغ</span><b>'+(c?'<span dir="ltr">'+esc(c.phone)+'</span>':'<small class="hint">يظهر بعد إسناد البلاغ إليك</small>')+'</b></div>'+
-      '<p class="lbl">وصف البلاغ</p><p>'+esc(r.description)+'</p>'+
-      '<p class="hint">'+fmt(r.created_at)+'</p>'+
-      '<p><a href="'+esc(mapUrl(r.location_text))+'" target="_blank" rel="noopener">فتح الموقع على الخريطة</a></p>'+
-      stBlock(r)+
-      kv('المُسنَد إليه',staffName(r.assigned_to))+(isSup()&&FINAL.indexOf(r.status)<0?'<div class="vn"><label for="as-'+esc(r.id)+'">إسناد البلاغ (يُحفظ فور الاختيار)</label><select class="as-sel" id="as-'+esc(r.id)+'" data-as="'+esc(r.id)+'"><option value="">اختر موظفاً</option>'+staffList.filter(function(z){return z.role!=='admin'}).map(function(z){return '<option value="'+esc(z.id)+'"'+(z.id===r.assigned_to?' selected':'')+'>'+esc(staffLabel(z))+'</option>'}).join('')+'</select></div>':'')+
-      '<div class="row"><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور</button>'+(me&&me.role==='admin'?'<button class="btn alt sm" data-del="'+esc(r.id)+'" style="width:auto;padding:8px 14px;color:var(--bad)">حذف البلاغ</button>':'')+'</div><div data-o="'+esc(r.id)+'"></div></div>'}).join('');
-    bindClose();
-    document.querySelectorAll('.as-sel').forEach(function(s){s.onchange=function(){var id=s.dataset.as,v=s.value;if(!v)return;
-      s.disabled=true;rpc('assign_report',{p_id:id,p_staff:v},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);s.disabled=false})}});
-    document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){var id=b.dataset.del;
-      if(!confirm('حذف البلاغ '+id+' نهائياً مع سجله وصوره؟ لا يمكن التراجع عن الحذف.'))return;
-      b.disabled=true;b.textContent='جارٍ الحذف…';
-      rpc('delete_report',{p_id:id},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false;b.textContent='حذف البلاغ'})}});
-    document.querySelectorAll('[data-im]').forEach(function(b){b.onclick=function(){var o=document.querySelector('[data-o="'+b.dataset.im+'"]');
-      api('/rest/v1/report_photos?report_id=eq.'+encodeURIComponent(b.dataset.im)+'&select=file_path',{auth:true}).then(function(ps){
-        if(!ps.length){o.innerHTML='<p class="hint">لا توجد صور.</p>';return}
-        return Promise.all(ps.map(function(p){return api('/storage/v1/object/sign/report-photos/'+p.file_path,{m:'POST',auth:true,body:JSON.stringify({expiresIn:600})})})).then(function(s){
-          o.innerHTML='<div class="imgs">'+s.map(function(x){return '<a href="'+U+'/storage/v1'+x.signedURL+'" target="_blank" rel="noopener"><img alt="صورة البلاغ" src="'+U+'/storage/v1'+x.signedURL+'"></a>'}).join('')+'</div>'})})
-      .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
-  }).catch(function(x){if(/JWT|expired|401/i.test(x.message)){setSess(null);return}pe.hidden=false;pe.textContent=fe(x)})}
-
+var lastN=-1,lastQ='',cmCache={};
+function kv(l,v){return '<div class="kv"><span>'+l+'</span><b>'+(v?esc(v):'—')+'</b></div>'}
+function listQuery(){var ro=me&&me.role,f=$('#flt').value,q='/rest/v1/reports?select=*&order=urgency.desc,created_at.desc&limit=200';
+  if(ro==='inspector')return q+'&assigned_to=eq.'+uid()+'&status=in.(new,verifying)';
+  if(ro==='supervisor')return q+'&assigned_to=is.null&status=in.(new,verifying)';
+  return q+(f?'&status=eq.'+f:'')}
+function itemHtml(r,c){var id=esc(r.id),ro=me&&me.role,fin=FINAL.indexOf(r.status)>-1,mine=r.assigned_to===uid();
+  var insp=staffList.filter(function(z){return z.role==='inspector'});
+  return '<div class="item"><div class="row"><b>'+id+'</b>'+(r.urgency?'<span class="tag u'+r.urgency+'">'+UR[r.urgency]+'</span>':'')+'<span class="tag">'+esc(r.city)+'</span></div>'+
+    '<p><b>'+esc(r.type)+'</b></p>'+
+    kv('رقم الحصر',r.account_no)+kv('رقم الحساب',r.subscription_no)+kv('رقم العداد',r.meter_no)+
+    kv('اسم المبلّغ',c&&c.name)+kv('صفة المبلّغ',c&&c.role)+
+    '<div class="kv"><span>جوال المبلّغ</span><b>'+(c?'<span dir="ltr">'+esc(c.phone)+'</span>':'<small class="hint">يظهر بعد إسناد البلاغ إليك</small>')+'</b></div>'+
+    '<p class="lbl">وصف البلاغ</p><p>'+esc(r.description)+'</p>'+
+    '<p class="hint">'+fmt(r.created_at)+'</p>'+
+    '<p><a href="'+esc(mapUrl(r.location_text))+'" target="_blank" rel="noopener">فتح الموقع على الخريطة</a></p>'+
+    kv('المُسنَد إليه',staffName(r.assigned_to))+
+    ((ro==='inspector'&&mine&&!fin)||fin?stBlock(r):kv('الحالة',SL[r.status]))+
+    (fin&&ro==='admin'?'<div class="vn"><label for="ro-'+id+'">إعادة فتح البلاغ وإسناده</label><select id="ro-'+id+'"><option value="">اختر مأمور الضبط</option>'+insp.map(function(z){return '<option value="'+esc(z.id)+'">'+esc(staffLabel(z))+'</option>'}).join('')+'</select>'+
+      '<input id="rr-'+id+'" placeholder="سبب إعادة الفتح" style="margin-top:8px"><button class="btn sm" data-ro="'+id+'">إعادة فتح وإسناد</button></div>':'')+
+    (!fin&&(ro==='supervisor'||ro==='admin')?'<div class="vn"><label for="as-'+id+'">إسناد البلاغ إلى مأمور ضبط (يُحفظ فور الاختيار)</label><select class="as-sel" id="as-'+id+'" data-as="'+id+'"><option value="">اختر مأمور الضبط</option>'+insp.map(function(z){return '<option value="'+esc(z.id)+'"'+(z.id===r.assigned_to?' selected':'')+'>'+esc(staffLabel(z))+'</option>'}).join('')+'</select></div>':'')+
+    '<div class="row"><button class="btn alt sm" data-im="'+id+'" style="width:auto;padding:8px 14px">صور المبلّغ</button>'+(ro==='admin'?'<button class="btn alt sm" data-del="'+id+'" style="width:auto;padding:8px 14px;color:var(--bad)">حذف البلاغ</button>':'')+'</div><div data-o="'+id+'"></div></div>'}
+function refresh(){loadList();if(lastQ)doSearch(lastQ)}
+function bindItems(){var pe=$('#perr');bindClose();
+  document.querySelectorAll('.as-sel').forEach(function(s){s.onchange=function(){var id=s.dataset.as,v=s.value;if(!v)return;
+    s.disabled=true;rpc('assign_report',{p_id:id,p_staff:v},true).then(refresh).catch(function(x){pe.hidden=false;pe.textContent=fe(x);s.disabled=false})}});
+  document.querySelectorAll('[data-ro]').forEach(function(b){b.onclick=function(){var id=b.dataset.ro,st=document.getElementById('ro-'+id).value,why=document.getElementById('rr-'+id).value.trim();
+    if(!st||!why){pe.hidden=false;pe.textContent='اختر مأمور الضبط واكتب سبب إعادة الفتح.';return}
+    if(!confirm('إعادة فتح البلاغ '+id+' وإسناده من جديد؟'))return;b.disabled=true;
+    rpc('reopen_report',{p_id:id,p_staff:st,p_reason:why},true).then(refresh).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false})}});
+  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){var id=b.dataset.del;
+    if(!confirm('حذف البلاغ '+id+' نهائياً مع سجله وصوره؟ لا يمكن التراجع عن الحذف.'))return;
+    b.disabled=true;b.textContent='جارٍ الحذف…';
+    rpc('delete_report',{p_id:id},true).then(function(){if(lastQ===id){lastQ='';$('#qres').innerHTML=''}loadList()}).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false;b.textContent='حذف البلاغ'})}});
+  document.querySelectorAll('[data-im]').forEach(function(b){b.onclick=function(){var o=document.querySelector('[data-o="'+b.dataset.im+'"]');
+    api('/rest/v1/report_photos?report_id=eq.'+encodeURIComponent(b.dataset.im)+'&select=file_path',{auth:true}).then(function(ps){
+      if(!ps.length){o.innerHTML='<p class="hint">لا توجد صور.</p>';return}
+      return Promise.all(ps.map(function(p){return api('/storage/v1/object/sign/report-photos/'+p.file_path,{m:'POST',auth:true,body:JSON.stringify({expiresIn:600})})})).then(function(s){
+        o.innerHTML='<div class="imgs">'+s.map(function(x){return '<a href="'+U+'/storage/v1'+x.signedURL+'" target="_blank" rel="noopener"><img alt="صورة البلاغ" src="'+U+'/storage/v1'+x.signedURL+'"></a>'}).join('')+'</div>'})})
+    .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}})}
+function loadList(){var pe=$('#perr'),ro=me&&me.role;pe.hidden=true;if(ro==='admin')loadDash();
+  Promise.all([api(listQuery(),{auth:true}),api('/rest/v1/report_contacts?select=report_id,name,phone,role&limit=1000',{auth:true})])
+  .then(function(res){var a=res[0];cmCache={};res[1].forEach(function(c){cmCache[c.report_id]=c});
+    lastN=a.length;$('#bell').hidden=true;document.title=document.title.replace(/^\(\d+\) /,'');
+    if(ro!=='admin'&&a.length){document.title='('+a.length+') '+document.title}
+    if(!a.length){$('#list').innerHTML='<p class="hint" style="text-align:center;padding:20px 0">'+(ro==='supervisor'?'لا توجد بلاغات تحتاج إسناد.':ro==='inspector'?'لا توجد بلاغات مسندة إليك حالياً.':'لا توجد بلاغات.')+'</p>';return}
+    $('#list').innerHTML=a.map(function(r){return itemHtml(r,cmCache[r.id])}).join('');bindItems()})
+  .catch(function(x){if(/JWT|expired|401/i.test(x.message)){setSess(null);return}pe.hidden=false;pe.textContent=fe(x)})}
+function doSearch(id){var o=$('#qres'),ro=me&&me.role;lastQ=id;o.innerHTML='<p class="hint">جارٍ البحث…</p>';
+  Promise.all([api('/rest/v1/reports?select=*&id=eq.'+encodeURIComponent(id),{auth:true}),api('/rest/v1/report_contacts?select=report_id,name,phone,role&report_id=eq.'+encodeURIComponent(id),{auth:true})])
+  .then(function(res){var r=res[0][0];
+    if(!r){o.innerHTML='<p class="err">لم يتم العثور على بلاغ بهذا الرقم.</p>';return}
+    o.innerHTML=(FINAL.indexOf(r.status)>-1&&ro!=='admin'?'<p class="hint">هذا البلاغ مغلق ومعروض للاطلاع فقط.</p>':'')+itemHtml(r,res[1][0]);bindItems()})
+  .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}
+$('#qgo').onclick=function(){var v=$('#q').value.trim().toUpperCase();if(v)doSearch(v)};
+setInterval(function(){if(!tok||!me||me.role==='admin'||$('#panel').hidden||lastN<0)return;
+  api(listQuery().replace('select=*','select=id'),{auth:true}).then(function(a){if(a.length>lastN){var b=$('#bell');b.hidden=false;
+    b.innerHTML='<span>'+(me.role==='supervisor'?'وصل بلاغ جديد يحتاج إسناد':'أُسند إليك بلاغ جديد')+'</span><button class="btn sm" type="button">عرض</button>';
+    b.querySelector('button').onclick=loadList;try{navigator.vibrate&&navigator.vibrate(200)}catch(e){}}}).catch(function(){})},60000);
 
 /* تحديث الحالة وإغلاق البلاغ بإثبات */
 var FINAL=['confirmed','no_violation','closed'],OPEN=['new','verifying','confirmed','no_violation'],evf={};
@@ -364,7 +400,7 @@ function panel(id,st,cur){evf[id]=[];
     '<button type="button" class="btn alt sm" data-pk="'+(c?'galimg':'gal')+'" data-for="'+esc(id)+'" style="flex:1;margin:0">من الألبوم</button></div>'+
     '<div class="evl" data-evp="'+esc(id)+'"></div>'+
     '<label for="cn-'+esc(id)+'">ملاحظة الإغلاق</label><textarea id="cn-'+esc(id)+'" style="min-height:70px" placeholder="اختياري: وصف مختصر لما تم في الموقع"></textarea>'+
-    '<p class="hint">بعد الحفظ يُغلق البلاغ نهائياً ولا يمكن إعادة فتحه.</p>'+
+    '<p class="hint">بعد الحفظ يُغلق البلاغ ويختفي من قائمتك، ولا يعيد فتحه إلا مدير الرقابة.</p>'+
     '<button class="btn sm" data-close="'+esc(id)+'" data-res="'+st+'">حفظ وإغلاق البلاغ</button>'}
 function pick(acc,cap,multi,cb){var i=document.createElement('input');i.type='file';i.accept=acc;if(cap)i.setAttribute('capture',cap);i.multiple=!!multi;i.style.display='none';
   i.onchange=function(){cb(Array.prototype.slice.call(i.files));i.remove()};document.body.appendChild(i);i.click()}
@@ -379,7 +415,7 @@ function bindClose(){var pe=$('#perr');
   document.querySelectorAll('[data-st]').forEach(function(s){var id=s.dataset.st,box=document.querySelector('[data-pn="'+id+'"]');
     s.onchange=function(){box.innerHTML=panel(id,s.value,s.dataset.cur);bindPanel(id,box)}})
   document.querySelectorAll('[data-ev]').forEach(function(b){b.onclick=function(){var id=b.dataset.ev,o=document.querySelector('[data-evo="'+id+'"]');b.disabled=true;
-    api('/rest/v1/report_evidence?report_id=eq.'+encodeURIComponent(id)+'&select=file_path,kind&order=created_at',{auth:true}).then(function(ps){
+    api('/rest/v1/report_evidence?report_id=eq.'+encodeURIComponent(id)+'&archived=eq.false&select=file_path,kind&order=created_at',{auth:true}).then(function(ps){
       if(!ps.length){o.innerHTML='<p class="hint">لا يوجد إثبات مرفق.</p>';return}
       return Promise.all(ps.map(function(x){return api('/storage/v1/object/sign/report-photos/'+x.file_path,{m:'POST',auth:true,body:JSON.stringify({expiresIn:600})})})).then(function(sg){
         o.innerHTML=ps.map(function(x,n){var u=U+'/storage/v1'+sg[n].signedURL;return x.kind==='video'?'<video class="vid" controls playsinline preload="metadata" src="'+u+'"></video>':''}).join('')+
@@ -387,7 +423,7 @@ function bindClose(){var pe=$('#perr');
     .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'}).then(function(){b.disabled=false})}})}
 function bindPanel(id,box){var pe=$('#perr');
   box.querySelectorAll('[data-save]').forEach(function(b){b.onclick=function(){var st=document.querySelector('[data-st="'+id+'"]').value;b.disabled=true;
-    rpc('set_status',{p_id:id,p_status:st,p_note:null},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false})}});
+    rpc('set_status',{p_id:id,p_status:st,p_note:null},true).then(refresh).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false})}});
   box.querySelectorAll('[data-pk]').forEach(function(b){b.onclick=function(){var k=b.dataset.pk,add=function(fs){fs.forEach(function(f){if(evf[id].length<10)evf[id].push(f)});showEv(id)};
     if(k==='img')pick('image/*','environment',false,add);else if(k==='vid')pick('video/*','environment',false,add);
     else if(k==='galimg')pick('image/*',null,true,add);else pick('image/*,video/*',null,true,add)}});
@@ -395,11 +431,11 @@ function bindPanel(id,box){var pe=$('#perr');
     var hasImg=fs.some(function(f){return !/^video\//.test(f.type)});
     if(res==='confirmed'&&(!vno||!hasImg)){pe.hidden=false;pe.textContent=ERR.confirm_requirements;return}
     if(!fs.length){pe.hidden=false;pe.textContent=ERR.evidence_required;return}
-    if(!confirm('سيُغلق البلاغ '+id+' نهائياً بحالة «'+SL[res]+'» ولا يمكن إعادة فتحه. متابعة؟'))return;
+    if(!confirm('سيُغلق البلاغ '+id+' بحالة «'+SL[res]+'». لا يمكنك تعديله بعد الحفظ. متابعة؟'))return;
     pe.hidden=true;b.disabled=true;b.textContent='جارٍ رفع الإثبات…';
     Promise.all(fs.map(upEv)).then(function(up){b.textContent='جارٍ الإغلاق…';
       return rpc('close_report',{p_id:id,p_result:res,p_violation_no:vno||null,p_note:document.getElementById('cn-'+id).value.trim()||null,p_files:up.map(function(u){return u.p}),p_kinds:up.map(function(u){return u.k})},true)})
-    .then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false;b.textContent='حفظ وإغلاق البلاغ'})}})}
+    .then(refresh).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false;b.textContent='حفظ وإغلاق البلاغ'})}})}
 
 /* تصدير إلى شيت: خطوتان ليعمل على الآيفون */
 var xCsv='',xTsv='',xName='balaghat.csv';

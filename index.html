@@ -86,7 +86,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
 .seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px 4px;font:600 13.5px inherit;font-family:inherit;cursor:pointer}
 .seg button[aria-checked=true]{background:var(--pri);border-color:var(--pri);color:#fff}
-.map{height:260px;border-radius:12px;border:1px solid var(--line);overflow:hidden;z-index:0}
+.map{height:300px;border-radius:12px;border:1px solid var(--line);overflow:hidden;z-index:0}
 .leaflet-container{font-family:inherit}
 .sumbox{background:var(--soft);border-radius:12px;padding:10px 12px;margin-top:10px}
 .tag.rem{background:#fde2c8;color:#8a4300}
@@ -267,7 +267,12 @@ if(rHas()){$('#rlogin').hidden=true;$('#rwait').hidden=false;
 var map=null,pin=null,autoDist=true,CITIES=['حفر الباطن','القيصومة','الخفجي','النعيرية','القرية العليا','مليجة'];
 function initMap(){if(map||!window.L||$('#map').offsetParent===null){if(map)map.invalidateSize();return}
   map=L.map('map').setView([28.4328,45.9708],12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'صور فضائية © Esri'}),
+      lbl=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}),
+      road=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}),
+      st=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+  var hyb=L.layerGroup([sat,road,lbl]).addTo(map);
+  L.control.layers({'قمر صناعي':hyb,'خريطة الشوارع':st},null,{position:'topright',collapsed:false}).addTo(map);
   map.on('click',function(e){setPin(e.latlng.lat,e.latlng.lng,false)})}
 function setPin(lat,lng,fly){if(!map)initMap();if(!map)return;var ll=[lat,lng];
   if(pin)pin.setLatLng(ll);else pin=L.marker(ll).addTo(map);if(fly)map.setView(ll,17);

@@ -251,10 +251,19 @@ function shrink(f){return new Promise(function(res,rej){var im=new Image(),u=URL
   im.onload=function(){var s=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){URL.revokeObjectURL(u);b?res(b):rej(new Error('تعذر معالجة الصورة'))},'image/jpeg',.8)};
   im.onerror=function(){rej(new Error('تعذر قراءة الصورة'))};im.src=u})}
-function upload(f){var v=/^video\//.test(f.type);if(v&&f.size>52428800)return Promise.reject(new Error('too_big'));
+function putFile(p,body,type,onp){return new Promise(function(res,rej){var x=new XMLHttpRequest();
+  x.open('POST',U+'/storage/v1/object/report-photos/'+p);x.setRequestHeader('apikey',K);x.setRequestHeader('Content-Type',type);x.timeout=300000;
+  if(x.upload&&onp)x.upload.onprogress=function(e){if(e.lengthComputable)onp(Math.round(e.loaded/e.total*100))};
+  x.onload=function(){if(x.status>=200&&x.status<300)res(p);else rej(new Error(/size|413/i.test(x.responseText+x.status)?'too_big':'فشل رفع الملف ('+x.status+')'))};
+  x.onerror=function(){rej(new Error('انقطع الرفع. تحقق من الإنترنت وحاول مرة أخرى.'))};
+  x.ontimeout=function(){rej(new Error('استغرق الرفع وقتاً طويلاً. جرّب فيديو أقصر أو شبكة أقوى.'))};
+  x.send(body)})}
+function seqUp(files,fn,lbl){var out=[],i=0;function next(){if(i>=files.length)return Promise.resolve(out);var n=i++;
+  return fn(files[n],function(pc){lbl('جارٍ رفع الملف '+(n+1)+' من '+files.length+' ('+pc+'%)')}).then(function(r){out.push(r);return next()})}
+  return next()}
+function upload(f,onp){var v=/^video\//.test(f.type);if(v&&f.size>52428800)return Promise.reject(new Error('too_big'));
   var p='pending/'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random().toString(36).slice(2))+(v?(f.type==='video/quicktime'?'.mov':'.mp4'):'.jpg');
-  return (v?Promise.resolve(f):shrink(f)).then(function(b){return fetch(U+'/storage/v1/object/report-photos/'+p,{method:'POST',headers:{apikey:K,'Content-Type':v?(f.type||'video/mp4'):'image/jpeg'},body:b})})
-  .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error(/size|413/i.test(t+r.status)?'too_big':(v?'فشل رفع الفيديو':'فشل رفع صورة'))});return p})}
+  return (v?Promise.resolve(f):shrink(f)).then(function(b){return putFile(p,b,v?(f.type||'video/mp4'):'image/jpeg',onp)})}
 
 var picked=[];
 function showPics(){$('#prev').innerHTML=picked.map(function(f,i){var v=/^video\//.test(f.type);return '<button type="button" class="pv" data-rm="'+i+'" aria-label="حذف الملف">'+(v?'<div style="width:84px;height:84px;border-radius:10px;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;text-align:center">فيديو<br>'+(f.size/1048576).toFixed(1)+' م.ب</div>':'<img alt="" src="'+URL.createObjectURL(f)+'">')+'<span>×</span></button>'}).join('');
@@ -274,7 +283,7 @@ $('#f').onsubmit=function(e){e.preventDefault();
   if(files.length>5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
   er.hidden=true;var btn=$('#sub');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
   var loc=$('#loc').value.trim(),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/),t0;
-  rTok().then(function(t){t0=t;return Promise.all(files.map(upload))}).then(function(paths){
+  rTok().then(function(t){t0=t;return seqUp(files,upload,function(m){btn.textContent=m})}).then(function(paths){btn.textContent='جارٍ حفظ البلاغ…';
     return rpc('submit_report',{p_name:rme.name,p_phone:rme.phone,p_role:rme.title||'',p_city:$('#city').value,p_type:$('#type').value,
       p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths},false,t0)})
   .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id})
@@ -454,10 +463,9 @@ function pick(acc,cap,multi,cb){var i=document.createElement('input');i.type='fi
 function showEv(id){var box=document.querySelector('[data-evp="'+id+'"]');if(!box)return;
   box.innerHTML=evf[id].map(function(f,n){var v=/^video\//.test(f.type);return '<span class="ch" data-rmev="'+n+'" data-for="'+esc(id)+'">'+(v?'فيديو '+(f.size/1048576).toFixed(1)+' م.ب':'صورة '+(n+1))+' ×</span>'}).join('');
   box.querySelectorAll('[data-rmev]').forEach(function(x){x.onclick=function(){evf[id].splice(+x.dataset.rmev,1);showEv(id)}})}
-function upEv(f){var v=/^video\//.test(f.type);if(v&&f.size>52428800)return Promise.reject(new Error('too_big'));
+function upEv(f,onp){var v=/^video\//.test(f.type);if(v&&f.size>52428800)return Promise.reject(new Error('too_big'));
   var ext=v?(f.type==='video/quicktime'?'.mov':'.mp4'):'.jpg',p='pending/ev-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random().toString(36).slice(2))+ext;
-  return (v?Promise.resolve(f):shrink(f)).then(function(b){return fetch(U+'/storage/v1/object/report-photos/'+p,{method:'POST',headers:{apikey:K,'Content-Type':v?(f.type||'video/mp4'):'image/jpeg'},body:b})})
-  .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error(/size|413/i.test(t+r.status)?'too_big':'فشل رفع ملف الإثبات')});return {p:p,k:v?'video':'photo'}})}
+  return (v?Promise.resolve(f):shrink(f)).then(function(b){return putFile(p,b,v?(f.type||'video/mp4'):'image/jpeg',onp)}).then(function(){return {p:p,k:v?'video':'photo'}})}
 function bindClose(){var pe=$('#perr');
   document.querySelectorAll('[data-st]').forEach(function(s){var id=s.dataset.st,box=document.querySelector('[data-pn="'+id+'"]');
     s.onchange=function(){box.innerHTML=panel(id,s.value,s.dataset.cur);bindPanel(id,box)}})
@@ -480,7 +488,7 @@ function bindPanel(id,box){var pe=$('#perr');
     if(!fs.length){pe.hidden=false;pe.textContent=ERR.evidence_required;return}
     if(!confirm('سيُغلق البلاغ '+id+' بحالة «'+SL[res]+'». لا يمكنك تعديله بعد الحفظ. متابعة؟'))return;
     pe.hidden=true;b.disabled=true;b.textContent='جارٍ رفع الإثبات…';
-    Promise.all(fs.map(upEv)).then(function(up){b.textContent='جارٍ الإغلاق…';
+    seqUp(fs,upEv,function(m){b.textContent=m}).then(function(up){b.textContent='جارٍ الإغلاق…';
       return rpc('close_report',{p_id:id,p_result:res,p_violation_no:vno||null,p_note:document.getElementById('cn-'+id).value.trim()||null,p_files:up.map(function(u){return u.p}),p_kinds:up.map(function(u){return u.k})},true)})
     .then(refresh).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false;b.textContent='حفظ وإغلاق البلاغ'})}})}
 

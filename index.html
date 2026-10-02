@@ -539,18 +539,20 @@ function stBlock(r){var id=esc(r.id);
   return '<div class="vn"><label for="st-'+id+'">تحديث الحالة</label><select id="st-'+id+'" data-st="'+id+'" data-cur="'+esc(r.status)+'">'+
     OPEN.map(function(k){return '<option value="'+k+'"'+(k===r.status?' selected':'')+'>'+SL[k]+(k==='confirmed'||k==='no_violation'?' (إغلاق نهائي)':'')+'</option>'}).join('')+
     '</select><div data-pn="'+id+'"></div></div>'}
-function panel(id,st,cur){evf[id]=[];
+var evx={},evrm={};
+function panel(id,st,cur){evf[id]=[];evrm[id]={};var rr=rmap[id]||{};
   if(st===cur)return '<p class="hint">هذه هي الحالة الحالية. اختر حالة أخرى لتحديثها.</p>';
   if(st==='new'||st==='verifying')return '<button class="btn sm" data-save="'+esc(id)+'">حفظ الحالة</button>';
   var c=st==='confirmed';
-  return (c?'<label for="vno-'+esc(id)+'">رقم المخالفة <i>*</i></label><input id="vno-'+esc(id)+'" dir="ltr" style="text-align:right" placeholder="أدخل رقم المخالفة">':'')+
+  return (c?'<label for="vno-'+esc(id)+'">رقم المخالفة <i>*</i></label><input id="vno-'+esc(id)+'" dir="ltr" style="text-align:right" placeholder="أدخل رقم المخالفة" value="'+esc(rr.violation_no||'')+'">':'')+
+    '<div data-evx="'+esc(id)+'"></div>'+
     '<label>'+(c?'صور إثبات المخالفة <i>*</i>':'صور أو فيديو يثبت عدم وجود تعدٍّ <i>*</i>')+'</label>'+
     '<div class="row"><button type="button" class="btn alt sm" data-pk="img" data-for="'+esc(id)+'" style="flex:1;margin:0">تصوير صورة</button>'+
     (c?'':'<button type="button" class="btn alt sm" data-pk="vid" data-for="'+esc(id)+'" style="flex:1;margin:0">تصوير فيديو</button>')+
     '<button type="button" class="btn alt sm" data-pk="'+(c?'galimg':'gal')+'" data-for="'+esc(id)+'" style="flex:1;margin:0">من الألبوم</button></div>'+
     '<div class="evl" data-evp="'+esc(id)+'"></div>'+
-    '<label for="cn-'+esc(id)+'">ملاحظة الإغلاق</label><textarea id="cn-'+esc(id)+'" style="min-height:70px" placeholder="اختياري: وصف مختصر لما تم في الموقع"></textarea>'+
-    '<p class="hint">بعد الحفظ يُغلق البلاغ ويختفي من قائمتك، ولا يعيد فتحه إلا مدير الرقابة.</p>'+
+    '<label for="cn-'+esc(id)+'">ملاحظة الإغلاق</label><textarea id="cn-'+esc(id)+'" style="min-height:70px" placeholder="اختياري: وصف مختصر لما تم في الموقع">'+esc(rr.close_note||'')+'</textarea>'+
+    '<p class="hint">بعد الحفظ يُغلق البلاغ ويختفي من قائمتك، ولا يُعاد فتحه إلا من مدير الرقابة أو مشرف الفرع.</p>'+
     '<button class="btn sm" data-close="'+esc(id)+'" data-res="'+st+'">حفظ وإغلاق البلاغ</button>'}
 function pick(acc,cap,multi,cb){var i=document.createElement('input');i.type='file';i.accept=acc;if(cap)i.setAttribute('capture',cap);i.multiple=!!multi;i.style.display='none';
   i.onchange=function(){cb(Array.prototype.slice.call(i.files));i.remove()};document.body.appendChild(i);i.click()}
@@ -570,20 +572,27 @@ function bindClose(){var pe=$('#perr');
         o.innerHTML=ps.map(function(x,n){var u=U+'/storage/v1'+sg[n].signedURL;return x.kind==='video'?'<video class="vid" controls playsinline preload="metadata" src="'+u+'"></video>':''}).join('')+
           '<div class="imgs">'+ps.map(function(x,n){var u=U+'/storage/v1'+sg[n].signedURL;return x.kind==='photo'?'<a href="'+u+'" target="_blank" rel="noopener"><img alt="صورة إثبات" src="'+u+'"></a>':''}).join('')+'</div>'})})
     .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'}).then(function(){b.disabled=false})}})}
-function bindPanel(id,box){var pe=$('#perr');
+function bindPanel(id,box){var pe=$('#perr'),xb=box.querySelector('[data-evx]');
+  if(xb){evx[id]=[];api('/rest/v1/report_evidence?report_id=eq.'+encodeURIComponent(id)+'&archived=eq.false&select=id,kind,file_path&order=created_at',{auth:true}).then(function(ps){
+    if(!ps.length)return;evx[id]=ps;
+    return Promise.all(ps.map(function(x){return api('/storage/v1/object/sign/report-photos/'+x.file_path,{m:'POST',auth:true,body:JSON.stringify({expiresIn:600})})})).then(function(sg){
+      xb.innerHTML='<label>الإثبات السابق (اضغط على أي ملف لحذفه أو إبقائه)</label><div class="evl">'+ps.map(function(x,n){var u=U+'/storage/v1'+sg[n].signedURL;
+        return '<span class="ch" data-xid="'+x.id+'">'+(x.kind==='video'?'🎬 فيديو':'<img alt="" src="'+u+'" style="width:52px;height:52px;object-fit:cover;border-radius:6px;vertical-align:middle">')+' <b>إبقاء</b></span>'}).join('')+'</div>';
+      xb.querySelectorAll('[data-xid]').forEach(function(c){c.onclick=function(){var k=c.dataset.xid;evrm[id][k]=!evrm[id][k];c.style.opacity=evrm[id][k]?.4:1;c.querySelector('b').textContent=evrm[id][k]?'سيُحذف':'إبقاء'}})})}).catch(function(){})}
   box.querySelectorAll('[data-save]').forEach(function(b){b.onclick=function(){var st=document.querySelector('[data-st="'+id+'"]').value;b.disabled=true;
     rpc('set_status',{p_id:id,p_status:st,p_note:null},true).then(refresh).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false})}});
   box.querySelectorAll('[data-pk]').forEach(function(b){b.onclick=function(){var k=b.dataset.pk,add=function(fs){fs.forEach(function(f){if(evf[id].length<10)evf[id].push(f)});showEv(id)};
     if(k==='img')pick('image/*','environment',false,add);else if(k==='vid')pick('video/*','environment',false,add);
     else if(k==='galimg')pick('image/*',null,true,add);else pick('image/*,video/*',null,true,add)}});
   box.querySelectorAll('[data-close]').forEach(function(b){b.onclick=function(){var res=b.dataset.res,fs=evf[id]||[],vno=res==='confirmed'?document.getElementById('vno-'+id).value.trim():'';
-    var hasImg=fs.some(function(f){return !/^video\//.test(f.type)});
+    var kept=(evx[id]||[]).filter(function(x){return !evrm[id][x.id]}),rm=(evx[id]||[]).filter(function(x){return evrm[id][x.id]}).map(function(x){return x.id});
+    var hasImg=fs.some(function(f){return !/^video\//.test(f.type)})||kept.some(function(x){return x.kind==='photo'});
     if(res==='confirmed'&&(!vno||!hasImg)){pe.hidden=false;pe.textContent=ERR.confirm_requirements;return}
-    if(!fs.length){pe.hidden=false;pe.textContent=ERR.evidence_required;return}
+    if(!fs.length&&!kept.length){pe.hidden=false;pe.textContent=ERR.evidence_required;return}
     if(!confirm('سيُغلق البلاغ '+id+' بحالة «'+SL[res]+'». لا يمكنك تعديله بعد الحفظ. متابعة؟'))return;
     pe.hidden=true;b.disabled=true;b.textContent='جارٍ رفع الإثبات…';
     seqUp(fs,upEv,function(m){b.textContent=m}).then(function(up){b.textContent='جارٍ الإغلاق…';
-      return rpc('close_report',{p_id:id,p_result:res,p_violation_no:vno||null,p_note:document.getElementById('cn-'+id).value.trim()||null,p_files:up.map(function(u){return u.p}),p_kinds:up.map(function(u){return u.k})},true)})
+      return rpc('close_report',{p_id:id,p_result:res,p_violation_no:vno||null,p_note:document.getElementById('cn-'+id).value.trim()||null,p_files:up.map(function(u){return u.p}),p_kinds:up.map(function(u){return u.k}),p_remove:rm},true)})
     .then(refresh).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false;b.textContent='حفظ وإغلاق البلاغ'})}})}
 
 /* تصدير إلى Excel (xlsx) */

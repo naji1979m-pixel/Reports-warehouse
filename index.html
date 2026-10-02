@@ -83,6 +83,9 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .wa p{margin:0 0 8px;font-weight:600}
 .wa a.btn,.wa button.btn{display:inline-block;width:auto;margin:0 0 0 6px;padding:8px 14px;text-decoration:none;text-align:center}
 .wa a.btn{background:#1f9d55;color:#fff}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px 4px;font:600 13.5px inherit;font-family:inherit;cursor:pointer}
+.seg button[aria-checked=true]{background:var(--pri);border-color:var(--pri);color:#fff}
 .map{height:260px;border-radius:12px;border:1px solid var(--line);overflow:hidden;z-index:0}
 .leaflet-container{font-family:inherit}
 .sumbox{background:var(--soft);border-radius:12px;padding:10px 12px;margin-top:10px}
@@ -131,11 +134,15 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <select id="urg"><option value="0">عادي</option><option value="1">مستعجل مهم</option><option value="2">مستعجل في غاية الأهمية</option></select>
 <div id="urgwrap" hidden><label for="urgr">سبب الأهمية <i>*</i></label><textarea id="urgr" style="min-height:70px" placeholder="مثال: هدر مياه مستمر، خطر على المارة، انقطاع عن الحي…"></textarea></div>
 <label>موقع البلاغ <i>*</i></label>
-<div id="map" class="map" role="application" aria-label="خريطة تحديد موقع البلاغ"></div>
-<button type="button" class="btn alt sm" id="gps">تحديد موقعي الحالي</button>
-<p class="hint" id="gpsmsg">اضغط على الخريطة في مكان البلاغ لتسجيل الإحداثية تلقائياً، أو اكتبها يدوياً في الخانة التالية.</p>
-<label for="loc">الإحداثية أو رابط الموقع</label>
-<input id="loc" placeholder="مثال: 28.430227, 45.968577" dir="ltr" style="text-align:right">
+<div class="seg" role="radiogroup" aria-label="طريقة تحديد الموقع">
+<button type="button" role="radio" aria-checked="false" data-lm="gps">📍 موقعي الحالي</button>
+<button type="button" role="radio" aria-checked="false" data-lm="map">🗺️ من الخريطة</button>
+<button type="button" role="radio" aria-checked="false" data-lm="manual">✍️ إدخال يدوي</button>
+</div>
+<div id="map" class="map" role="application" aria-label="خريطة تحديد موقع البلاغ" hidden></div>
+<p class="hint" id="gpsmsg">اختر طريقة تحديد موقع البلاغ.</p>
+<div id="locwrap" hidden><label for="loc">الإحداثية أو رابط الموقع</label>
+<input id="loc" placeholder="مثال: 28.430227, 45.968577" dir="ltr" style="text-align:right"></div>
 <label for="dist">الحي <i>*</i></label>
 <input id="dist" placeholder="يُعبأ تلقائياً من الخريطة ويمكن تعديله">
 <label for="meter">رقم العداد إن وجد</label>
@@ -270,12 +277,17 @@ function setPin(lat,lng,fly){if(!map)initMap();if(!map)return;var ll=[lat,lng];
     if(d&&(autoDist||!$('#dist').value.trim())){$('#dist').value=d;$('#dist').classList.remove('bad');autoDist=true}
     var dn=j&&j.display_name||'';if(!$('#city').value)CITIES.forEach(function(c){if(dn.indexOf(c)>-1)$('#city').value=c})}).catch(function(){})}
 $('#dist').oninput=function(){autoDist=false};
-$('#loc').onchange=function(){var m=this.value.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);if(m)setPin(+m[1],+m[2],true)};
+$('#loc').onchange=function(){var m=this.value.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);if(m&&!$('#map').hidden)setPin(+m[1],+m[2],true)};
 var lastPos=null;
 function getPos(){return new Promise(function(res){if(!navigator.geolocation)return res(lastPos);
   navigator.geolocation.getCurrentPosition(function(p){lastPos={lat:p.coords.latitude,lng:p.coords.longitude};res(lastPos)},function(){res(lastPos)},{enableHighAccuracy:true,timeout:8000,maximumAge:60000})})}
-$('#gps').onclick=function(){var m=$('#gpsmsg');m.textContent='جارٍ تحديد الموقع…';
-  getPos().then(function(p){if(p)setPin(p.lat,p.lng,true);else m.textContent='تعذّر تحديد الموقع. اسمح بالوصول للموقع أو اضغط على الخريطة.'})};
+function locMode(m){document.querySelectorAll('[data-lm]').forEach(function(x){x.setAttribute('aria-checked',x.dataset.lm===m)});
+  var g=$('#gpsmsg');$('#locwrap').hidden=false;$('#map').hidden=(m==='manual');
+  if(m!=='manual')setTimeout(function(){initMap();if(map)map.invalidateSize()},60);
+  if(m==='gps'){g.textContent='جارٍ تحديد موقعك الحالي…';getPos().then(function(p){if(p)setPin(p.lat,p.lng,true);else g.textContent='تعذّر تحديد الموقع. اسمح للمتصفح بالوصول للموقع، أو اختر «من الخريطة».'})}
+  else if(m==='map')g.textContent='اضغط على الخريطة في مكان البلاغ لتسجيل الإحداثية تلقائياً.';
+  else{g.textContent='اكتب الإحداثية أو الصق رابط خرائط Google.';$('#loc').focus()}}
+document.querySelectorAll('[data-lm]').forEach(function(x){x.onclick=function(){locMode(x.dataset.lm)}});
 $('#urg').onchange=function(){$('#urgwrap').hidden=this.value==='0'};
 function two(n){return (n<10?'0':'')+n}
 function stampFor(f){return getPos().then(function(p){
@@ -319,7 +331,7 @@ $('#f').onsubmit=function(e){e.preventDefault();
   if(!rme){rOut();return}
   ['city','type','loc','dist','desc'].concat($('#urg').value!=='0'?['urgr']:[]).forEach(function(k){var el=$('#'+k),v=el.value.trim();
     if(!v){el.classList.add('bad');ok=false}else el.classList.remove('bad')});
-  if(!ok){er.hidden=false;er.textContent='أكمل الحقول المطلوبة المعلّمة بالأحمر.';return}
+  if(!ok){if(!$('#loc').value.trim()){$('#locwrap').hidden=false;$('#gpsmsg').textContent='حدّد موقع البلاغ: موقعي الحالي، أو من الخريطة، أو إدخال يدوي.'}er.hidden=false;er.textContent='أكمل الحقول المطلوبة المعلّمة بالأحمر.';return}
   var files=picked.slice();
   if(files.length>5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
   er.hidden=true;var btn=$('#sub');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
@@ -335,7 +347,7 @@ $('#f').onsubmit=function(e){e.preventDefault();
   .catch(function(x){if(/not_authorized|no_session|Refresh Token/i.test(x.message)){rOut();$('#rlerr').hidden=false;$('#rlerr').textContent='انتهت الجلسة أو الحساب غير مصرّح. سجّل الدخول مرة أخرى.';return}
     er.hidden=false;er.textContent=fe(x)})
   .then(function(){btn.disabled=false;btn.textContent='إرسال البلاغ'})};
-$('#again').onclick=function(){$('#f').reset();picked=[];showPics();$('#urgwrap').hidden=true;autoDist=true;if(pin){pin.remove();pin=null}$('#selfwa').hidden=true;$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
+$('#again').onclick=function(){$('#f').reset();picked=[];showPics();$('#urgwrap').hidden=true;autoDist=true;if(pin){pin.remove();pin=null}$('#map').hidden=true;$('#locwrap').hidden=true;$('#gpsmsg').textContent='اختر طريقة تحديد موقع البلاغ.';document.querySelectorAll('[data-lm]').forEach(function(x){x.setAttribute('aria-checked','false')});$('#selfwa').hidden=true;$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
 $('#copy').onclick=function(){var t=$('#newid').textContent;
   try{navigator.clipboard.writeText(t).then(function(){$('#copy').textContent='تم النسخ'},function(){$('#copy').textContent='انسخ الرقم يدوياً'})}catch(e){$('#copy').textContent='انسخ الرقم يدوياً'}};
 

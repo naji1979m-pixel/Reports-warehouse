@@ -417,23 +417,31 @@ function listQuery(){var ro=me&&me.role,f=$('#flt').value,q='/rest/v1/reports?se
   if(ro==='supervisor')return q+'&or=(assigned_to.is.null,assigned_to.eq.'+uid()+')&status=in.(new,verifying)';
   var u=$('#fur').value;return q+(f==='closed_all'?'&status=in.(confirmed,no_violation,closed)':f?'&status=eq.'+f:'')+(u!==''?'&urgency=eq.'+u:'')}
 var rmap={};
-function itemHtml(r,c){rmap[r.id]=r;var id=esc(r.id),ro=me&&me.role,fin=FINAL.indexOf(r.status)>-1,mine=r.assigned_to===uid();
+function itemHtml(r,c){rmap[r.id]=r;var id=esc(r.id),ro=me&&me.role,fin=FINAL.indexOf(r.status)>-1,mine=r.assigned_to===uid(),canEdit=!fin&&((ro==='inspector'&&mine)||ro==='supervisor');
   var insp=staffList.filter(function(z){return z.role==='inspector'&&z.cities&&z.cities.indexOf&&z.cities.indexOf(r.city)>-1});if(!insp.length)insp=staffList.filter(function(z){return z.role==='inspector'});
   return '<div class="item"><div class="row"><b>'+id+'</b>'+(r.urgency?'<span class="tag u'+r.urgency+'">'+UR[r.urgency]+'</span>':'')+'<span class="tag">'+esc(r.city)+'</span>'+(fin?'<span class="tag cl">✅ تم إغلاق البلاغ</span>':'')+(r.reminded_at&&!fin?'<span class="tag rem">⏰ تذكير من المبلّغ</span>':'')+'</div>'+
     '<p><b>'+esc(r.type)+'</b></p>'+
     kv('الحي',r.district)+(r.urgency?kv('سبب الأهمية',r.urgency_reason):'')+kv('رقم الحصر',r.account_no)+kv('رقم الحساب',r.subscription_no)+kv('رقم العداد',r.meter_no)+
     kv('اسم المبلّغ',c&&c.name)+kv('صفة المبلّغ',c&&c.role)+
     '<div class="kv"><span>جوال المبلّغ</span><b>'+(c?'<span dir="ltr">'+esc(c.phone)+'</span>':'<small class="hint">يظهر بعد إسناد البلاغ إليك</small>')+'</b></div>'+
-    '<p class="lbl">وصف البلاغ</p><p>'+esc(r.description)+'</p>'+
+    '<p class="lbl">وصف البلاغ</p><p>'+esc(r.description)+'</p>'+(r.visit_notes?'<p class="lbl">ملاحظات الزيارة</p><p>'+esc(r.visit_notes)+'</p>':'')+
     '<p class="hint">'+fmt(r.created_at)+'</p>'+
     '<p><a href="'+esc(mapUrl(r.location_text))+'" target="_blank" rel="noopener">فتح الموقع على الخريطة</a></p>'+
     kv('المُسنَد إليه',staffName(r.assigned_to))+waBtn(r)+
     ((ro==='inspector'&&mine&&!fin)||fin?stBlock(r):kv('الحالة',SL[r.status]))+
-    (fin&&ro==='admin'?'<div class="vn"><label for="ro-'+id+'">إعادة فتح البلاغ وإسناده</label><select id="ro-'+id+'"><option value="">اختر مأمور الضبط</option>'+insp.map(function(z){return '<option value="'+esc(z.id)+'">'+esc(staffLabel(z))+'</option>'}).join('')+'</select>'+
+    (fin&&(ro==='admin'||ro==='supervisor')?'<div class="vn"><label for="ro-'+id+'">إعادة فتح البلاغ وإسناده</label><select id="ro-'+id+'"><option value="">اختر مأمور الضبط</option>'+insp.map(function(z){return '<option value="'+esc(z.id)+'">'+esc(staffLabel(z))+'</option>'}).join('')+'</select>'+
       '<input id="rr-'+id+'" placeholder="سبب إعادة الفتح" style="margin-top:8px"><button class="btn sm" data-ro="'+id+'">إعادة فتح وإسناد</button></div>':'')+
     (!fin&&(ro==='supervisor'||ro==='admin')?'<div class="vn"><label for="as-'+id+'">'+(r.assigned_to&&r.assigned_to!==uid()?'إعادة الإسناد إلى مأمور ضبط':'إسناد البلاغ إلى مأمور ضبط')+'</label><select class="as-sel" id="as-'+id+'" data-as="'+id+'"><option value="">اختر مأمور الضبط</option>'+insp.map(function(z){return '<option value="'+esc(z.id)+'">'+esc(staffLabel(z))+'</option>'}).join('')+'</select>'+
       '<a class="btn sm asgo" data-asgo="'+id+'" href="#" style="display:block;text-align:center;text-decoration:none;background:#1f9d55;color:#fff;opacity:.5">اختر مأمور الضبط أولاً</a></div>':'')+
-    '<div class="row"><button class="btn alt sm" data-im="'+id+'" style="width:auto;padding:8px 14px">صور وفيديو المبلّغ</button>'+(ro==='admin'?'<button class="btn alt sm" data-del="'+id+'" style="width:auto;padding:8px 14px;color:var(--bad)">حذف البلاغ</button>':'')+'</div><div data-o="'+id+'"></div></div>'}
+    (canEdit?'<div class="vn" data-edf="'+id+'" hidden><label>تعديل بيانات البلاغ</label>'+
+      '<label for="e-m-'+id+'">رقم العداد</label><input id="e-m-'+id+'" inputmode="numeric" value="'+esc(r.meter_no||'')+'">'+
+      '<label for="e-s-'+id+'">رقم الحساب</label><input id="e-s-'+id+'" inputmode="numeric" value="'+esc(r.subscription_no||'')+'">'+
+      '<label for="e-a-'+id+'">رقم الحصر</label><input id="e-a-'+id+'" inputmode="numeric" value="'+esc(r.account_no||'')+'">'+
+      '<label for="e-d-'+id+'">الحي</label><input id="e-d-'+id+'" value="'+esc(r.district||'')+'">'+
+      '<label for="e-l-'+id+'">الإحداثية أو رابط الموقع</label><input id="e-l-'+id+'" dir="ltr" style="text-align:right" value="'+esc(r.location_text||'')+'">'+
+      '<label for="e-n-'+id+'">ملاحظات الزيارة</label><textarea id="e-n-'+id+'" style="min-height:70px" placeholder="ما تم ملاحظته في الموقع">'+esc(r.visit_notes||'')+'</textarea>'+
+      '<button class="btn sm" data-eds="'+id+'">حفظ التعديلات</button></div>':'')+
+    '<div class="row">'+(canEdit?'<button class="btn alt sm" data-edt="'+id+'" style="width:auto;padding:8px 14px">✏️ تعديل بيانات البلاغ</button>':'')+'<button class="btn alt sm" data-hist="'+id+'" style="width:auto;padding:8px 14px">سجل التعديلات</button><button class="btn alt sm" data-im="'+id+'" style="width:auto;padding:8px 14px">صور وفيديو المبلّغ</button>'+(ro==='admin'?'<button class="btn alt sm" data-del="'+id+'" style="width:auto;padding:8px 14px;color:var(--bad)">حذف البلاغ</button>':'')+'</div><div data-ho="'+id+'"></div><div data-o="'+id+'"></div></div>'}
 
 /* إبلاغ مأمور الضبط عبر واتساب */
 function waNum(ph){ph=String(ph||'').replace(/\D/g,'');if(/^05\d{8}$/.test(ph))ph='966'+ph.slice(1);else if(/^5\d{8}$/.test(ph))ph='966'+ph;return /^9665\d{8}$/.test(ph)?ph:null}
@@ -458,6 +466,16 @@ function waShow(r,staffId){var z=staffList.filter(function(x){return x.id===staf
   $('#waok').onclick=function(){b.hidden=true};b.scrollIntoView({behavior:'smooth',block:'center'})}
 function refresh(){loadList();if(lastQ)doSearch(lastQ)}
 function bindItems(){var pe=$('#perr');bindClose();
+  document.querySelectorAll('[data-edt]').forEach(function(b){b.onclick=function(){var f=document.querySelector('[data-edf="'+b.dataset.edt+'"]');f.hidden=!f.hidden}});
+  document.querySelectorAll('[data-eds]').forEach(function(b){b.onclick=function(){var id=b.dataset.eds,g=function(k){return document.getElementById('e-'+k+'-'+id).value.trim()},
+      loc=g('l'),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);b.disabled=true;b.textContent='جارٍ الحفظ…';
+    rpc('update_report_info',{p_id:id,p_meter:g('m'),p_account:g('a'),p_subscription:g('s'),p_district:g('d'),p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_visit_notes:g('n')},true)
+    .then(refresh).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false;b.textContent='حفظ التعديلات';pe.scrollIntoView({behavior:'smooth',block:'center'})})}});
+  document.querySelectorAll('[data-hist]').forEach(function(b){b.onclick=function(){var id=b.dataset.hist,o=document.querySelector('[data-ho="'+id+'"]');
+    if(o.innerHTML){o.innerHTML='';return}
+    api('/rest/v1/report_edits?report_id=eq.'+encodeURIComponent(id)+'&select=changes,at&order=at.desc',{auth:true}).then(function(a){
+      o.innerHTML=a.length?'<ul class="tl">'+a.map(function(x){return '<li>'+esc(x.changes)+'<br><small>'+fmt(x.at)+'</small></li>'}).join('')+'</ul>':'<p class="hint">لا توجد تعديلات على هذا البلاغ.</p>'})
+    .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
   document.querySelectorAll('.as-sel').forEach(function(s){var id=s.dataset.as,go=document.querySelector('[data-asgo="'+id+'"]');
     var pics=null;
     s.onchange=function(){var z=staffList.filter(function(x){return x.id===s.value})[0];
@@ -501,7 +519,7 @@ function doSearch(id){var o=$('#qres'),ro=me&&me.role;lastQ=id;o.innerHTML='<p c
   Promise.all([api('/rest/v1/reports?select=*&id=eq.'+encodeURIComponent(id),{auth:true}),api('/rest/v1/report_contacts?select=report_id,name,phone,role&report_id=eq.'+encodeURIComponent(id),{auth:true})])
   .then(function(res){var r=res[0][0];
     if(!r){o.innerHTML='<p class="err">لم يتم العثور على بلاغ بهذا الرقم.</p>';return}
-    o.innerHTML=(FINAL.indexOf(r.status)>-1&&ro!=='admin'?'<p class="hint">هذا البلاغ مغلق ومعروض للاطلاع فقط.</p>':'')+itemHtml(r,res[1][0]);bindItems()})
+    o.innerHTML=(FINAL.indexOf(r.status)>-1&&ro==='inspector'?'<p class="hint">هذا البلاغ مغلق ومعروض للاطلاع فقط.</p>':'')+itemHtml(r,res[1][0]);bindItems()})
   .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&tok&&me&&me.role==='supervisor'&&!$('#panel').hidden)refresh()});
 $('#qgo').onclick=function(){var v=$('#q').value.trim().toUpperCase();if(v)doSearch(v)};
@@ -582,10 +600,10 @@ $('#xls').onclick=function(){var b=$('#xls'),out=$('#xout');out.innerHTML='';b.d
     loadXLSX()
   ]).then(function(r){
     var cm={};r[1].forEach(function(c){cm[c.report_id]=c});
-    var hd=['رقم البلاغ','التاريخ','المدينة','الحي','نوع المخالفة','الاستعجال','سبب الأهمية','الحالة','المُسنَد إليه','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','صفة المبلّغ','جوال المبلّغ','وصف البلاغ','رقم المخالفة','سبب الإغلاق','تاريخ الإغلاق','الموقع'];
+    var hd=['رقم البلاغ','التاريخ','المدينة','الحي','نوع المخالفة','الاستعجال','سبب الأهمية','الحالة','المُسنَد إليه','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','صفة المبلّغ','جوال المبلّغ','وصف البلاغ','ملاحظات الزيارة','رقم المخالفة','سبب الإغلاق','تاريخ الإغلاق','الموقع'];
     var sv=function(v){return v==null?'':String(v)};
     xAoa=[hd].concat(r[0].map(function(x){var c=cm[x.id]||{};return [x.id,fmt(x.created_at),x.city,x.district,x.type,UR[x.urgency]||'',x.urgency_reason,SL[x.status]||x.status,staffName(x.assigned_to),
-      x.account_no,x.subscription_no,x.meter_no,c.name,c.role,c.phone,x.description,x.violation_no,x.close_note,x.closed_at?fmt(x.closed_at):'',mapUrl(x.location_text||'')].map(sv)}));
+      x.account_no,x.subscription_no,x.meter_no,c.name,c.role,c.phone,x.description,x.visit_notes,x.violation_no,x.close_note,x.closed_at?fmt(x.closed_at):'',mapUrl(x.location_text||'')].map(sv)}));
     xName='تقرير-البلاغات-'+new Date().toISOString().slice(0,10)+'.xlsx';
     out.innerHTML='<p class="hint">التقرير جاهز: '+(xAoa.length-1)+' بلاغ.</p><button class="btn sm" id="xshare">حفظ / مشاركة ملف Excel</button>'+
       '<button class="btn alt sm" id="xcopy">نسخ الجدول للصقه في Excel أو Sheets</button><p class="hint" id="xmsg"></p>';

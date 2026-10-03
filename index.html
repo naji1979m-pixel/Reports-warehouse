@@ -49,6 +49,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .tag{font-size:12.5px;font-weight:600;padding:2px 10px;border-radius:99px;background:var(--soft);color:var(--pri)}
 .tag.u1{background:#f6e3c0;color:#7a4a05}.tag.u2{background:#f7d0d0;color:#8a1f1f}
+.tag.late{background:#f7d0d0;color:#8a1f1f}.tag.due{background:#e3eef9;color:#1d4f7a}
 .item{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px}
 .item p{margin:6px 0}
 .item a{color:var(--pri);font-weight:600}
@@ -96,6 +97,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .rme b{display:block;font-size:15.5px}
 .rme small{color:var(--mut);font-size:13px}
 .rme .btn{width:auto;margin:0;padding:6px 14px;flex:none}
+.rbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:none}
+.cpw{position:fixed;inset:0;z-index:2000;background:#0009;display:flex;align-items:center;justify-content:center;padding:16px}
+.cpbox{background:var(--card);border-radius:18px;padding:18px;width:100%;max-width:380px}
+.cpbox h3{margin:0 0 4px;font-size:18px}
+.cpshow{display:flex;align-items:center;gap:8px;font-weight:400}
+.cpshow input{width:auto}
 [hidden]{display:none!important}
 footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px}
 </style>
@@ -124,7 +131,7 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <p class="err" id="rlerr" hidden></p>
 </form>
 <div id="rbox" hidden>
-<div class="rme"><div><b id="rwho"></b><small id="rrole"></small></div><button class="btn alt sm" id="rout" type="button">خروج</button></div>
+<div class="rme"><div><b id="rwho"></b><small id="rrole"></small></div><div class="rbtns"><button class="btn alt sm" id="rpwc" type="button">تغيير كلمة المرور</button><button class="btn alt sm" id="rout" type="button">خروج</button></div></div>
 <form id="f" novalidate>
 <label for="city">المدينة / المحافظة <i>*</i></label>
 <select id="city"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option><option>أخرى</option></select>
@@ -196,7 +203,7 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <p class="err" id="lerr" hidden></p>
 </div>
 <div id="panel" hidden>
-<div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></div>
+<div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><div class="row"><button class="btn alt sm" id="spwc" type="button" style="width:auto;margin:0;padding:6px 14px">تغيير كلمة المرور</button><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></div></div>
 <p class="hint" id="rolehint"></p>
 <div class="bell" id="bell" hidden></div>
 <div class="wa" id="wa" hidden></div>
@@ -215,6 +222,20 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 </section>
 </main>
 <footer>إدارة المخالفات والتفتيش</footer>
+
+<div id="cpw" class="cpw" hidden role="dialog" aria-modal="true" aria-labelledby="cpt">
+<div class="cpbox">
+<h3 id="cpt">تغيير كلمة المرور</h3>
+<label for="cp1">كلمة المرور الجديدة</label>
+<input id="cp1" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
+<label for="cp2">أعد كتابة كلمة المرور</label>
+<input id="cp2" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
+<label class="cpshow"><input type="checkbox" id="cpsh"> إظهار كلمة المرور</label>
+<p class="err" id="cperr" hidden></p>
+<p class="hint" id="cpok" hidden style="color:#13612f;font-weight:600"></p>
+<div class="row" style="margin-top:12px"><button class="btn sm" id="cpsave" type="button" style="flex:1;margin:0">حفظ كلمة المرور</button><button class="btn alt sm" id="cpcancel" type="button" style="flex:1;margin:0">إلغاء</button></div>
+</div>
+</div>
 
 <script>
 var U='https://ahsvlqmensttzxbgkcwo.supabase.co',K='sb_publishable_ETq2Ug9ids2iqpvCsPjsGg_eiRpd_AE';
@@ -262,6 +283,32 @@ $('#rlogin').onsubmit=function(e){e.preventDefault();var er=$('#rlerr'),b=$('#rl
 $('#rout').onclick=rOut;
 if(rHas()){$('#rlogin').hidden=true;$('#rwait').hidden=false;
   rLoad().catch(function(x){if(/Failed to fetch|NetworkError/i.test(x.message)){$('#rwait').textContent='تعذر الاتصال بالخادم. تحقق من الإنترنت ثم حدّث الصفحة.';return}rOut()})}
+
+/* تغيير كلمة المرور */
+var cpTok=null;
+function cpOpen(get){cpTok=get;$('#cp1').value='';$('#cp2').value='';$('#cpsh').checked=false;$('#cp1').type=$('#cp2').type='password';$('#cperr').hidden=true;$('#cpok').hidden=true;$('#cpw').hidden=false;setTimeout(function(){$('#cp1').focus()},50)}
+function cpClose(){$('#cpw').hidden=true}
+$('#rpwc').onclick=function(){cpOpen(rTok)};
+$('#spwc').onclick=function(){cpOpen(function(){return tok?Promise.resolve(tok):Promise.reject(new Error('no_session'))})};
+$('#cpcancel').onclick=cpClose;
+$('#cpw').onclick=function(e){if(e.target===this)cpClose()};
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('#cpw').hidden)cpClose()});
+$('#cpsh').onchange=function(){var t=this.checked?'text':'password';$('#cp1').type=t;$('#cp2').type=t};
+$('#cpsave').onclick=function(){var a=$('#cp1').value,b=$('#cp2').value,er=$('#cperr'),ok=$('#cpok'),btn=$('#cpsave');
+  var bad=function(t){er.hidden=false;er.textContent=t};er.hidden=true;ok.hidden=true;
+  if(!a||!b)return bad('اكتب كلمة المرور الجديدة في الخانتين.');
+  if(a.length<8)return bad('كلمة المرور قصيرة، 8 أحرف على الأقل.');
+  if(a!==b)return bad('كلمتا المرور غير متطابقتين.');
+  if(!navigator.onLine)return bad('لا يوجد اتصال بالإنترنت، تأكد من الاتصال ثم حاول مرة أخرى.');
+  btn.disabled=true;btn.textContent='جارٍ الحفظ…';
+  cpTok().then(function(t){return api('/auth/v1/user',{m:'PUT',body:JSON.stringify({password:a}),tk:t})})
+  .then(function(){ok.hidden=false;ok.textContent='تم تغيير كلمة المرور بنجاح ✅';setTimeout(cpClose,1800)})
+  .catch(function(x){var m=(x&&x.message)||'';
+    if(/different|same/i.test(m))bad('كلمة المرور الجديدة مطابقة للقديمة، اختر كلمة مختلفة.');
+    else if(/weak|at least|characters/i.test(m))bad('كلمة المرور ضعيفة، استخدم أحرفاً وأرقاماً ورمزاً.');
+    else if(/JWT|expired|401|session|Refresh Token/i.test(m))bad('انتهت جلسة الدخول، سجّل خروج ثم ادخل وأعد المحاولة.');
+    else bad(fe(x))})
+  .then(function(){btn.disabled=false;btn.textContent='حفظ كلمة المرور'})};
 
 /* الخريطة وتحديد الموقع */
 var map=null,pin=null,autoDist=true,CITIES=['حفر الباطن','القيصومة','الخفجي','النعيرية','القرية العليا','مليجة'];
@@ -387,16 +434,27 @@ var me=null,staffList=[];
 function uid(){return tok?jwt(tok).sub:null}
 function isSup(){return !!me&&(me.role==='supervisor'||me.role==='admin')}
 function staffName(id){var x=staffList.filter(function(z){return z.id===id})[0];return x?staffLabel(x):''}
+
+/* مهلة إنجاز مأمور الضبط: عادي 3 أيام، مستعجل مهم يومان، مستعجل في غاية الأهمية يوم واحد — تبدأ من لحظة الإسناد */
+var DL=[3,2,1];
+function dueOf(r){if(!r||!r.assigned_at||['confirmed','no_violation','closed'].indexOf(r.status)>-1)return null;
+  var z=staffList.filter(function(x){return x.id===r.assigned_to})[0];if(!z||z.role!=='inspector')return null;
+  return new Date(r.assigned_at).getTime()+DL[r.urgency||0]*864e5}
+function dur(ms){var h=Math.floor(ms/36e5);if(h<1)return 'أقل من ساعة';if(h<24)return h+' ساعة';var d=Math.floor(h/24),hh=h%24;return (d===1?'يوم':d===2?'يومين':d+' أيام')+(hh?' و'+hh+' ساعة':'')}
+function dueTag(r){var d=dueOf(r);if(d==null)return '';var l=d-Date.now();
+  return l<0?'<span class="tag late">⏱️ متأخر '+dur(-l)+'</span>':'<span class="tag due">⏱️ متبقي '+dur(l)+'</span>'}
+
 function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities,phone&active=eq.true',{auth:true}).then(function(a){
   staffList=a;me=a.filter(function(x){return x.id===uid()})[0]||null;
   $('#who').textContent=me?('البلاغات — '+staffLabel(me)):'البلاغات';var ro=me&&me.role;
   $('#admbox').hidden=ro!=='admin';$('#expbox').hidden=!(ro==='admin'||ro==='supervisor');$('#dash').hidden=!(ro==='admin'||ro==='supervisor');
-  $('#rolehint').textContent=ro==='supervisor'?'تظهر لك البلاغات الجديدة التي تحتاج إسناداً. بعد الإسناد تجدها عبر الاستعلام برقم البلاغ.':ro==='inspector'?'تظهر لك البلاغات المسندة إليك. حدّد الحالة وأثبتها بالصور والفيديو.':'جميع البلاغات، ومنها المغلقة. يمكنك إعادة فتح البلاغ وإسناده عند الحاجة.';
+  $('#rolehint').textContent=ro==='supervisor'?'تظهر لك البلاغات الجديدة التي تحتاج إسناداً. بعد الإسناد تجدها عبر الاستعلام برقم البلاغ.':ro==='inspector'?'تظهر لك البلاغات المسندة إليك مع المهلة المتبقية لكل بلاغ. حدّد الحالة وأثبتها بالصور والفيديو.':'جميع البلاغات، ومنها المغلقة. يمكنك إعادة فتح البلاغ وإسناده عند الحاجة.';
   $('#listttl').textContent=ro==='supervisor'?'بلاغات تحتاج إسناد':ro==='inspector'?'البلاغات المسندة إليك':'كل البلاغات'})}
-function loadDash(){api('/rest/v1/reports?select=status,city,urgency,created_at,reminded_at&limit=2000',{auth:true}).then(function(a){
+function loadDash(){api('/rest/v1/reports?select=status,city,urgency,created_at,reminded_at,assigned_to,assigned_at&limit=2000',{auth:true}).then(function(a){
   fillFilters(a);
   var cnt=function(f){return a.filter(f).length},cl=['confirmed','no_violation','closed'],open=function(x){return cl.indexOf(x.status)<0};
   var late=cnt(function(x){return x.status==='new'&&Date.now()-new Date(x.created_at)>48*36e5});
+  var dLate=cnt(function(x){var d=dueOf(x);return d!=null&&d<Date.now()}),dOk=cnt(function(x){var d=dueOf(x);return d!=null&&d>=Date.now()});
   var byCity={};a.forEach(function(x){byCity[x.city]=(byCity[x.city]||0)+1});
   var cities=Object.keys(byCity).sort(function(p,q){return byCity[q]-byCity[p]}),mx=cities.length?byCity[cities[0]]:1;
   $('#dash').innerHTML='<div class="stats">'+
@@ -406,6 +464,8 @@ function loadDash(){api('/rest/v1/reports?select=status,city,urgency,created_at,
     '<div><b>'+cnt(function(x){return !open(x)})+'</b>✅ تم إغلاقها</div>'+
     '<div class="warn"><b>'+cnt(function(x){return x.urgency===1&&open(x)})+'</b>مستعجل مهم (مفتوح)</div>'+
     '<div class="warn"><b>'+cnt(function(x){return x.urgency===2&&open(x)})+'</b>مستعجل في غاية الأهمية (مفتوح)</div>'+
+    '<div><b>'+dOk+'</b>⏱️ لدى مأمور الضبط ضمن المهلة</div>'+
+    '<div class="warn"><b>'+dLate+'</b>⏱️ تجاوزت مهلة مأمور الضبط</div>'+
     '<div class="warn"><b>'+late+'</b>جديدة تأخرت أكثر من 48 ساعة</div>'+
     '<div class="warn"><b>'+cnt(function(x){return x.reminded_at&&open(x)})+'</b>⏰ عليها تذكير من المبلّغ</div></div>'+
     (cities.length?'<p class="lbl">البلاغات حسب المدينة</p><div class="bars">'+cities.map(function(k){return '<div class="bar"><span>'+esc(k)+'</span><i style="width:'+Math.round(byCity[k]/mx*100)+'%"></i><em>'+byCity[k]+'</em></div>'}).join('')+'</div>':'')
@@ -417,9 +477,9 @@ function listQuery(){var ro=me&&me.role,f=$('#flt').value,q='/rest/v1/reports?se
   if(ro==='supervisor')return q+'&or=(assigned_to.is.null,assigned_to.eq.'+uid()+')&status=in.(new,verifying)';
   var u=$('#fur').value;return q+(f==='closed_all'?'&status=in.(confirmed,no_violation,closed)':f?'&status=eq.'+f:'')+(u!==''?'&urgency=eq.'+u:'')}
 var rmap={};
-function itemHtml(r,c){rmap[r.id]=r;var id=esc(r.id),ro=me&&me.role,fin=FINAL.indexOf(r.status)>-1,mine=r.assigned_to===uid(),canEdit=!fin&&((ro==='inspector'&&mine)||ro==='supervisor');
+function itemHtml(r,c){rmap[r.id]=r;var id=esc(r.id),ro=me&&me.role,fin=FINAL.indexOf(r.status)>-1,mine=r.assigned_to===uid(),canEdit=!fin&&((ro==='inspector'&&mine)||ro==='supervisor'),due=dueOf(r);
   var insp=staffList.filter(function(z){return z.role==='inspector'&&z.cities&&z.cities.indexOf&&z.cities.indexOf(r.city)>-1});if(!insp.length)insp=staffList.filter(function(z){return z.role==='inspector'});
-  return '<div class="item"><div class="row"><b>'+id+'</b>'+(r.urgency?'<span class="tag u'+r.urgency+'">'+UR[r.urgency]+'</span>':'')+'<span class="tag">'+esc(r.city)+'</span>'+(fin?'<span class="tag cl">✅ تم إغلاق البلاغ</span>':'')+(r.reminded_at&&!fin?'<span class="tag rem">⏰ تذكير من المبلّغ</span>':'')+'</div>'+
+  return '<div class="item"><div class="row"><b>'+id+'</b>'+(r.urgency?'<span class="tag u'+r.urgency+'">'+UR[r.urgency]+'</span>':'')+'<span class="tag">'+esc(r.city)+'</span>'+dueTag(r)+(fin?'<span class="tag cl">✅ تم إغلاق البلاغ</span>':'')+(r.reminded_at&&!fin?'<span class="tag rem">⏰ تذكير من المبلّغ</span>':'')+'</div>'+
     '<p><b>'+esc(r.type)+'</b></p>'+
     kv('الحي',r.district)+(r.urgency?kv('سبب الأهمية',r.urgency_reason):'')+kv('رقم الحصر',r.account_no)+kv('رقم الحساب',r.subscription_no)+kv('رقم العداد',r.meter_no)+
     kv('اسم المبلّغ',c&&c.name)+kv('صفة المبلّغ',c&&c.role)+
@@ -427,7 +487,7 @@ function itemHtml(r,c){rmap[r.id]=r;var id=esc(r.id),ro=me&&me.role,fin=FINAL.in
     '<p class="lbl">وصف البلاغ</p><p>'+esc(r.description)+'</p>'+(r.visit_notes?'<p class="lbl">ملاحظات الزيارة</p><p>'+esc(r.visit_notes)+'</p>':'')+
     '<p class="hint">'+fmt(r.created_at)+'</p>'+
     '<p><a href="'+esc(mapUrl(r.location_text))+'" target="_blank" rel="noopener">فتح الموقع على الخريطة</a></p>'+
-    kv('المُسنَد إليه',staffName(r.assigned_to))+waBtn(r)+
+    kv('المُسنَد إليه',staffName(r.assigned_to))+(due!=null?kv('موعد الإنجاز',fmt(due)):'')+waBtn(r)+
     ((ro==='inspector'&&mine&&!fin)||fin?stBlock(r):kv('الحالة',SL[r.status]))+
     (fin&&(ro==='admin'||ro==='supervisor')?'<div class="vn"><label for="ro-'+id+'">إعادة فتح البلاغ وإسناده</label><select id="ro-'+id+'"><option value="">اختر مأمور الضبط</option>'+insp.map(function(z){return '<option value="'+esc(z.id)+'">'+esc(staffLabel(z))+'</option>'}).join('')+'</select>'+
       '<input id="rr-'+id+'" placeholder="سبب إعادة الفتح" style="margin-top:8px"><button class="btn sm" data-ro="'+id+'">إعادة فتح وإسناد</button></div>':'')+
@@ -448,7 +508,7 @@ function waNum(ph){ph=String(ph||'').replace(/\D/g,'');if(/^05\d{8}$/.test(ph))p
 function dirUrl(r){return r.lat!=null&&r.lng!=null?'https://www.google.com/maps/dir/?api=1&destination='+r.lat+','+r.lng:mapUrl(r.location_text)}
 function waLink(r,z,photos){var ph=waNum(z&&z.phone);if(!ph)return null;
   var L=function(k,v){v=String(v==null?'':v).trim();return v?'\n'+k+': '+v:''};
-  var t='السلام عليكم،\nتم إسناد بلاغ إليك في منصة البلاغات.\n'+L('رقم البلاغ',r.id)+L('تاريخ البلاغ',fmt(r.created_at))+L('نوع المخالفة',r.type)+L('المدينة',r.city)+L('الحي',r.district)+L('درجة الاستعجال',UR[r.urgency||0])+L('سبب الأهمية',r.urgency?r.urgency_reason:'')+
+  var t='السلام عليكم،\nتم إسناد بلاغ إليك في منصة البلاغات.\n'+L('رقم البلاغ',r.id)+L('تاريخ البلاغ',fmt(r.created_at))+L('نوع المخالفة',r.type)+L('المدينة',r.city)+L('الحي',r.district)+L('درجة الاستعجال',UR[r.urgency||0])+L('مهلة الإنجاز',['3 أيام','يومان','يوم واحد'][r.urgency||0]+' من وقت الإسناد')+L('سبب الأهمية',r.urgency?r.urgency_reason:'')+
     L('رقم الحصر',r.account_no)+L('رقم الحساب',r.subscription_no)+L('رقم العداد',r.meter_no)+
     '\n\nوصف الحالة:\n'+(String(r.description||'').trim()||'—')+
     (r.lat!=null&&r.lng!=null?'\n\nالإحداثيات: '+r.lat+', '+r.lng:'')+
@@ -609,9 +669,10 @@ $('#xls').onclick=function(){var b=$('#xls'),out=$('#xout');out.innerHTML='';b.d
     loadXLSX()
   ]).then(function(r){
     var cm={};r[1].forEach(function(c){cm[c.report_id]=c});
-    var hd=['رقم البلاغ','التاريخ','المدينة','الحي','نوع المخالفة','الاستعجال','سبب الأهمية','الحالة','المُسنَد إليه','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','صفة المبلّغ','جوال المبلّغ','وصف البلاغ','ملاحظات الزيارة','رقم المخالفة','سبب الإغلاق','تاريخ الإغلاق','الموقع'];
+    var hd=['رقم البلاغ','التاريخ','المدينة','الحي','نوع المخالفة','الاستعجال','سبب الأهمية','الحالة','المُسنَد إليه','موعد الإنجاز','حالة المهلة','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','صفة المبلّغ','جوال المبلّغ','وصف البلاغ','ملاحظات الزيارة','رقم المخالفة','سبب الإغلاق','تاريخ الإغلاق','الموقع'];
     var sv=function(v){return v==null?'':String(v)};
-    xAoa=[hd].concat(r[0].map(function(x){var c=cm[x.id]||{};return [x.id,fmt(x.created_at),x.city,x.district,x.type,UR[x.urgency]||'',x.urgency_reason,SL[x.status]||x.status,staffName(x.assigned_to),
+    xAoa=[hd].concat(r[0].map(function(x){var c=cm[x.id]||{},d=dueOf(x);return [x.id,fmt(x.created_at),x.city,x.district,x.type,UR[x.urgency]||'',x.urgency_reason,SL[x.status]||x.status,staffName(x.assigned_to),
+      d==null?'':fmt(d),d==null?'':(d<Date.now()?'متأخر':'ضمن المهلة'),
       x.account_no,x.subscription_no,x.meter_no,c.name,c.role,c.phone,x.description,x.visit_notes,x.violation_no,x.close_note,x.closed_at?fmt(x.closed_at):'',mapUrl(x.location_text||'')].map(sv)}));
     xName='تقرير-البلاغات-'+new Date().toISOString().slice(0,10)+'.xlsx';
     out.innerHTML='<p class="hint">التقرير جاهز: '+(xAoa.length-1)+' بلاغ.</p><button class="btn sm" id="xshare">حفظ / مشاركة ملف Excel</button>'+
@@ -632,69 +693,3 @@ $('#xls').onclick=function(){var b=$('#xls'),out=$('#xout');out.innerHTML='';b.d
 </script>
 </body>
 </html>
-<style>
-#cp-open{font:inherit;font-size:.9rem;background:transparent;color:inherit;border:1px solid currentColor;border-radius:8px;padding:.35rem .8rem;margin-inline-start:.5rem;cursor:pointer}
-#cp-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,30,50,.55);display:none;align-items:center;justify-content:center;padding:1rem}
-#cp-overlay.show{display:flex}
-#cp-box{background:#fff;color:#1d2b36;width:100%;max-width:380px;border-radius:14px;padding:1.4rem;direction:rtl;font:inherit;box-shadow:0 12px 40px rgba(0,0,0,.25)}
-#cp-box h3{margin:0 0 1rem;font-size:1.15rem}
-#cp-box label{display:block;font-size:.9rem;margin:.7rem 0 .3rem}
-#cp-box input{width:100%;box-sizing:border-box;font:inherit;font-size:1rem;padding:.65rem .75rem;border:1px solid #b9c6cf;border-radius:8px;direction:ltr;text-align:right}
-#cp-show{display:flex;align-items:center;gap:.4rem;font-size:.85rem;margin-top:.6rem}
-#cp-show input{width:auto}
-#cp-msg{margin-top:.9rem;padding:.6rem .75rem;border-radius:8px;font-size:.9rem;display:none}
-#cp-msg.err{display:block;background:#fdecec;color:#a12020}
-#cp-msg.ok{display:block;background:#e7f6ec;color:#17693a}
-#cp-actions{display:flex;gap:.6rem;margin-top:1.1rem}
-#cp-actions button{flex:1;font:inherit;font-size:1rem;padding:.65rem;border-radius:8px;cursor:pointer;border:1px solid #0a6e8a}
-#cp-save{background:#0a6e8a;color:#fff}
-#cp-cancel{background:#fff;color:#0a6e8a}
-</style>
-<div id="cp-overlay" role="dialog" aria-modal="true">
-<div id="cp-box">
-<h3>تغيير كلمة المرور</h3>
-<label for="cp-new">كلمة المرور الجديدة</label>
-<input id="cp-new" type="password" autocomplete="new-password">
-<label for="cp-confirm">أعد كتابة كلمة المرور</label>
-<input id="cp-confirm" type="password" autocomplete="new-password">
-<label id="cp-show"><input type="checkbox" id="cp-toggle"> إظهار كلمة المرور</label>
-<div id="cp-msg" role="alert"></div>
-<div id="cp-actions">
-<button id="cp-save" type="button">حفظ كلمة المرور</button>
-<button id="cp-cancel" type="button">إلغاء</button>
-</div>
-</div>
-</div>
-<script>
-(function(){
-function getClient(){var n=['supabaseClient','sb','client','db','supa','supabase'];for(var i=0;i<n.length;i++){try{var c=window[n[i]]||eval(n[i]);if(c&&c.auth&&typeof c.auth.updateUser==='function')return c}catch(e){}}return null}
-var ov=document.getElementById('cp-overlay'),p1=document.getElementById('cp-new'),p2=document.getElementById('cp-confirm'),msg=document.getElementById('cp-msg'),sv=document.getElementById('cp-save');
-function show(t,k){msg.textContent=t;msg.className=k}
-function openBox(){p1.value='';p2.value='';show('','');ov.classList.add('show');setTimeout(function(){p1.focus()},50)}
-function closeBox(){ov.classList.remove('show')}
-function place(){if(document.getElementById('cp-open'))return;var lo=[].slice.call(document.querySelectorAll('button,a')).find(function(el){return el.textContent.trim()==='خروج'});if(!lo)return;var b=document.createElement('button');b.id='cp-open';b.type='button';b.textContent='تغيير كلمة المرور';b.onclick=openBox;lo.insertAdjacentElement('afterend',b)}
-function sync(){place();var b=document.getElementById('cp-open');if(b&&b.previousElementSibling)b.style.display=b.previousElementSibling.offsetParent?'':'none'}
-sync();new MutationObserver(sync).observe(document.body,{childList:true,subtree:true,attributes:true});
-document.getElementById('cp-toggle').onchange=function(e){var t=e.target.checked?'text':'password';p1.type=t;p2.type=t};
-document.getElementById('cp-cancel').onclick=closeBox;
-ov.onclick=function(e){if(e.target===ov)closeBox()};
-sv.onclick=async function(){
-show('','');var a=p1.value,b=p2.value;
-if(!a||!b)return show('اكتب كلمة المرور الجديدة في الخانتين.','err');
-if(a.length<8)return show('كلمة المرور قصيرة، 8 أحرف على الأقل.','err');
-if(a!==b)return show('كلمتا المرور غير متطابقتين.','err');
-if(!navigator.onLine)return show('لا يوجد اتصال بالإنترنت، تأكد من الاتصال ثم حاول مرة أخرى.','err');
-var sb=getClient();if(!sb)return show('تعذّر الاتصال بالمنصة، حدّث الصفحة وحاول مرة أخرى.','err');
-sv.disabled=true;sv.textContent='جارٍ الحفظ...';
-try{var r=await sb.auth.updateUser({password:a});
-if(r.error){var m=(r.error.message||'').toLowerCase();
-if(m.indexOf('different')>-1||m.indexOf('same')>-1)show('كلمة المرور الجديدة مطابقة للقديمة، اختر كلمة مختلفة.','err');
-else if(m.indexOf('weak')>-1||m.indexOf('characters')>-1)show('كلمة المرور ضعيفة، استخدم أحرفاً وأرقاماً ورمزاً.','err');
-else if(m.indexOf('session')>-1||m.indexOf('jwt')>-1)show('انتهت جلسة الدخول، سجّل خروج ثم ادخل وأعد المحاولة.','err');
-else show('تعذّر الحفظ، تأكد من الاتصال بالإنترنت وحاول مرة أخرى.','err')}
-else{show('تم تغيير كلمة المرور بنجاح ✅','ok');setTimeout(closeBox,1800)}}
-catch(e){show('تعذّر الحفظ، تأكد من الاتصال بالإنترنت وحاول مرة أخرى.','err')}
-finally{sv.disabled=false;sv.textContent='حفظ كلمة المرور'}};
-})();
-</script>
-  

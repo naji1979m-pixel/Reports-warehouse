@@ -632,3 +632,69 @@ $('#xls').onclick=function(){var b=$('#xls'),out=$('#xout');out.innerHTML='';b.d
 </script>
 </body>
 </html>
+<style>
+#cp-open{font:inherit;font-size:.9rem;background:transparent;color:inherit;border:1px solid currentColor;border-radius:8px;padding:.35rem .8rem;margin-inline-start:.5rem;cursor:pointer}
+#cp-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,30,50,.55);display:none;align-items:center;justify-content:center;padding:1rem}
+#cp-overlay.show{display:flex}
+#cp-box{background:#fff;color:#1d2b36;width:100%;max-width:380px;border-radius:14px;padding:1.4rem;direction:rtl;font:inherit;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+#cp-box h3{margin:0 0 1rem;font-size:1.15rem}
+#cp-box label{display:block;font-size:.9rem;margin:.7rem 0 .3rem}
+#cp-box input{width:100%;box-sizing:border-box;font:inherit;font-size:1rem;padding:.65rem .75rem;border:1px solid #b9c6cf;border-radius:8px;direction:ltr;text-align:right}
+#cp-show{display:flex;align-items:center;gap:.4rem;font-size:.85rem;margin-top:.6rem}
+#cp-show input{width:auto}
+#cp-msg{margin-top:.9rem;padding:.6rem .75rem;border-radius:8px;font-size:.9rem;display:none}
+#cp-msg.err{display:block;background:#fdecec;color:#a12020}
+#cp-msg.ok{display:block;background:#e7f6ec;color:#17693a}
+#cp-actions{display:flex;gap:.6rem;margin-top:1.1rem}
+#cp-actions button{flex:1;font:inherit;font-size:1rem;padding:.65rem;border-radius:8px;cursor:pointer;border:1px solid #0a6e8a}
+#cp-save{background:#0a6e8a;color:#fff}
+#cp-cancel{background:#fff;color:#0a6e8a}
+</style>
+<div id="cp-overlay" role="dialog" aria-modal="true">
+<div id="cp-box">
+<h3>تغيير كلمة المرور</h3>
+<label for="cp-new">كلمة المرور الجديدة</label>
+<input id="cp-new" type="password" autocomplete="new-password">
+<label for="cp-confirm">أعد كتابة كلمة المرور</label>
+<input id="cp-confirm" type="password" autocomplete="new-password">
+<label id="cp-show"><input type="checkbox" id="cp-toggle"> إظهار كلمة المرور</label>
+<div id="cp-msg" role="alert"></div>
+<div id="cp-actions">
+<button id="cp-save" type="button">حفظ كلمة المرور</button>
+<button id="cp-cancel" type="button">إلغاء</button>
+</div>
+</div>
+</div>
+<script>
+(function(){
+function getClient(){var n=['supabaseClient','sb','client','db','supa','supabase'];for(var i=0;i<n.length;i++){try{var c=window[n[i]]||eval(n[i]);if(c&&c.auth&&typeof c.auth.updateUser==='function')return c}catch(e){}}return null}
+var ov=document.getElementById('cp-overlay'),p1=document.getElementById('cp-new'),p2=document.getElementById('cp-confirm'),msg=document.getElementById('cp-msg'),sv=document.getElementById('cp-save');
+function show(t,k){msg.textContent=t;msg.className=k}
+function openBox(){p1.value='';p2.value='';show('','');ov.classList.add('show');setTimeout(function(){p1.focus()},50)}
+function closeBox(){ov.classList.remove('show')}
+function place(){if(document.getElementById('cp-open'))return;var lo=[].slice.call(document.querySelectorAll('button,a')).find(function(el){return el.textContent.trim()==='خروج'});if(!lo)return;var b=document.createElement('button');b.id='cp-open';b.type='button';b.textContent='تغيير كلمة المرور';b.onclick=openBox;lo.insertAdjacentElement('afterend',b)}
+function sync(){place();var b=document.getElementById('cp-open');if(b&&b.previousElementSibling)b.style.display=b.previousElementSibling.offsetParent?'':'none'}
+sync();new MutationObserver(sync).observe(document.body,{childList:true,subtree:true,attributes:true});
+document.getElementById('cp-toggle').onchange=function(e){var t=e.target.checked?'text':'password';p1.type=t;p2.type=t};
+document.getElementById('cp-cancel').onclick=closeBox;
+ov.onclick=function(e){if(e.target===ov)closeBox()};
+sv.onclick=async function(){
+show('','');var a=p1.value,b=p2.value;
+if(!a||!b)return show('اكتب كلمة المرور الجديدة في الخانتين.','err');
+if(a.length<8)return show('كلمة المرور قصيرة، 8 أحرف على الأقل.','err');
+if(a!==b)return show('كلمتا المرور غير متطابقتين.','err');
+if(!navigator.onLine)return show('لا يوجد اتصال بالإنترنت، تأكد من الاتصال ثم حاول مرة أخرى.','err');
+var sb=getClient();if(!sb)return show('تعذّر الاتصال بالمنصة، حدّث الصفحة وحاول مرة أخرى.','err');
+sv.disabled=true;sv.textContent='جارٍ الحفظ...';
+try{var r=await sb.auth.updateUser({password:a});
+if(r.error){var m=(r.error.message||'').toLowerCase();
+if(m.indexOf('different')>-1||m.indexOf('same')>-1)show('كلمة المرور الجديدة مطابقة للقديمة، اختر كلمة مختلفة.','err');
+else if(m.indexOf('weak')>-1||m.indexOf('characters')>-1)show('كلمة المرور ضعيفة، استخدم أحرفاً وأرقاماً ورمزاً.','err');
+else if(m.indexOf('session')>-1||m.indexOf('jwt')>-1)show('انتهت جلسة الدخول، سجّل خروج ثم ادخل وأعد المحاولة.','err');
+else show('تعذّر الحفظ، تأكد من الاتصال بالإنترنت وحاول مرة أخرى.','err')}
+else{show('تم تغيير كلمة المرور بنجاح ✅','ok');setTimeout(closeBox,1800)}}
+catch(e){show('تعذّر الحفظ، تأكد من الاتصال بالإنترنت وحاول مرة أخرى.','err')}
+finally{sv.disabled=false;sv.textContent='حفظ كلمة المرور'}};
+})();
+</script>
+  

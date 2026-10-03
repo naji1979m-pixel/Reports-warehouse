@@ -103,6 +103,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .cpbox h3{margin:0 0 4px;font-size:18px}
 .cpshow{display:flex;align-items:center;gap:8px;font-weight:400}
 .cpshow input{width:auto}
+.linkb{display:block;margin:10px auto 0;background:none;border:0;color:var(--pri);font:600 14px inherit;font-family:inherit;padding:6px 8px;cursor:pointer;text-decoration:underline}
 [hidden]{display:none!important}
 footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px}
 </style>
@@ -129,6 +130,7 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="rpw" name="password" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
 <button class="btn" id="rlg" type="submit">تسجيل الدخول</button>
 <p class="err" id="rlerr" hidden></p>
+<button type="button" class="linkb" data-forgot="rem">نسيت كلمة المرور؟</button>
 </form>
 <div id="rbox" hidden>
 <div class="rme"><div><b id="rwho"></b><small id="rrole"></small></div><div class="rbtns"><button class="btn alt sm" id="rpwc" type="button">تغيير كلمة المرور</button><button class="btn alt sm" id="rout" type="button">خروج</button></div></div>
@@ -201,6 +203,7 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="pw" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
 <button class="btn" id="lg">تسجيل الدخول</button>
 <p class="err" id="lerr" hidden></p>
+<button type="button" class="linkb" data-forgot="em">نسيت كلمة المرور؟</button>
 </div>
 <div id="panel" hidden>
 <div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><div class="row"><button class="btn alt sm" id="spwc" type="button" style="width:auto;margin:0;padding:6px 14px">تغيير كلمة المرور</button><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></div></div>
@@ -234,6 +237,18 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <p class="err" id="cperr" hidden></p>
 <p class="hint" id="cpok" hidden style="color:#13612f;font-weight:600"></p>
 <div class="row" style="margin-top:12px"><button class="btn sm" id="cpsave" type="button" style="flex:1;margin:0">حفظ كلمة المرور</button><button class="btn alt sm" id="cpcancel" type="button" style="flex:1;margin:0">إلغاء</button></div>
+</div>
+</div>
+
+<div id="fgw" class="cpw" hidden role="dialog" aria-modal="true" aria-labelledby="fgt">
+<div class="cpbox">
+<h3 id="fgt">نسيت كلمة المرور</h3>
+<p class="hint" style="margin:0 0 4px">اكتب بريدك المسجّل في المنصة، وسيصلك رابط لتعيين كلمة مرور جديدة.</p>
+<label for="fgem">البريد الإلكتروني</label>
+<input id="fgem" type="email" dir="ltr" style="text-align:right" autocomplete="username">
+<p class="err" id="fgerr" hidden></p>
+<p class="hint" id="fgok" hidden style="color:#13612f;font-weight:600"></p>
+<div class="row" style="margin-top:12px"><button class="btn sm" id="fgsend" type="button" style="flex:1;margin:0">إرسال الرابط</button><button class="btn alt sm" id="fgcancel" type="button" style="flex:1;margin:0">إغلاق</button></div>
 </div>
 </div>
 
@@ -285,14 +300,35 @@ if(rHas()){$('#rlogin').hidden=true;$('#rwait').hidden=false;
   rLoad().catch(function(x){if(/Failed to fetch|NetworkError/i.test(x.message)){$('#rwait').textContent='تعذر الاتصال بالخادم. تحقق من الإنترنت ثم حدّث الصفحة.';return}rOut()})}
 
 /* تغيير كلمة المرور */
-var cpTok=null;
-function cpOpen(get){cpTok=get;$('#cp1').value='';$('#cp2').value='';$('#cpsh').checked=false;$('#cp1').type=$('#cp2').type='password';$('#cperr').hidden=true;$('#cpok').hidden=true;$('#cpw').hidden=false;setTimeout(function(){$('#cp1').focus()},50)}
-function cpClose(){$('#cpw').hidden=true}
+var cpTok=null,cpRec=false;
+function cpOpen(get,rec){cpTok=get;cpRec=!!rec;$('#cpt').textContent=rec?'تعيين كلمة مرور جديدة':'تغيير كلمة المرور';$('#cpcancel').hidden=!!rec;$('#cp1').value='';$('#cp2').value='';$('#cpsh').checked=false;$('#cp1').type=$('#cp2').type='password';$('#cperr').hidden=true;$('#cpok').hidden=true;$('#cpw').hidden=false;setTimeout(function(){$('#cp1').focus()},50)}
+function cpClose(){$('#cpw').hidden=true;$('#cpsave').hidden=false;$('#cpcancel').textContent='إلغاء'}
 $('#rpwc').onclick=function(){cpOpen(rTok)};
 $('#spwc').onclick=function(){cpOpen(function(){return tok?Promise.resolve(tok):Promise.reject(new Error('no_session'))})};
 $('#cpcancel').onclick=cpClose;
-$('#cpw').onclick=function(e){if(e.target===this)cpClose()};
-document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('#cpw').hidden)cpClose()});
+$('#cpw').onclick=function(e){if(e.target===this&&!cpRec)cpClose()};
+document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;if(!$('#cpw').hidden&&!cpRec)cpClose();if(!$('#fgw').hidden)$('#fgw').hidden=true});
+
+/* نسيت كلمة المرور */
+function fgOpen(v,errTxt){$('#fgem').value=v||'';$('#fgok').hidden=true;$('#fgsend').hidden=false;$('#fgsend').disabled=false;$('#fgsend').textContent='إرسال الرابط';
+  var er=$('#fgerr');er.hidden=!errTxt;er.textContent=errTxt||'';$('#fgw').hidden=false;setTimeout(function(){$('#fgem').focus()},50)}
+document.querySelectorAll('[data-forgot]').forEach(function(b){b.onclick=function(){fgOpen($('#'+b.dataset.forgot).value.trim())}});
+$('#fgcancel').onclick=function(){$('#fgw').hidden=true};
+$('#fgw').onclick=function(e){if(e.target===this)this.hidden=true};
+$('#fgsend').onclick=function(){var em=$('#fgem').value.trim(),er=$('#fgerr'),ok=$('#fgok'),b=$('#fgsend');er.hidden=true;ok.hidden=true;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){er.hidden=false;er.textContent='اكتب بريداً إلكترونياً صحيحاً.';return}
+  b.disabled=true;b.textContent='جارٍ الإرسال…';
+  api('/auth/v1/recover?redirect_to='+encodeURIComponent(location.origin+location.pathname),{m:'POST',body:JSON.stringify({email:em})})
+  .then(function(){ok.hidden=false;ok.textContent='إذا كان البريد مسجّلاً في المنصة فستصلك رسالة خلال دقائق فيها رابط لتعيين كلمة مرور جديدة. تحقق أيضاً من البريد غير الهام (Junk).';b.hidden=true})
+  .catch(function(x){var m=(x&&x.message)||'';er.hidden=false;
+    er.textContent=/security purposes|seconds|429/i.test(m)?'طلبت رابطاً قبل قليل. انتظر دقيقة ثم حاول مرة أخرى.':/rate limit/i.test(m)?'تم تجاوز الحد المسموح من الرسائل. حاول بعد ساعة.':fe(x);
+    b.disabled=false;b.textContent='إرسال الرابط'})};
+
+/* فتح رابط تعيين كلمة المرور القادم من البريد */
+(function(){var h=location.hash.replace(/^#/,'');if(!h||h.indexOf('=')<0)return;var p=new URLSearchParams(h);
+  var clean=function(){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}};
+  if(p.get('error')||p.get('error_code')){clean();fgOpen('','رابط تعيين كلمة المرور منتهي أو سبق استخدامه. اطلب رابطاً جديداً.');return}
+  if(p.get('type')==='recovery'&&p.get('access_token')){var at=p.get('access_token');clean();cpOpen(function(){return Promise.resolve(at)},true)}})();
 $('#cpsh').onchange=function(){var t=this.checked?'text':'password';$('#cp1').type=t;$('#cp2').type=t};
 $('#cpsave').onclick=function(){var a=$('#cp1').value,b=$('#cp2').value,er=$('#cperr'),ok=$('#cpok'),btn=$('#cpsave');
   var bad=function(t){er.hidden=false;er.textContent=t};er.hidden=true;ok.hidden=true;
@@ -302,7 +338,7 @@ $('#cpsave').onclick=function(){var a=$('#cp1').value,b=$('#cp2').value,er=$('#c
   if(!navigator.onLine)return bad('لا يوجد اتصال بالإنترنت، تأكد من الاتصال ثم حاول مرة أخرى.');
   btn.disabled=true;btn.textContent='جارٍ الحفظ…';
   cpTok().then(function(t){return api('/auth/v1/user',{m:'PUT',body:JSON.stringify({password:a}),tk:t})})
-  .then(function(){ok.hidden=false;ok.textContent='تم تغيير كلمة المرور بنجاح ✅';setTimeout(cpClose,1800)})
+  .then(function(){ok.hidden=false;if(cpRec){ok.textContent='تم تعيين كلمة المرور ✅ سجّل الدخول الآن بكلمة المرور الجديدة.';$('#cpcancel').hidden=false;$('#cpcancel').textContent='تم';btn.hidden=true}else{ok.textContent='تم تغيير كلمة المرور بنجاح ✅';setTimeout(cpClose,1800)}})
   .catch(function(x){var m=(x&&x.message)||'';
     if(/different|same/i.test(m))bad('كلمة المرور الجديدة مطابقة للقديمة، اختر كلمة مختلفة.');
     else if(/weak|at least|characters/i.test(m))bad('كلمة المرور ضعيفة، استخدم أحرفاً وأرقاماً ورمزاً.');

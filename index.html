@@ -90,24 +90,23 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <button role="tab" data-v="insp" aria-selected="false">دخول الموظفين</button>
 </nav>
 <section id="v-new" class="card">
-<div id="new-locked">
-<p class="hint" style="margin-top:0">تقديم البلاغ متاح لحسابات الموظفين المسجَّلين فقط.</p>
-<button class="btn" id="new-goto-login">تسجيل الدخول لتقديم بلاغ</button>
-</div>
+<div id="new-login"><p class="hint" style="margin-top:0">تقديم البلاغ متاح للمبلّغين المصرّح لهم فقط. سجّل الدخول بحسابك.</p><form class="lf" id="lf-new" method="post" action="#" autocomplete="on"><label for="em-new" style="margin-top:0">البريد الإلكتروني</label><input id="em-new" name="email" type="email" dir="ltr" style="text-align:right" autocomplete="username"><label for="pw-new">كلمة المرور</label><input id="pw-new" name="password" type="password" dir="ltr" style="text-align:right" autocomplete="current-password"><button class="btn" type="submit">تسجيل الدخول</button><button class="btn alt sm" type="button" data-forgot>نسيت كلمة المرور؟</button><p class="err" hidden></p><p class="hint" data-msg></p></form></div>
+<p class="hint" id="new-wait" hidden>جارٍ التحقق من الحساب…</p>
+<div id="new-denied" hidden><p style="margin-top:0"><b>هذا الحساب غير مصرّح له بتقديم البلاغات.</b></p><p class="hint">إن كنت من فريق الرقابة فادخل من «دخول الموظفين». ولطلب صلاحية التقديم تواصل مع مدير الرقابة.</p><button class="btn alt" type="button" data-logout>خروج</button></div>
 <div id="new-body" hidden>
+<div class="row" style="justify-content:space-between"><b>تقديم بلاغ</b><span class="row"><button class="btn alt sm" type="button" data-chpw style="width:auto;margin:0;padding:6px 12px">تغيير كلمة المرور</button><button class="btn alt sm" type="button" data-logout style="width:auto;margin:0;padding:6px 12px">خروج</button></span></div>
+<div class="vn" id="rep-card"></div>
 <form id="f" novalidate>
-<label for="name">اسم المبلّغ <i>*</i></label>
-<input id="name" placeholder="الاسم الثلاثي" autocomplete="name">
-<label for="phone">رقم الجوال <i>*</i></label>
-<input id="phone" inputmode="tel" placeholder="05XXXXXXXX" autocomplete="tel" dir="ltr" style="text-align:right">
-<label for="role">صفة المبلّغ</label>
-<select id="role"><option>فرد</option><option>موظف شركة المياه</option><option>مقاول</option><option>جهة حكومية</option><option>جهة أخرى</option></select>
 <label for="city">المدينة / المحافظة <i>*</i></label>
 <select id="city"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option><option>أخرى</option></select>
+<label for="district">الحي <i>*</i></label>
+<input id="district" placeholder="اسم الحي">
 <label for="type">نوع البلاغ <i>*</i></label>
 <select id="type"><option value="">اختر نوع المخالفة</option><option>توصيلة مياه غير نظامية / تعدٍ على الشبكة</option><option>توصيلة مباشرة قبل العداد</option><option>إخفاء عداد أو صندوق عداد</option><option>عبث أو كسر في العداد</option><option>إزالة عداد دون إجراء نظامي</option><option>اشتباه في استهلاك غير نظامي</option><option>صهريج أو تعبئة مياه غير نظامية</option><option>تعدٍ ظاهر آخر</option><option>اشتباه بتعدٍ غير ظاهر</option><option>أخرى</option></select>
 <label for="urg">درجة الاستعجال</label>
 <select id="urg"><option value="0">عادي</option><option value="1">عاجل - يوجد هدر مياه مستمر</option><option value="2">عاجل جداً - خطر أو تسرب كبير</option></select>
+<div id="urgw" hidden><label for="urgr">سبب الاستعجال <i>*</i></label>
+<input id="urgr" placeholder="مثال: تسرب مستمر يغمر الشارع"></div>
 <label for="loc">موقع البلاغ <i>*</i></label>
 <input id="loc" placeholder="الصق رابط Google Maps أو الإحداثيات" dir="ltr" style="text-align:right">
 <button type="button" class="btn alt sm" id="gps">استخدام موقعي الحالي</button>
@@ -145,16 +144,11 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <div id="tres"></div>
 </section>
 <section id="v-insp" class="card" hidden>
-<div id="login">
-<label for="em" style="margin-top:0">البريد الإلكتروني</label>
-<input id="em" type="email" dir="ltr" style="text-align:right" autocomplete="username">
-<label for="pw">كلمة المرور</label>
-<input id="pw" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
-<button class="btn" id="lg">تسجيل الدخول</button>
-<p class="err" id="lerr" hidden></p>
-</div>
+<div id="insp-login"><form class="lf" id="lf-insp" method="post" action="#" autocomplete="on"><label for="em-insp" style="margin-top:0">البريد الإلكتروني</label><input id="em-insp" name="email" type="email" dir="ltr" style="text-align:right" autocomplete="username"><label for="pw-insp">كلمة المرور</label><input id="pw-insp" name="password" type="password" dir="ltr" style="text-align:right" autocomplete="current-password"><button class="btn" type="submit">تسجيل الدخول</button><button class="btn alt sm" type="button" data-forgot>نسيت كلمة المرور؟</button><p class="err" hidden></p><p class="hint" data-msg></p></form></div>
+<p class="hint" id="insp-wait" hidden>جارٍ التحقق من الحساب…</p>
+<div id="insp-denied" hidden><p style="margin-top:0"><b>هذا الحساب ليس من حسابات الموظفين.</b></p><p class="hint">لتقديم بلاغ استخدم تبويب «تقديم بلاغ».</p><button class="btn alt" type="button" data-logout>خروج</button></div>
 <div id="panel" hidden>
-<div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></div>
+<div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><span class="row"><button class="btn alt sm" type="button" data-chpw style="width:auto;margin:0;padding:6px 12px">تغيير كلمة المرور</button><button class="btn alt sm" type="button" data-logout style="width:auto;margin:0;padding:6px 12px">خروج</button></span></div>
 <div id="dash"></div>
 <label for="flt">تصفية حسب الحالة</label>
 <select id="flt"></select>
@@ -189,6 +183,21 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 </div>
 </div>
 
+<div class="mdl" id="pwm" hidden>
+<div class="box" role="dialog" aria-modal="true" aria-labelledby="pwm-t">
+<h2 id="pwm-t">تغيير كلمة المرور</h2>
+<form id="pwf" novalidate><input type="email" autocomplete="username" id="pwm-user" hidden>
+<label for="pw1">كلمة المرور الجديدة</label>
+<input id="pw1" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
+<label for="pw2">تأكيد كلمة المرور</label>
+<input id="pw2" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
+<p class="hint">8 خانات على الأقل، أحرف إنجليزية وأرقام.</p>
+<button class="btn" type="submit" id="pwm-ok">حفظ كلمة المرور</button>
+<button class="btn alt" type="button" id="pwm-no">إلغاء</button>
+<p class="err" id="pwm-err" hidden></p></form>
+</div>
+</div>
+
 <footer>إدارة المخالفات والتفتيش</footer>
 <script>
 var U='https://ahsvlqmensttzxbgkcwo.supabase.co',K='sb_publishable_ETq2Ug9ids2iqpvCsPjsGg_eiRpd_AE';
@@ -199,12 +208,20 @@ var SL={new:'جديد',verifying:'قيد التحقق الميداني',confirme
 var CLOSED=['confirmed','no_violation','closed'];
 var UR=['عادي','عاجل','عاجل جداً'];
 var ERR={invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».',
-use_close:'إغلاق البلاغ يتم من نافذة الإغلاق مع الإثبات.',report_closed:'البلاغ مغلق ولا يمكن تعديله.',inspector_only:'إغلاق البلاغ لمأمور الضبط المسند إليه فقط.',not_assigned:'هذا البلاغ غير مسند إليك.',invalid_file:'ملف غير صالح أو تجاوز 10 ملفات.',note_required:'اكتب سبب الإغلاق.',evidence_required:'أرفق صورة أو فيديو للإثبات.',violation_no_required:'أدخل رقم المخالفة.',photo_required:'أرفق صورة واحدة على الأقل للمخالفة.'};
-var tok=null;
+use_close:'إغلاق البلاغ يتم من نافذة الإغلاق مع الإثبات.',report_closed:'البلاغ مغلق ولا يمكن تعديله.',inspector_only:'إغلاق البلاغ لمأمور الضبط المسند إليه فقط.',not_assigned:'هذا البلاغ غير مسند إليك.',invalid_file:'ملف غير صالح أو تجاوز 10 ملفات.',note_required:'اكتب سبب الإغلاق.',evidence_required:'أرفق صورة أو فيديو للإثبات.',violation_no_required:'أدخل رقم المخالفة.',photo_required:'أرفق صورة واحدة على الأقل للمخالفة.',not_authorized:'حسابك غير مصرّح له بتقديم البلاغات.',urgency_reason_required:'اكتب سبب الاستعجال.',invalid_urgency:'درجة الاستعجال غير صحيحة.',session_expired:'انتهت الجلسة. سجّل الدخول من جديد.',weak_password:'كلمة المرور ضعيفة. استخدم 8 خانات أو أكثر.',same_password:'كلمة المرور الجديدة مطابقة للقديمة.'};
+var tok=null,sess=null,refreshing=null;
+function normSess(j){return{access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||Math.floor(Date.now()/1000)+(j.expires_in||3600)}}
+function saveSess(x){sess=x;tok=x?x.access_token:null;try{x?localStorage.setItem('sb_sess',JSON.stringify(x)):localStorage.removeItem('sb_sess')}catch(e){}}
+function ensureTok(){if(!sess)return Promise.resolve();
+if(Date.now()/1000<sess.expires_at-60)return Promise.resolve();
+if(!refreshing)refreshing=fetch(U+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:K,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:sess.refresh_token})})
+.then(function(r){return r.json().then(function(j){if(!r.ok||!j.access_token)throw new Error('session_expired');saveSess(normSess(j))})})
+.catch(function(e){signOut();throw e}).then(function(){refreshing=null},function(e){refreshing=null;throw e});
+return refreshing}
 function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';return 'حدث خطأ: '+m}
-function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.auth&&tok)h.Authorization='Bearer '+tok;
+function api(path,o){o=o||{};return (o.auth?ensureTok():Promise.resolve()).then(function(){var h={apikey:K,'Content-Type':'application/json'};if(o.auth&&tok)h.Authorization='Bearer '+tok;
 return fetch(U+path,{method:o.m||'GET',headers:h,body:o.body}).then(function(r){return r.text().then(function(t){var j=null;try{j=JSON.parse(t)}catch(e){}
-if(!r.ok)throw new Error((j&&(j.message||j.msg||j.error_description))||('HTTP '+r.status));return j})})}
+if(!r.ok)throw new Error((j&&(j.error_code||j.message||j.msg||j.error_description))||('HTTP '+r.status));return j})})})}
 function rpc(n,a,auth){return api('/rest/v1/rpc/'+n,{m:'POST',body:JSON.stringify(a),auth:auth})}
 function dig(s){return String(s).replace(/[٠-٩]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.indexOf(d)}).trim()}
 function fmt(t){return new Date(t).toLocaleString('ar-SA',{dateStyle:'medium',timeStyle:'short'})}
@@ -223,7 +240,7 @@ c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){URL.r
 im.onerror=function(){rej(new Error('تعذر قراءة الصورة'))};im.src=u})}
 function newKey(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random().toString(36).slice(2)}
 function upload(f){var p='pending/'+newKey()+'.jpg';
-return shrink(f).then(function(b){var h={apikey:K,'Content-Type':'image/jpeg'};if(tok)h.Authorization='Bearer '+tok;return fetch(U+'/storage/v1/object/report-photos/'+p,{method:'POST',headers:h,body:b})})
+return ensureTok().then(function(){return shrink(f)}).then(function(b){var h={apikey:K,'Content-Type':'image/jpeg'};if(tok)h.Authorization='Bearer '+tok;return fetch(U+'/storage/v1/object/report-photos/'+p,{method:'POST',headers:h,body:b})})
 .then(function(r){if(!r.ok)throw new Error('فشل رفع صورة');return p})}
 function isImg(f){return /^image\//.test(f.type)}
 function isVid(f){return /^video\//.test(f.type)}
@@ -232,25 +249,27 @@ if(isImg(f))return upload(f).then(function(p){return{p:p,k:'photo'}});
 if(!isVid(f))return Promise.reject(new Error('نوع الملف غير مدعوم: '+f.name));
 if(f.size>50*1024*1024)return Promise.reject(new Error('حجم الفيديو أكبر من 50 ميجا. صوّر مقطعاً أقصر.'));
 var ext=((f.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,''))||'mp4';
-var p='pending/'+newKey()+'.'+ext,h={apikey:K,'Content-Type':f.type||'video/mp4'};if(tok)h.Authorization='Bearer '+tok;
-return fetch(U+'/storage/v1/object/report-photos/'+p,{method:'POST',headers:h,body:f}).then(function(r){if(!r.ok)throw new Error('فشل رفع الفيديو');return{p:p,k:'video'}})}
+var p='pending/'+newKey()+'.'+ext;
+return ensureTok().then(function(){var h={apikey:K,'Content-Type':f.type||'video/mp4'};if(tok)h.Authorization='Bearer '+tok;return fetch(U+'/storage/v1/object/report-photos/'+p,{method:'POST',headers:h,body:f})}).then(function(r){if(!r.ok)throw new Error('فشل رفع الفيديو');return{p:p,k:'video'}})}
+$('#urg').onchange=function(){$('#urgw').hidden=$('#urg').value==='0'};
 $('#f').onsubmit=function(e){e.preventDefault();
 var ok=true,er=$('#ferr');
-['name','phone','city','type','loc','desc'].forEach(function(k){var el=$('#'+k),v=el.value.trim();
-if(k==='phone'&&!/^05\d{8}$/.test(dig(v)))v='';
+if(!rep){er.hidden=false;er.textContent=ERR.not_authorized;return}
+var need=['city','district','type','loc','desc'];if($('#urg').value!=='0')need.push('urgr');
+need.forEach(function(k){var el=$('#'+k),v=el.value.trim();
 if(!v){el.classList.add('bad');ok=false}else el.classList.remove('bad')});
-if(!ok){er.hidden=false;er.textContent='أكمل الحقول المطلوبة المعلّمة بالأحمر، وتأكد أن الجوال بصيغة 05XXXXXXXX.';return}
+if(!ok){er.hidden=false;er.textContent='أكمل الحقول المطلوبة المعلّمة بالأحمر.';return}
 var files=Array.prototype.slice.call($('#pics').files);
 if(files.length>5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
 er.hidden=true;var btn=$('#sub');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
-var loc=$('#loc').value.trim(),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
+var loc=$('#loc').value.trim(),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/),u=+$('#urg').value;
 Promise.all(files.map(upload)).then(function(paths){
-return rpc('submit_report',{p_name:$('#name').value.trim(),p_phone:dig($('#phone').value),p_role:$('#role').value,p_city:$('#city').value,p_type:$('#type').value,
-p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths},true)})
+return rpc('submit_report',{p_name:rep.name,p_phone:rep.phone,p_role:rep.title||'موظف',p_city:$('#city').value,p_district:$('#district').value.trim(),p_type:$('#type').value,
+p_urgency:u,p_urgency_reason:u?$('#urgr').value.trim():null,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths},true)})
 .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id})
 .catch(function(x){er.hidden=false;er.textContent=fe(x)})
 .then(function(){btn.disabled=false;btn.textContent='إرسال البلاغ'})};
-$('#again').onclick=function(){$('#f').reset();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
+$('#again').onclick=function(){$('#f').reset();$('#urgw').hidden=true;fillRep();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
 $('#copy').onclick=function(){var t=$('#newid').textContent;
 try{navigator.clipboard.writeText(t).then(function(){$('#copy').textContent='تم النسخ'},function(){$('#copy').textContent='انسخ الرقم يدوياً'})}catch(e){$('#copy').textContent='انسخ الرقم يدوياً'}};
 $('#tgo').onclick=function(){var out=$('#tres'),b=$('#tgo');b.disabled=true;out.innerHTML='';
@@ -263,13 +282,45 @@ out.innerHTML='<div class="item"><div class="row"><b>'+esc(r.id)+'</b><span clas
 /* الموظفون */
 $('#flt').innerHTML='<option value="">كل الحالات</option>'+SK.map(function(k){return '<option value="'+k+'">'+SL[k]+'</option>'}).join('');
 $('#flt').onchange=loadList;
-function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.removeItem('tk')}catch(e){}$('#login').hidden=!!t;$('#panel').hidden=!t;$('#new-locked').hidden=!!t;$('#new-body').hidden=!t;if(t)loadMe().catch(function(){}).then(loadList)}
-$('#new-goto-login').onclick=function(){document.querySelector('nav button[data-v="insp"]').click()};
-$('#lg').onclick=function(){var er=$('#lerr');er.hidden=true;
-api('/auth/v1/token?grant_type=password',{m:'POST',body:JSON.stringify({email:$('#em').value.trim(),password:$('#pw').value})})
-.then(function(r){$('#pw').value='';setSess(r.access_token)}).catch(function(x){er.hidden=false;er.textContent=fe(x)})};
-$('#out').onclick=function(){setSess(null)};
-try{var st=sessionStorage.getItem('tk');if(st)setSess(st)}catch(e){}
+var rep=null,ready=false;
+function render(){var on=!!tok;
+$('#new-login').hidden=on;$('#new-wait').hidden=!(on&&!ready);$('#new-denied').hidden=!(on&&ready&&!rep);$('#new-body').hidden=!(on&&ready&&rep);
+$('#insp-login').hidden=on;$('#insp-wait').hidden=!(on&&!ready);$('#insp-denied').hidden=!(on&&ready&&!me);$('#panel').hidden=!(on&&ready&&me)}
+function loadRep(){return api('/rest/v1/reporters?select=id,name,title,phone,branch&id=eq.'+encodeURIComponent(uid()),{auth:true}).then(function(a){rep=(a&&a[0])||null})}
+function fillRep(){if(!rep)return;
+$('#rep-card').innerHTML='<p class="lbl" style="margin:0">المبلّغ (من حسابك تلقائياً)</p><p style="margin:4px 0 0"><b>'+esc(rep.name)+'</b>'+(rep.title?' — '+esc(rep.title):'')+'</p><p class="hint" style="margin:2px 0 0"><span dir="ltr">'+esc(rep.phone||'')+'</span>'+(rep.branch?' · '+esc(rep.branch):'')+'</p>';
+var c=$('#city');if(!c.value&&rep.branch){for(var i=0;i<c.options.length;i++)if(c.options[i].text===rep.branch){c.value=rep.branch;break}}}
+function identify(){ready=false;me=null;rep=null;render();
+return Promise.all([loadMe().catch(function(){me=null}),loadRep().catch(function(){rep=null})]).then(function(){
+if(!tok)return;ready=true;render();fillRep();if(me)loadList()})}
+function signOut(){var t=tok;saveSess(null);me=null;rep=null;ready=false;
+if(t)fetch(U+'/auth/v1/logout',{method:'POST',headers:{apikey:K,Authorization:'Bearer '+t}}).catch(function(){});
+$('#list').innerHTML='';$('#dash').innerHTML='';$('#staffAdminBox').innerHTML='';render()}
+document.querySelectorAll('.lf').forEach(function(f){var er=f.querySelector('.err'),msg=f.querySelector('[data-msg]');
+f.onsubmit=function(e){e.preventDefault();er.hidden=true;msg.textContent='';var b=f.querySelector('button[type=submit]');b.disabled=true;
+var em=f.querySelector('input[type=email]').value.trim(),pw=f.querySelector('input[type=password]');
+api('/auth/v1/token?grant_type=password',{m:'POST',body:JSON.stringify({email:em,password:pw.value})})
+.then(function(r){pw.value='';saveSess(normSess(r));try{localStorage.setItem('sb_email',em)}catch(x){}return identify()})
+.catch(function(x){er.hidden=false;er.textContent=fe(x)}).then(function(){b.disabled=false})};
+f.querySelector('[data-forgot]').onclick=function(){var em=f.querySelector('input[type=email]').value.trim();er.hidden=true;
+if(!/^\S+@\S+\.\S+$/.test(em)){er.hidden=false;er.textContent='اكتب بريدك الإلكتروني في الخانة أعلاه أولاً، ثم اضغط «نسيت كلمة المرور».';return}
+msg.textContent='جارٍ الإرسال…';
+api('/auth/v1/recover?redirect_to='+encodeURIComponent(location.origin+location.pathname),{m:'POST',body:JSON.stringify({email:em})})
+.then(function(){msg.textContent='إن كان البريد مسجلاً، فستصلك رسالة فيها رابط لتعيين كلمة مرور جديدة. افحص البريد غير المرغوب أيضاً.'})
+.catch(function(x){msg.textContent='';er.hidden=false;er.textContent=/rate|after/i.test(x.message)?'طلبات كثيرة. انتظر قليلاً ثم حاول.':fe(x)})}});
+document.querySelectorAll('[data-logout]').forEach(function(b){b.onclick=signOut});
+function openPw(title){$('#pwm-t').textContent=title||'تغيير كلمة المرور';$('#pw1').value='';$('#pw2').value='';$('#pwm-err').hidden=true;
+try{$('#pwm-user').value=localStorage.getItem('sb_email')||''}catch(e){}$('#pwm').hidden=false;document.body.style.overflow='hidden'}
+function closePw(){$('#pwm').hidden=true;document.body.style.overflow=''}
+document.querySelectorAll('[data-chpw]').forEach(function(b){b.onclick=function(){openPw()}});
+$('#pwm-no').onclick=closePw;
+$('#pwf').onsubmit=function(e){e.preventDefault();var er=$('#pwm-err'),b=$('#pwm-ok'),a=$('#pw1').value,c=$('#pw2').value;er.hidden=true;
+if(a.length<8){er.hidden=false;er.textContent='كلمة المرور يجب أن تكون 8 خانات على الأقل.';return}
+if(a!==c){er.hidden=false;er.textContent='كلمتا المرور غير متطابقتين.';return}
+b.disabled=true;
+api('/auth/v1/user',{m:'PUT',auth:true,body:JSON.stringify({password:a})})
+.then(function(){closePw();alert('تم تغيير كلمة المرور. استخدمها في الدخول القادم.')})
+.catch(function(x){er.hidden=false;er.textContent=fe(x)}).then(function(){b.disabled=false})};
 var me=null,staffList=[];
 function uid(){try{return JSON.parse(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub}catch(e){return null}}
 function isSup(){return !!me&&(me.role==='supervisor'||me.role==='admin')}
@@ -376,6 +427,7 @@ var kv=function(l,v){return '<div class="kv"><span>'+l+'</span><b>'+(v?esc(v):'�
 $('#list').innerHTML=a.map(function(r){var c=cm[r.id];
 return '<div class="item"><div class="row"><b>'+esc(r.id)+'</b>'+(r.urgency?'<span class="tag u'+r.urgency+'">'+UR[r.urgency]+'</span>':'')+'<span class="tag">'+esc(r.city)+'</span></div>'+
 '<p><b>'+esc(r.type)+'</b></p>'+
+(r.district?kv('الحي',r.district):'')+(r.urgency_reason?kv('سبب الاستعجال',r.urgency_reason):'')+
 kv('رقم الحصر',r.account_no)+kv('رقم الحساب',r.subscription_no)+kv('رقم العداد',r.meter_no)+
 kv('اسم المبلّغ',c&&c.name)+
 '<div class="kv"><span>جوال المبلّغ</span><b>'+(c?'<span dir="ltr">'+esc(c.phone)+'</span>':'<small class="hint">يظهر بعد إسناد البلاغ إليك</small>')+'</b></div>'+
@@ -410,7 +462,7 @@ return Promise.all(ps.map(function(p){return api('/storage/v1/object/sign/report
 o.innerHTML='<div class="imgs">'+s.map(function(x,i){var u=U+'/storage/v1'+x.signedURL;
 return ps[i].kind==='video'?'<a class="vid" href="'+u+'" target="_blank" rel="noopener">▶ فيديو</a>':'<a href="'+u+'" target="_blank" rel="noopener"><img alt="صورة البلاغ" src="'+u+'"></a>'}).join('')+'</div>'})})
 .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
-}).catch(function(x){if(/JWT|expired|401/i.test(x.message)){setSess(null);return}pe.hidden=false;pe.textContent=fe(x)})}
+}).catch(function(x){if(/JWT|expired|401|session_expired/i.test(x.message)){signOut();return}pe.hidden=false;pe.textContent=fe(x)})}
 
 /* تصدير إلى شيت: خطوتان ليعمل على الآيفون */
 var xCsv='',xTsv='',xName='balaghat.csv';
@@ -422,10 +474,10 @@ api('/rest/v1/report_contacts?select=report_id,name,phone,role&limit=1000',{auth
 var cm={};r[1].forEach(function(c){cm[c.report_id]=c});
 var q=function(v){v=String(v==null?'':v);if(/^[=+\-@]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
 var tx=function(v){v=String(v==null?'':v);return /^\d+$/.test(v)?'="'+v+'"':q(v)};
-var hd=['رقم البلاغ','التاريخ','المدينة','نوع المخالفة','الاستعجال','الحالة','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','جوال المبلّغ','وصف البلاغ','رقم المخالفة','سبب الإغلاق','الموقع'];
-var raw=r[0].map(function(x){var c=cm[x.id]||{};return [x.id,fmt(x.created_at),x.city,x.type,UR[x.urgency],SL[x.status],x.account_no,x.subscription_no,x.meter_no,c.name,c.phone,x.description,x.violation_no,x.close_note,x.location_text]});
+var hd=['رقم البلاغ','التاريخ','المدينة','الحي','نوع المخالفة','الاستعجال','الحالة','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','جوال المبلّغ','وصف البلاغ','رقم المخالفة','سبب الإغلاق','الموقع'];
+var raw=r[0].map(function(x){var c=cm[x.id]||{};return [x.id,fmt(x.created_at),x.city,x.district,x.type,UR[x.urgency],SL[x.status],x.account_no,x.subscription_no,x.meter_no,c.name,c.phone,x.description,x.violation_no,x.close_note,x.location_text]});
 var rowsCsv=r[0].map(function(x){var c=cm[x.id]||{};
-return [q(x.id),q(fmt(x.created_at)),q(x.city),q(x.type),q(UR[x.urgency]),q(SL[x.status]),tx(x.account_no),tx(x.subscription_no),tx(x.meter_no),q(c.name),tx(c.phone),q(x.description),tx(x.violation_no),q(x.close_note),q(x.location_text)].join(',')});
+return [q(x.id),q(fmt(x.created_at)),q(x.city),q(x.district),q(x.type),q(UR[x.urgency]),q(SL[x.status]),tx(x.account_no),tx(x.subscription_no),tx(x.meter_no),q(c.name),tx(c.phone),q(x.description),tx(x.violation_no),q(x.close_note),q(x.location_text)].join(',')});
 xCsv='\ufeff'+[hd.map(q).join(',')].concat(rowsCsv).join('\r\n');
 var t=function(v){return String(v==null?'':v).replace(/[\t\r\n]+/g,' ')};
 xTsv=[hd.join('\t')].concat(raw.map(function(a){return a.map(t).join('\t')})).join('\n');
@@ -445,6 +497,13 @@ $('#xcopy').onclick=function(){var m=$('#xmsg');
 var fb=function(){var ta=document.createElement('textarea');ta.value=xTsv;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,xTsv.length);var ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();m.textContent=ok?'تم النسخ. افتح Excel أو Google Sheets والصق في الخلية الأولى.':'تعذر النسخ التلقائي.'};
 if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(xTsv).then(function(){m.textContent='تم النسخ. افتح Excel أو Google Sheets والصق في الخلية الأولى.'}).catch(fb)}else fb()};
 }).catch(function(x){pe.hidden=false;pe.textContent=fe(x)}).then(function(){b.disabled=false;b.textContent='تصدير البلاغات إلى Excel (ملف CSV)'})};
+
+/* بدء التشغيل: رابط استعادة كلمة المرور أو جلسة محفوظة */
+(function(){var h=new URLSearchParams((location.hash||'').replace(/^#/,''));
+if(h.get('access_token')&&h.get('type')==='recovery'){saveSess(normSess({access_token:h.get('access_token'),refresh_token:h.get('refresh_token'),expires_in:+h.get('expires_in')||3600}));
+history.replaceState(null,'',location.pathname+location.search);identify();openPw('تعيين كلمة مرور جديدة');return}
+if(h.get('error_description')){history.replaceState(null,'',location.pathname+location.search);alert('رابط الاستعادة غير صالح أو منتهي. اطلب رابطاً جديداً.')}
+try{var x=JSON.parse(localStorage.getItem('sb_sess')||'null');if(x&&x.refresh_token){saveSess(x);identify()}else render()}catch(e){render()}})();
 </script>
 </body>
 </html>

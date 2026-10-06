@@ -173,7 +173,7 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 </div>
 <label for="cm-note">سبب الإغلاق وملاحظات الزيارة <i>*</i></label>
 <textarea id="cm-note" placeholder="اكتب ما وجدته في الموقع ولماذا يُغلق البلاغ."></textarea>
-<label for="cm-files">صور أو فيديو الإثبات <i>*</i></label>
+<label for="cm-files">صور أو فيديو (اختياري)</label>
 <input id="cm-files" type="file" accept="image/*,video/*" multiple>
 <p class="hint" id="cm-fh"></p>
 <p class="hint">بعد الإغلاق يُقفل البلاغ، ولا يُعاد فتحه إلا من مدير الرقابة أو المشرف.</p>
@@ -395,7 +395,7 @@ opts.map(function(o){return '<option value="'+o[0]+'"'+(o[0]===r.status?' select
 
 var cmId=null;
 function syncCm(){var c=$('#cm-res').value==='confirmed';$('#cm-vnw').hidden=!c;
-$('#cm-fh').textContent=c?'إلزامي: صورة واحدة على الأقل للمخالفة، ويمكن إضافة فيديو (حتى 10 ملفات).':'إلزامي: صورة أو فيديو يثبت عدم وجود مخالفة (حتى 10 ملفات).'}
+$('#cm-fh').textContent='يمكن إرفاق صور أو فيديو من الموقع (حتى 10 ملفات).'}
 function openClose(id,res){cmId=id;$('#cm-id').textContent='رقم البلاغ: '+id;$('#cm-res').value=res;$('#cm-vn').value='';$('#cm-note').value='';$('#cm-files').value='';
 $('#cm-err').hidden=true;syncCm();$('#cm').hidden=false;document.body.style.overflow='hidden'}
 function hideCm(){$('#cm').hidden=true;document.body.style.overflow='';cmId=null;loadList()}
@@ -406,11 +406,9 @@ var res=$('#cm-res').value,vn=$('#cm-vn').value.trim(),note=$('#cm-note').value.
 var bad=function(t){er.hidden=false;er.textContent=t};
 if(res==='confirmed'&&!vn)return bad('أدخل رقم المخالفة.');
 if(!note)return bad('اكتب سبب الإغلاق وملاحظات الزيارة.');
-if(!files.length)return bad('أرفق صورة أو فيديو للإثبات.');
 if(files.length>10)return bad('الحد الأقصى 10 ملفات.');
 if(files.some(function(f){return !isImg(f)&&!isVid(f)}))return bad('يُقبل فقط ملفات الصور والفيديو.');
-if(res==='confirmed'&&!files.some(isImg))return bad('أرفق صورة واحدة على الأقل للمخالفة.');
-b.disabled=true;b.textContent='جارٍ رفع الملفات والإغلاق…';$('#cm-no').disabled=true;
+b.disabled=true;b.textContent=files.length?'جارٍ رفع الملفات والإغلاق…':'جارٍ الإغلاق…';$('#cm-no').disabled=true;
 Promise.all(files.map(uploadEvidence)).then(function(up){
 return rpc('close_report',{p_id:cmId,p_result:res,p_violation_no:res==='confirmed'?vn:null,p_note:note,p_files:up.map(function(u){return u.p}),p_kinds:up.map(function(u){return u.k}),p_remove:[]},true)})
 .then(function(){hideCm()})

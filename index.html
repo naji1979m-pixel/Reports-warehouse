@@ -277,7 +277,7 @@ $('#tgo').onclick=function(){var out=$('#tres'),b=$('#tgo');b.disabled=true;out.
 rpc('track_report',{p_id:$('#tid').value.trim(),p_last4:dig($('#tph').value)}).then(function(r){
 if(!r){out.innerHTML='<p class="err">لم نجد بلاغاً بهذه البيانات. تحقق من الرقم وآخر 4 أرقام من الجوال.</p>';return}
 out.innerHTML='<div class="item"><div class="row"><b>'+esc(r.id)+'</b><span class="tag">'+esc(SL[r.status])+'</span></div><p>'+esc(r.type)+' — '+esc(r.city)+'</p><small class="hint">قُدّم في '+fmt(r.created_at)+'</small><ul class="tl">'+
-(r.history||[]).slice().reverse().map(function(h){var t=SL[h.status];if(!t){t='تم إسناد البلاغ';if(h.note)t+=' — '+h.note}return '<li><b>'+esc(t)+'</b><br><small>'+fmt(h.at)+'</small></li>'}).join('')+'</ul></div>'})
+(r.history||[]).slice().reverse().map(function(h){var t=SL[h.status]||h.status||'تم إسناد البلاغ';return '<li><b>'+esc(t)+'</b><br><small>'+fmt(h.at)+'</small></li>'}).join('')+'</ul></div>'})
 .catch(function(x){out.innerHTML='<p class="err">'+esc(fe(x))+'</p>'}).then(function(){b.disabled=false})};
 
 /* الموظفون */

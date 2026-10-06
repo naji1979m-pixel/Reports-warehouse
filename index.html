@@ -119,8 +119,8 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="acct" placeholder="اختياري" inputmode="numeric">
 <label for="desc">وصف البلاغ <i>*</i></label>
 <textarea id="desc" placeholder="اشرح الحالة باختصار، ومتى تمت ملاحظتها، وأي معلومات تساعد الفريق الميداني."></textarea>
-<label for="pics">إرفاق صور البلاغ (حتى 5 صور)</label>
-<input id="pics" type="file" accept="image/*" multiple>
+<label for="pics">إرفاق صور أو فيديو (حتى 5 ملفات)</label>
+<input id="pics" type="file" accept="image/*,video/*" multiple>
 <p class="hint">يفضل إرفاق صورة واضحة للموقع والمخالفة وما يثبت رقم العداد إن كان ظاهراً.</p>
 <div class="note">بإرسال البلاغ، يقر المبلّغ بصحة المعلومات المقدمة حسب علمه، وتستخدم البيانات لغرض دراسة البلاغ واتخاذ الإجراء النظامي. تقديم البلاغ لا يعني ثبوت المخالفة قبل التحقق الميداني والمراجعة.</div>
 <button class="btn" id="sub" type="submit">إرسال البلاغ</button>
@@ -207,7 +207,7 @@ var SK=['new','verifying','confirmed','no_violation','closed'];
 var SL={new:'جديد',verifying:'قيد التحقق الميداني',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
 var CLOSED=['confirmed','no_violation','closed'];
 var UR=['عادي','عاجل','عاجل جداً'];
-var ERR={invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».',
+var ERR={invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 ملفات.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».',
 use_close:'إغلاق البلاغ يتم من نافذة الإغلاق مع الإثبات.',report_closed:'البلاغ مغلق ولا يمكن تعديله.',inspector_only:'إغلاق البلاغ لمأمور الضبط المسند إليه فقط.',not_assigned:'هذا البلاغ غير مسند إليك.',invalid_file:'ملف غير صالح أو تجاوز 10 ملفات.',note_required:'اكتب سبب الإغلاق.',evidence_required:'أرفق صورة أو فيديو للإثبات.',violation_no_required:'أدخل رقم المخالفة.',photo_required:'أرفق صورة واحدة على الأقل للمخالفة.',not_authorized:'حسابك غير مصرّح له بتقديم البلاغات.',urgency_reason_required:'اكتب سبب الاستعجال.',invalid_urgency:'درجة الاستعجال غير صحيحة.',session_expired:'انتهت الجلسة. سجّل الدخول من جديد.',weak_password:'كلمة المرور ضعيفة. استخدم 8 خانات أو أكثر.',same_password:'كلمة المرور الجديدة مطابقة للقديمة.'};
 var tok=null,sess=null,refreshing=null;
 function normSess(j){return{access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||Math.floor(Date.now()/1000)+(j.expires_in||3600)}}
@@ -261,9 +261,10 @@ if(!v){el.classList.add('bad');ok=false}else el.classList.remove('bad')});
 if(!ok){er.hidden=false;er.textContent='أكمل الحقول المطلوبة المعلّمة بالأحمر.';return}
 var files=Array.prototype.slice.call($('#pics').files);
 if(files.length>5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
+if(files.some(function(f){return !isImg(f)&&!isVid(f)})){er.hidden=false;er.textContent='يُقبل فقط ملفات الصور والفيديو.';return}
 er.hidden=true;var btn=$('#sub');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
 var loc=$('#loc').value.trim(),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/),u=+$('#urg').value;
-Promise.all(files.map(upload)).then(function(paths){
+Promise.all(files.map(uploadEvidence)).then(function(up){var paths=up.map(function(x){return x.p});
 return rpc('submit_report',{p_name:rep.name,p_phone:rep.phone,p_role:rep.title||'موظف',p_city:$('#city').value,p_district:$('#district').value.trim(),p_type:$('#type').value,
 p_urgency:u,p_urgency_reason:u?$('#urgr').value.trim():null,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths},true)})
 .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id})
@@ -454,7 +455,7 @@ Promise.all([
 api('/rest/v1/report_photos?report_id=eq.'+encodeURIComponent(id)+'&select=file_path',{auth:true}),
 api('/rest/v1/report_evidence?report_id=eq.'+encodeURIComponent(id)+'&archived=eq.false&select=file_path,kind',{auth:true}).catch(function(){return []})
 ]).then(function(rr){
-var ps=rr[0].map(function(p){return{file_path:p.file_path,kind:'photo'}}).concat(rr[1]||[]);
+var ps=rr[0].map(function(p){return{file_path:p.file_path,kind:/\.(mp4|mov|m4v|webm|3gp)$/i.test(p.file_path)?'video':'photo'}}).concat(rr[1]||[]);
 if(!ps.length){o.innerHTML='<p class="hint">لا توجد صور.</p>';return}
 return Promise.all(ps.map(function(p){return api('/storage/v1/object/sign/report-photos/'+p.file_path,{m:'POST',auth:true,body:JSON.stringify({expiresIn:600})})})).then(function(s){
 o.innerHTML='<div class="imgs">'+s.map(function(x,i){var u=U+'/storage/v1'+x.signedURL;

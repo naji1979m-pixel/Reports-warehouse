@@ -203,7 +203,7 @@ var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){r
 var SK=['new','verifying','confirmed','no_violation','closed'];
 var SL={new:'جديد',verifying:'قيد التحقق الميداني',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
 var UR=['عادي','عاجل','عاجل جداً'];
-var ERR={invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
+var ERR={reports_description_check:'وصف البلاغ قصير. اكتب وصفاً أوضح للحالة.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
 var tok=null;
 function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';return 'حدث خطأ: '+m}
 function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.auth&&tok)h.Authorization='Bearer '+tok;
@@ -218,6 +218,7 @@ document.querySelectorAll('nav button').forEach(function(b){b.onclick=function()
   document.querySelectorAll('nav button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
   ['new','track','insp'].forEach(function(v){$('#v-'+v).hidden=v!==b.dataset.v});}});
 
+['input','change'].forEach(function(ev){$('#f').addEventListener(ev,function(e){var t=e.target;t.classList.remove('bad');var n=t.nextElementSibling;if(n&&n.classList.contains('fe'))n.remove()})});
 $('#urg').onchange=function(){$('#urg-box').hidden=!(+this.value>0)};
 $('#gps').onclick=function(){var m=$('#gpsmsg');
   if(!navigator.geolocation){m.textContent='المتصفح لا يدعم تحديد الموقع. الصق الرابط أو الإحداثيات يدوياً.';return}
@@ -249,10 +250,13 @@ function upload(f){var id=(window.crypto&&crypto.randomUUID?crypto.randomUUID():
 $('#f').onsubmit=function(e){e.preventDefault();
   var ok=true,er=$('#ferr');
   var req=['name','phone','city','district','type','loc','desc'];if(+$('#urg').value>0)req.push('urgr');
+  var FN={name:'اسم المبلّغ',phone:'رقم الجوال (05XXXXXXXX)',city:'المدينة',district:'الحي',type:'نوع البلاغ',loc:'موقع البلاغ',desc:'وصف البلاغ (10 أحرف على الأقل)',urgr:'سبب الاستعجال'};
+  var bad=[];document.querySelectorAll('#f .fe').forEach(function(x){x.remove()});
   req.forEach(function(k){var el=$('#'+k),v=el.value.trim();
     if(k==='phone'&&!/^05\d{8}$/.test(dig(v)))v='';
-    if(!v){el.classList.add('bad');ok=false}else el.classList.remove('bad')});
-  if(!ok){er.hidden=false;er.textContent='أكمل الحقول المطلوبة المعلّمة بالأحمر، وتأكد أن الجوال بصيغة 05XXXXXXXX.';return}
+    if(k==='desc'&&v.length<10)v='';
+    if(!v){el.classList.add('bad');bad.push(k);var m=document.createElement('p');m.className='err fe';m.textContent='مطلوب: '+FN[k];el.insertAdjacentElement('afterend',m)}else el.classList.remove('bad')});
+  if(bad.length){er.hidden=false;er.textContent='أكمل الحقول التالية: '+bad.map(function(k){return FN[k]}).join('، ');var f0=$('#'+bad[0]);f0.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){f0.focus()},400);return}
   var files=picked.slice();
   if(files.length>5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
   er.hidden=true;var btn=$('#sub');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
@@ -261,9 +265,9 @@ $('#f').onsubmit=function(e){e.preventDefault();
     return rpc('submit_report',{p_name:$('#name').value.trim(),p_phone:dig($('#phone').value),p_role:$('#role').value,p_city:$('#city').value,p_type:$('#type').value,
       p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths,p_district:$('#district').value.trim(),p_urgency_reason:+$('#urg').value>0?$('#urgr').value.trim():null},true)})
   .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id;picked=[];renderPicked()})
-  .catch(function(x){er.hidden=false;er.textContent=fe(x)})
+  .catch(function(x){er.hidden=false;er.textContent=fe(x);if(/description_check/.test(x.message)){$('#desc').classList.add('bad');$('#desc').scrollIntoView({behavior:'smooth',block:'center'})}})
   .then(function(){btn.disabled=false;btn.textContent='إرسال البلاغ'})};
-$('#again').onclick=function(){$('#f').reset();$('#urg-box').hidden=true;picked=[];renderPicked();if(isReporter())fillReporter();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
+$('#again').onclick=function(){$('#f').reset();document.querySelectorAll('#f .fe').forEach(function(x){x.remove()});$('#urg-box').hidden=true;picked=[];renderPicked();if(isReporter())fillReporter();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
 $('#copy').onclick=function(){var t=$('#newid').textContent;
   try{navigator.clipboard.writeText(t).then(function(){$('#copy').textContent='تم النسخ'},function(){$('#copy').textContent='انسخ الرقم يدوياً'})}catch(e){$('#copy').textContent='انسخ الرقم يدوياً'}};
 

@@ -130,9 +130,17 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="acct" placeholder="اختياري" inputmode="numeric">
 <label for="desc">وصف البلاغ <i>*</i></label>
 <textarea id="desc" placeholder="اشرح الحالة باختصار، ومتى تمت ملاحظتها، وأي معلومات تساعد الفريق الميداني."></textarea>
-<label for="pics">إرفاق صور البلاغ (حتى 5 صور)</label>
-<input id="pics" type="file" accept="image/*" multiple>
-<p class="hint">يفضل إرفاق صورة واضحة للموقع والمخالفة وما يثبت رقم العداد إن كان ظاهراً.</p>
+<label>إرفاق صور أو فيديو (حتى 5 ملفات)</label>
+<div class="row">
+<button type="button" class="btn alt sm" id="pk-cam" style="flex:1;width:auto;margin:0">📷 تصوير صورة</button>
+<button type="button" class="btn alt sm" id="pk-vid" style="flex:1;width:auto;margin:0">🎥 تصوير فيديو</button>
+<button type="button" class="btn alt sm" id="pk-gal" style="flex:1;width:auto;margin:0">🖼️ من الاستديو</button>
+</div>
+<input id="in-cam" type="file" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0">
+<input id="in-vid" type="file" accept="video/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0">
+<input id="in-gal" type="file" accept="image/*,video/*" multiple style="position:absolute;width:1px;height:1px;opacity:0">
+<div id="pk-list"></div>
+<p class="hint">يفضل إرفاق صورة واضحة للموقع والمخالفة وما يثبت رقم العداد إن كان ظاهراً. حجم الفيديو حتى 50 ميجابايت.</p>
 <div class="note">بإرسال البلاغ، يقر المبلّغ بصحة المعلومات المقدمة حسب علمه، وتستخدم البيانات لغرض دراسة البلاغ واتخاذ الإجراء النظامي. تقديم البلاغ لا يعني ثبوت المخالفة قبل التحقق الميداني والمراجعة.</div>
 <button class="btn" id="sub" type="submit">إرسال البلاغ</button>
 <p class="err" id="ferr" hidden></p>
@@ -216,7 +224,20 @@ function shrink(f){return new Promise(function(res,rej){var im=new Image(),u=URL
   im.onload=function(){var s=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){URL.revokeObjectURL(u);b?res(b):rej(new Error('تعذر معالجة الصورة'))},'image/jpeg',.8)};
   im.onerror=function(){rej(new Error('تعذر قراءة الصورة'))};im.src=u})}
-function upload(f){var p='pending/'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random().toString(36).slice(2))+'.jpg';
+var picked=[];
+function isVid(f){return /^video\//.test(f.type)||/\.(mp4|mov|m4v|webm)$/i.test(f.name)}
+function renderPicked(){$('#pk-list').innerHTML=picked.map(function(f,i){return '<div class="kv"><span>'+(isVid(f)?'🎥 فيديو':'📷 صورة')+' '+(i+1)+'</span><b><button type="button" class="btn alt sm" data-rm="'+i+'" style="width:auto;margin:0;padding:4px 12px">حذف</button></b></div>'}).join('');
+  document.querySelectorAll('[data-rm]').forEach(function(b){b.onclick=function(){picked.splice(+b.dataset.rm,1);renderPicked()}})}
+function addPicked(inp){var er=$('#ferr');Array.prototype.slice.call(inp.files).forEach(function(f){
+    if(picked.length>=5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
+    if(isVid(f)&&f.size>50*1024*1024){er.hidden=false;er.textContent='حجم الفيديو أكبر من 50 ميجابايت. صوّر مقطعاً أقصر.';return}
+    picked.push(f)});inp.value='';renderPicked()}
+['cam','vid','gal'].forEach(function(k){$('#pk-'+k).onclick=function(){$('#in-'+k).click()};$('#in-'+k).onchange=function(){addPicked(this)}});
+function upload(f){var id=(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random().toString(36).slice(2));
+  if(isVid(f)){var ext=(f.name.match(/\.(mp4|mov|m4v|webm)$/i)||[,'mp4'])[1].toLowerCase(),vp='pending/'+id+'.'+ext;
+    var vh={apikey:K,'Content-Type':f.type||'video/mp4'};if(tok)vh.Authorization='Bearer '+tok;
+    return fetch(U+'/storage/v1/object/report-photos/'+vp,{method:'POST',headers:vh,body:f}).then(function(r){if(!r.ok)throw new Error('فشل رفع الفيديو');return vp})}
+  var p='pending/'+id+'.jpg';
   return shrink(f).then(function(b){var h={apikey:K,'Content-Type':'image/jpeg'};if(tok)h.Authorization='Bearer '+tok;return fetch(U+'/storage/v1/object/report-photos/'+p,{method:'POST',headers:h,body:b})})
   .then(function(r){if(!r.ok)throw new Error('فشل رفع صورة');return p})}
 
@@ -226,17 +247,17 @@ $('#f').onsubmit=function(e){e.preventDefault();
     if(k==='phone'&&!/^05\d{8}$/.test(dig(v)))v='';
     if(!v){el.classList.add('bad');ok=false}else el.classList.remove('bad')});
   if(!ok){er.hidden=false;er.textContent='أكمل الحقول المطلوبة المعلّمة بالأحمر، وتأكد أن الجوال بصيغة 05XXXXXXXX.';return}
-  var files=Array.prototype.slice.call($('#pics').files);
+  var files=picked.slice();
   if(files.length>5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
   er.hidden=true;var btn=$('#sub');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
   var loc=$('#loc').value.trim(),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
   Promise.all(files.map(upload)).then(function(paths){
     return rpc('submit_report',{p_name:$('#name').value.trim(),p_phone:dig($('#phone').value),p_role:$('#role').value,p_city:$('#city').value,p_type:$('#type').value,
       p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths},true)})
-  .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id})
+  .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id;picked=[];renderPicked()})
   .catch(function(x){er.hidden=false;er.textContent=fe(x)})
   .then(function(){btn.disabled=false;btn.textContent='إرسال البلاغ'})};
-$('#again').onclick=function(){$('#f').reset();if(isReporter())fillReporter();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
+$('#again').onclick=function(){$('#f').reset();picked=[];renderPicked();if(isReporter())fillReporter();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
 $('#copy').onclick=function(){var t=$('#newid').textContent;
   try{navigator.clipboard.writeText(t).then(function(){$('#copy').textContent='تم النسخ'},function(){$('#copy').textContent='انسخ الرقم يدوياً'})}catch(e){$('#copy').textContent='انسخ الرقم يدوياً'}};
 
@@ -367,7 +388,7 @@ function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;loadDash(
       (isReporter()?(r.violation_no?kv('رقم المخالفة',r.violation_no):''):(r.status==='confirmed'
         ?'<div class="vn"><label for="vn-'+esc(r.id)+'">رقم المخالفة</label><div class="row"><input id="vn-'+esc(r.id)+'" value="'+esc(r.violation_no||'')+'" placeholder="أدخل رقم المخالفة" dir="ltr" style="text-align:right"><button class="btn sm" data-vn="'+esc(r.id)+'">حفظ</button></div></div>'
         :(r.violation_no?kv('رقم المخالفة',r.violation_no):'')))+
-      '<div class="row"><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور</button>'+'<button class="btn alt sm" data-hist="'+esc(r.id)+'" style="width:auto;padding:8px 14px">سلسلة الإسناد والحالة</button></div>'+'<div data-o="'+esc(r.id)+'"></div><div data-h="'+esc(r.id)+'"></div></div>'}).join('');
+      '<div class="row"><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور والفيديو</button>'+'<button class="btn alt sm" data-hist="'+esc(r.id)+'" style="width:auto;padding:8px 14px">سلسلة الإسناد والحالة</button></div>'+'<div data-o="'+esc(r.id)+'"></div><div data-h="'+esc(r.id)+'"></div></div>'}).join('');
     document.querySelectorAll('#list select').forEach(function(s){s.onchange=function(){
       rpc('set_status',{p_id:s.dataset.id,p_status:s.value,p_note:null},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);loadList()})}});
     document.querySelectorAll('[data-vn]').forEach(function(b){b.onclick=function(){var id=b.dataset.vn,v=document.getElementById('vn-'+id).value.trim();b.disabled=true;
@@ -383,7 +404,7 @@ function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;loadDash(
       api('/rest/v1/report_photos?report_id=eq.'+encodeURIComponent(b.dataset.im)+'&select=file_path',{auth:true}).then(function(ps){
         if(!ps.length){o.innerHTML='<p class="hint">لا توجد صور.</p>';return}
         return Promise.all(ps.map(function(p){return api('/storage/v1/object/sign/report-photos/'+p.file_path,{m:'POST',auth:true,body:JSON.stringify({expiresIn:600})})})).then(function(s){
-          o.innerHTML='<div class="imgs">'+s.map(function(x){return '<a href="'+U+'/storage/v1'+x.signedURL+'" target="_blank" rel="noopener"><img alt="صورة البلاغ" src="'+U+'/storage/v1'+x.signedURL+'"></a>'}).join('')+'</div>'})})
+          o.innerHTML='<div class="imgs">'+s.map(function(x,i){var u=U+'/storage/v1'+x.signedURL;return /\.(mp4|mov|m4v|webm)$/i.test(ps[i].file_path)?'<video controls playsinline preload="metadata" src="'+u+'" style="width:100%;max-width:320px;border-radius:10px"></video>':'<a href="'+u+'" target="_blank" rel="noopener"><img alt="صورة البلاغ" src="'+u+'"></a>'}).join('')+'</div>'})})
       .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
   }).catch(function(x){if(/JWT|expired|401/i.test(x.message)){setSess(null);return}pe.hidden=false;pe.textContent=fe(x)})}
 

@@ -251,6 +251,7 @@ var me=null,staffList=[];
 function uid(){try{return JSON.parse(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub}catch(e){return null}}
 function isSup(){return !!me&&(me.role==='supervisor'||me.role==='admin')}
 function isAdmin(){return !!me&&me.role==='admin'}
+function isReporter(){return !!me&&me.role==='reporter'}
 var ROLE_AR={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور الضبط'};
 var allStaffList=[];
 function loadAllStaff(){if(!isAdmin()){allStaffList=[];renderStaffAdmin();return Promise.resolve()}
@@ -273,6 +274,21 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
     '<label>الدور</label><select id="sa-new-role">'+roleOptions('inspector')+'</select>'+
     '<label>المدن (اختياري، مفصولة بفاصلة)</label><input id="sa-new-cities">'+
     '<button class="btn sm" id="sa-new-save">إضافة</button><p class="hint" id="sa-new-msg"></p></div>';
+  box.innerHTML+='<div class="item"><p><b>استيراد دفعة مُبلّغين</b></p><p class="hint">الصق بيانات الموظفين بصيغة CSV، سطر لكل موظف: الإيميل,كلمة المرور,الاسم,الجوال,المسمى الوظيفي,المدينة (المدينة اختيارية؛ اتركها فارغة ليرى صاحبها كل المدن). لا تُحفظ هذه البيانات في كود الموقع.</p><textarea id="imp-rows" style="min-height:140px" placeholder="email,password,الاسم,0500000000,المسمى الوظيفي,المدينة"></textarea><button class="btn sm" id="imp-run">استيراد الآن</button><div id="imp-msg"></div></div>';
+  var ib=$('#imp-run');if(ib)ib.onclick=function(){var msg=$('#imp-msg'),raw=$('#imp-rows').value.trim();
+    if(!raw){msg.textContent='الصق البيانات أولاً.';return}
+    var rows=raw.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean).map(function(l){
+      var p=l.split(',').map(function(x){return x.trim()});
+      return {email:p[0],password:p[1],name:p[2],phone:p[3]||null,job_title:p[4]||null,cities:p[5]?[p[5]]:[]}});
+    ib.disabled=true;msg.textContent='جارٍ الاستيراد…';
+    fetch(U+'/functions/v1/manage-staff-auth',{method:'POST',headers:{apikey:K,'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({action:'bulk_create_reporters',rows:rows})})
+      .then(function(r){return r.json()}).then(function(j){
+        if(j.error){msg.textContent='خطأ: '+j.error;return}
+        var fail=j.results.filter(function(x){return !x.ok});
+        msg.innerHTML='تم: '+(j.results.length-fail.length)+' من '+j.results.length+(fail.length?('<br>فشل: '+fail.map(function(x){return esc(x.email)+' — '+esc(x.error)}).join('، ')):'');
+        if(!fail.length)$('#imp-rows').value='';
+        return loadMe()}).then(function(){return loadList()})
+      .catch(function(x){msg.textContent=fe(x)}).then(function(){ib.disabled=false})}
   document.querySelectorAll('[data-sasave]').forEach(function(btn){btn.onclick=function(){var id=btn.dataset.sasave,msg=$('#sa-msg-'+id);
     var name=document.querySelector('.sa-name[data-id="'+id+'"]').value.trim();
     var role=document.querySelector('.sa-role[data-id="'+id+'"]').value;
@@ -325,11 +341,11 @@ function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;loadDash(
       '<p class="lbl">وصف البلاغ</p><p>'+esc(r.description)+'</p>'+
       '<p class="hint">'+fmt(r.created_at)+'</p>'+
       '<p><a href="'+esc(mapUrl(r.location_text))+'" target="_blank" rel="noopener">فتح الموقع على الخريطة</a></p>'+
-      '<select data-id="'+esc(r.id)+'" aria-label="حالة البلاغ '+esc(r.id)+'">'+SK.map(function(k){return '<option value="'+k+'"'+(k===r.status?' selected':'')+'>'+SL[k]+'</option>'}).join('')+'</select>'+
-      kv('المُسنَد إليه',staffName(r.assigned_to))+(isSup()?'<div class="vn"><label for="as-'+esc(r.id)+'">إسناد البلاغ (يُحفظ فور الاختيار)</label><select class="as-sel" id="as-'+esc(r.id)+'" data-as="'+esc(r.id)+'"><option value="">اختر موظفاً</option>'+staffList.filter(function(z){return z.role!=='admin'}).map(function(z){return '<option value="'+esc(z.id)+'"'+(z.id===r.assigned_to?' selected':'')+'>'+esc(z.name)+(z.cities&&z.cities.length?' ('+esc(z.cities.join('، '))+')':'')+'</option>'}).join('')+'</select></div>':'')+
-      (r.status==='confirmed'
+      (isReporter()?'<p class="tag" style="display:inline-block;margin:8px 0">'+SL[r.status]+'</p>':'<select data-id="'+esc(r.id)+'" aria-label="حالة البلاغ '+esc(r.id)+'">'+SK.map(function(k){return '<option value="'+k+'"'+(k===r.status?' selected':'')+'>'+SL[k]+'</option>'}).join('')+'</select>')+
+      (isReporter()?'':kv('المُسنَد إليه',staffName(r.assigned_to)))+(isSup()?'<div class="vn"><label for="as-'+esc(r.id)+'">إسناد البلاغ (يُحفظ فور الاختيار)</label><select class="as-sel" id="as-'+esc(r.id)+'" data-as="'+esc(r.id)+'"><option value="">اختر موظفاً</option>'+staffList.filter(function(z){return z.role!=='admin'}).map(function(z){return '<option value="'+esc(z.id)+'"'+(z.id===r.assigned_to?' selected':'')+'>'+esc(z.name)+(z.cities&&z.cities.length?' ('+esc(z.cities.join('، '))+')':'')+'</option>'}).join('')+'</select></div>':'')+
+      (isReporter()?(r.violation_no?kv('رقم المخالفة',r.violation_no):''):(r.status==='confirmed'
         ?'<div class="vn"><label for="vn-'+esc(r.id)+'">رقم المخالفة</label><div class="row"><input id="vn-'+esc(r.id)+'" value="'+esc(r.violation_no||'')+'" placeholder="أدخل رقم المخالفة" dir="ltr" style="text-align:right"><button class="btn sm" data-vn="'+esc(r.id)+'">حفظ</button></div></div>'
-        :(r.violation_no?kv('رقم المخالفة',r.violation_no):''))+
+        :(r.violation_no?kv('رقم المخالفة',r.violation_no):'')))+
       '<div class="row"><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور</button>'+'<button class="btn alt sm" data-hist="'+esc(r.id)+'" style="width:auto;padding:8px 14px">سلسلة الإسناد والحالة</button></div>'+'<div data-o="'+esc(r.id)+'"></div><div data-h="'+esc(r.id)+'"></div></div>'}).join('');
     document.querySelectorAll('#list select').forEach(function(s){s.onchange=function(){
       rpc('set_status',{p_id:s.dataset.id,p_status:s.value,p_note:null},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);loadList()})}});

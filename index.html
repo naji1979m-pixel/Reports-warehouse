@@ -240,7 +240,7 @@ $('#tgo').onclick=function(){var out=$('#tres'),b=$('#tgo');b.disabled=true;out.
 /* الموظفون */
 $('#flt').innerHTML='<option value="">كل الحالات</option>'+SK.map(function(k){return '<option value="'+k+'">'+SL[k]+'</option>'}).join('');
 $('#flt').onchange=loadList;
-function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.removeItem('tk')}catch(e){}$('#login').hidden=!!t;$('#panel').hidden=!t;$('#new-locked').hidden=!!t;$('#new-body').hidden=!t;if(t)loadMe().catch(function(){}).then(loadList)}
+function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.removeItem('tk')}catch(e){}$('#login').hidden=!!t;$('#panel').hidden=!t;$('#new-locked').hidden=!!t;$('#new-body').hidden=!t;if(t)loadMe().then(function(ok){if(ok)loadList()}).catch(function(){})}
 $('#new-goto-login').onclick=function(){document.querySelector('nav button[data-v="insp"]').click()};
 $('#lg').onclick=function(){var er=$('#lerr');er.hidden=true;
   api('/auth/v1/token?grant_type=password',{m:'POST',body:JSON.stringify({email:$('#em').value.trim(),password:$('#pw').value})})
@@ -310,8 +310,9 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
 function staffName(id){var x=staffList.filter(function(z){return z.id===id})[0];return x?x.name:''}
 function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities&active=eq.true',{auth:true}).then(function(a){
   staffList=a;me=a.filter(function(x){return x.id===uid()})[0]||null;
-  $('#who').textContent=me?('البلاغات — '+me.name):'البلاغات';return loadAllStaff()})}
-function loadDash(){api('/rest/v1/reports?select=status,city,urgency,created_at&limit=1000',{auth:true}).then(function(a){
+  if(!me){setSess(null);var le=$('#lerr');le.hidden=false;le.textContent='حسابك غير مفعّل في المنصة. راجع مدير الرقابة.';return false}
+  $('#who').textContent='البلاغات — '+me.name;$('#xls').hidden=isReporter();return loadAllStaff().then(function(){return true})})}
+function loadDash(){if(isReporter()){$('#dash').innerHTML='';return}api('/rest/v1/reports?select=status,city,urgency,created_at&limit=1000',{auth:true}).then(function(a){
   var cnt=function(f){return a.filter(f).length},open=function(x){return x.status!=='closed'&&x.status!=='no_violation'};
   var late=cnt(function(x){return x.status==='new'&&Date.now()-new Date(x.created_at)>48*36e5});
   var byCity={};a.forEach(function(x){byCity[x.city]=(byCity[x.city]||0)+1});

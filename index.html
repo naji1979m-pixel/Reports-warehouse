@@ -78,6 +78,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .vn .row select{flex:1;min-width:0}
 .sa-chk{width:auto!important}
 [hidden]{display:none!important}
+a.lnk{color:var(--pri);font-weight:600;font-size:14px;text-decoration:none}
 footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px}
 </style>
 </head>
@@ -102,9 +103,10 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="npw" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
 <button class="btn" id="nlg">تسجيل الدخول لتقديم بلاغ</button>
 <p class="err" id="nlerr" hidden></p>
+<div class="row" style="justify-content:space-between;margin-top:12px"><a href="#" class="lnk" data-reg="1">طلب تسجيل جديد</a><a href="#" class="lnk" data-forgot="nem">نسيت كلمة المرور؟</a></div>
 </div>
 <div id="new-body" hidden>
-<div class="row" style="justify-content:space-between;margin-bottom:6px"><b id="rep-who"></b><button class="btn alt sm" id="rep-out" style="width:auto;margin:0;padding:6px 14px">خروج</button></div>
+<div class="row" style="justify-content:space-between;margin-bottom:6px"><b id="rep-who"></b><span class="row"><button class="btn alt sm" data-chpw="1" style="width:auto;margin:0;padding:6px 14px">تغيير كلمة المرور</button><button class="btn alt sm" id="rep-out" style="width:auto;margin:0;padding:6px 14px">خروج</button></span></div>
 <form id="f" novalidate>
 <label for="name">اسم المبلّغ <i>*</i></label>
 <input id="name" placeholder="الاسم الثلاثي" autocomplete="name">
@@ -176,13 +178,29 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="pw" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
 <button class="btn" id="lg">تسجيل الدخول</button>
 <p class="err" id="lerr" hidden></p>
+<div class="row" style="justify-content:space-between;margin-top:12px"><a href="#" class="lnk" data-reg="1">طلب تسجيل جديد</a><a href="#" class="lnk" data-forgot="em">نسيت كلمة المرور؟</a></div>
+</div>
+<div id="reg" hidden>
+<p style="margin-top:0"><b>طلب تسجيل جديد</b></p>
+<p class="hint">التسجيل متاح لإيميلات الشركة (@nwc.com.sa) فقط، ويُفعَّل الحساب بعد موافقة مدير الرقابة.</p>
+<label for="rname">الاسم الثلاثي <i>*</i></label><input id="rname">
+<label for="remail">إيميل الشركة <i>*</i></label><input id="remail" type="email" dir="ltr" style="text-align:right" placeholder="name.c@nwc.com.sa">
+<label for="rphone">رقم الجوال <i>*</i></label><input id="rphone" inputmode="tel" dir="ltr" style="text-align:right" placeholder="05XXXXXXXX">
+<label for="rjob">المسمى الوظيفي <i>*</i></label><input id="rjob">
+<label for="rcity">المدينة <i>*</i></label><select id="rcity"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option></select>
+<label for="rrole">الصلاحية المطلوبة <i>*</i></label><select id="rrole"><option value="reporter">مُبلّغ (تقديم البلاغات ومتابعتها)</option><option value="inspector">مأمور ضبط</option><option value="supervisor">مشرف بلاغات</option></select>
+<label for="rpw">كلمة المرور (8 أحرف على الأقل) <i>*</i></label><input id="rpw" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
+<label for="rpw2">تأكيد كلمة المرور <i>*</i></label><input id="rpw2" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
+<button class="btn" id="reg-go">إرسال الطلب</button>
+<p class="err" id="reg-msg" hidden></p>
+<a href="#" class="lnk" id="reg-back" style="display:block;margin-top:12px">رجوع لتسجيل الدخول</a>
 </div>
 <div id="rep-note" hidden>
 <p class="hint" style="margin-top:0">بوابة الموظفين مخصّصة لموظفي الرقابة فقط. حسابك مسجّل كمُبلّغ، ويمكنك تقديم البلاغات من تبويب «تقديم بلاغ» ومتابعتها من تبويب «متابعة بلاغ».</p>
 <button class="btn alt sm" id="rep-out2">خروج</button>
 </div>
 <div id="panel" hidden>
-<div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></div>
+<div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><span class="row"><button class="btn alt sm" data-chpw="1" style="width:auto;margin:0;padding:6px 14px">تغيير كلمة المرور</button><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></span></div>
 <div id="dash"></div>
 <label for="flt">تصفية حسب الحالة</label>
 <select id="flt"></select>
@@ -194,6 +212,15 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 </div>
 </section>
 </main>
+<section id="v-pw" class="card" hidden style="max-width:640px;margin:0 auto 14px">
+<p style="margin-top:0"><b id="pw-title">تغيير كلمة المرور</b></p>
+<p class="hint" id="pw-hint"></p>
+<label for="np1">كلمة المرور الجديدة (8 أحرف على الأقل)</label><input id="np1" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
+<label for="np2">تأكيد كلمة المرور</label><input id="np2" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
+<button class="btn" id="pw-go">حفظ كلمة المرور</button>
+<button class="btn alt" id="pw-cancel">إلغاء</button>
+<p class="err" id="pw-msg" hidden></p>
+</section>
 <footer>إدارة المخالفات والتفتيش</footer>
 
 <script>
@@ -203,9 +230,9 @@ var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){r
 var SK=['new','verifying','confirmed','no_violation','closed'];
 var SL={new:'جديد',verifying:'تحت الإجراء',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
 var UR=['عادي','عاجل','عاجل جداً'];
-var ERR={inspector_only:'إغلاق البلاغ لمأمور الضبط فقط.',not_assigned:'هذا البلاغ ليس مسنداً إليك.',report_closed:'البلاغ مغلق.',use_close:'استخدم «إغلاق البلاغ» لتسجيل النتيجة.',invalid_file:'ملف غير صالح أو أكثر من 10 ملفات.',note_required:'اكتب ملاحظة الإغلاق.',violation_no_required:'أدخل رقم المخالفة.',admin_only:'هذا الإجراء لمدير الرقابة فقط.',invalid_target:'الاختيار غير صالح.',not_closed:'البلاغ غير مغلق.',remind_too_early:'يمكن التذكير بعد مرور 3 أيام على البلاغ.',remind_wait:'أرسلت تذكيراً مؤخراً. يمكنك التذكير مرة كل يوم.',reports_description_check:'وصف البلاغ قصير. اكتب وصفاً أوضح للحالة.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
+var ERR={email_not_confirmed:'لم يؤكد صاحب الطلب بريده بعد.',domain_not_allowed:'التسجيل متاح لإيميلات الشركة فقط.',inspector_only:'إغلاق البلاغ لمأمور الضبط فقط.',not_assigned:'هذا البلاغ ليس مسنداً إليك.',report_closed:'البلاغ مغلق.',use_close:'استخدم «إغلاق البلاغ» لتسجيل النتيجة.',invalid_file:'ملف غير صالح أو أكثر من 10 ملفات.',note_required:'اكتب ملاحظة الإغلاق.',violation_no_required:'أدخل رقم المخالفة.',admin_only:'هذا الإجراء لمدير الرقابة فقط.',invalid_target:'الاختيار غير صالح.',not_closed:'البلاغ غير مغلق.',remind_too_early:'يمكن التذكير بعد مرور 3 أيام على البلاغ.',remind_wait:'أرسلت تذكيراً مؤخراً. يمكنك التذكير مرة كل يوم.',reports_description_check:'وصف البلاغ قصير. اكتب وصفاً أوضح للحالة.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
 var tok=null;
-function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';return 'حدث خطأ: '+m}
+function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';if(/Email not confirmed/i.test(m))return 'أكّد بريدك أولاً من الرابط المرسل إليك.';return 'حدث خطأ: '+m}
 function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.auth&&tok)h.Authorization='Bearer '+tok;
   return fetch(U+path,{method:o.m||'GET',headers:h,body:o.body}).then(function(r){return r.text().then(function(t){var j=null;try{j=JSON.parse(t)}catch(e){}
     if(!r.ok)throw new Error((j&&(j.message||j.msg||j.error_description))||('HTTP '+r.status));return j})})}
@@ -285,11 +312,13 @@ function remindHtml(r){if(['confirmed','no_violation','closed'].indexOf(r.status
 $('#flt').innerHTML='<option value="">كل الحالات</option>'+SK.map(function(k){return '<option value="'+k+'">'+SL[k]+'</option>'}).join('');
 $('#flt').onchange=loadList;
 function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.removeItem('tk')}catch(e){}
-  $('#login').hidden=!!t;$('#panel').hidden=true;$('#rep-note').hidden=true;$('#new-locked').hidden=!!t;$('#new-body').hidden=!t;
+  $('#login').hidden=!!t;$('#reg').hidden=true;$('#panel').hidden=true;$('#rep-note').hidden=true;$('#new-locked').hidden=!!t;$('#new-body').hidden=!t;
   if(!t){me=null;$('#name').readOnly=false;return}
-  loadMe().then(function(ok){if(!ok)return;
+  loadMe().then(function(ok){if(!ok)return;if(me.must_change_password){askPw(true,afterLogin);return}afterLogin()}).catch(function(){})}
+function afterLogin(){
     if(isReporter()){$('#rep-note').hidden=false;fillReporter();document.querySelector('nav button[data-v="new"]').click()}
-    else{$('#rep-who').textContent=me.name;$('#panel').hidden=false;loadList()}}).catch(function(){})}
+    else{$('#rep-who').textContent=me.name;$('#panel').hidden=false;loadList()}}
+
 function fillReporter(){if(!me)return;$('#rep-who').textContent='مقدّم البلاغ: '+me.name;
   $('#name').value=me.name;$('#name').readOnly=true;$('#role').value='موظف شركة المياه';
   if(me.cities&&me.cities.length===1)$('#city').value=me.cities[0];
@@ -300,13 +329,12 @@ function doLogin(emEl,pwEl,erEl){erEl.hidden=true;
 $('#lg').onclick=function(){doLogin($('#em'),$('#pw'),$('#lerr'))};
 $('#nlg').onclick=function(){doLogin($('#nem'),$('#npw'),$('#nlerr'))};
 $('#out').onclick=$('#rep-out').onclick=$('#rep-out2').onclick=function(){setSess(null)};
-try{var st=sessionStorage.getItem('tk');if(st)setSess(st)}catch(e){}
 var me=null,staffList=[];
 function uid(){try{return JSON.parse(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub}catch(e){return null}}
 function isSup(){return !!me&&(me.role==='supervisor'||me.role==='admin')}
 function isAdmin(){return !!me&&me.role==='admin'}
 function isReporter(){return !!me&&me.role==='reporter'}
-var ROLE_AR={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور الضبط'};
+var ROLE_AR={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور الضبط',reporter:'مُبلّغ'};
 var allStaffList=[];
 function loadAllStaff(){if(!isAdmin()){allStaffList=[];renderStaffAdmin();return Promise.resolve()}
   return api('/rest/v1/staff?select=id,name,role,cities,active&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
@@ -321,7 +349,7 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
     '<label class="row" style="align-items:center;gap:8px;margin-top:10px"><input type="checkbox" class="sa-active sa-chk" data-id="'+esc(z.id)+'"'+(z.active?' checked':'')+'> الحساب مفعّل (يستطيع الدخول)</label>'+
     (z.id===uid()?'<p class="hint">تنبيه: هذا حسابك. تعطيله سيمنعك من الدخول فوراً.</p>':'')+
     '<button class="btn sm" data-sasave="'+esc(z.id)+'">حفظ التعديلات</button><p class="hint" id="sa-msg-'+esc(z.id)+'"></p></div>'}).join('');
-  box.innerHTML='<p class="lbl" style="margin-top:18px">إدارة حسابات الموظفين</p>'+rows+
+  box.innerHTML='<div id="reqBox"></div><p class="lbl" style="margin-top:18px">إدارة حسابات الموظفين</p>'+rows+
     '<div class="item"><p><b>إضافة حساب موظف جديد</b></p><p class="hint">أنشئ الحساب أولاً من Supabase (Authentication ← Users ← Create new user)، ثم الصق رقم الـ UID هنا لربطه بدور وصلاحية.</p>'+
     '<label>UID</label><input id="sa-new-id" dir="ltr" style="text-align:right">'+
     '<label>الاسم</label><input id="sa-new-name">'+
@@ -353,11 +381,12 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
     api('/rest/v1/staff?id=eq.'+encodeURIComponent(id),{m:'PATCH',auth:true,body:JSON.stringify({name:name,role:role,cities:cities,active:active})})
       .then(function(){msg.textContent='تم الحفظ.';return loadMe()}).then(function(){return loadList()})
       .catch(function(x){msg.textContent=fe(x)}).then(function(){btn.disabled=false})}});
+  loadReqs();
   var nb=$('#sa-new-save');if(nb)nb.onclick=function(){var msg=$('#sa-new-msg');
     var id=$('#sa-new-id').value.trim(),name=$('#sa-new-name').value.trim(),role=$('#sa-new-role').value,cities=parseCities($('#sa-new-cities').value);
     if(!id||!name){msg.textContent='رقم UID والاسم مطلوبان.';return}
     nb.disabled=true;msg.textContent='جارٍ الإضافة…';
-    api('/rest/v1/staff',{m:'POST',auth:true,body:JSON.stringify({id:id,name:name,role:role,cities:cities,active:true})})
+    api('/rest/v1/staff',{m:'POST',auth:true,body:JSON.stringify({id:id,name:name,role:role,cities:cities,active:true,must_change_password:true})})
       .then(function(){msg.textContent='تمت الإضافة.';$('#sa-new-id').value='';$('#sa-new-name').value='';$('#sa-new-cities').value='';return loadMe()}).then(function(){return loadList()})
       .catch(function(x){msg.textContent=fe(x)}).then(function(){nb.disabled=false})}}
 
@@ -371,9 +400,11 @@ function actBox(r){var id=esc(r.id),h='';if(isReporter())return '';
   return h}
 function q1(c,id){return document.querySelector('.'+c+'[data-id="'+id+'"]')}
 function staffName(id){var x=staffList.filter(function(z){return z.id===id})[0];return x?x.name:''}
-function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities&active=eq.true',{auth:true}).then(function(a){
+function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities,must_change_password&active=eq.true',{auth:true}).then(function(a){
   staffList=a;me=a.filter(function(x){return x.id===uid()})[0]||null;
-  if(!me){setSess(null);['#lerr','#nlerr'].forEach(function(k){var le=$(k);le.hidden=false;le.textContent='حسابك غير مفعّل في المنصة. راجع مدير الرقابة.'});return false}
+  if(!me){return rpc('my_request',{},true).catch(function(){return null}).then(function(q){
+    var t=q&&q.status==='pending'?'طلب تسجيلك قيد المراجعة لدى مدير الرقابة. ستتمكن من الدخول بعد الموافقة.':q&&q.status==='rejected'?('رُفض طلب التسجيل'+(q.reason?': '+q.reason:'.')):'حسابك غير مفعّل في المنصة. راجع مدير الرقابة.';
+    setSess(null);['#lerr','#nlerr'].forEach(function(k){var le=$(k);le.hidden=false;le.textContent=t});return false})}
   $('#who').textContent='البلاغات — '+me.name;$('#xls').hidden=isReporter();return loadAllStaff().then(function(){return true})})}
 function loadDash(){if(isReporter()){$('#dash').innerHTML='';return}api('/rest/v1/reports?select=status,city,urgency,created_at&limit=1000',{auth:true}).then(function(a){
   var cnt=function(f){return a.filter(f).length},open=function(x){return x.status!=='closed'&&x.status!=='no_violation'};
@@ -484,6 +515,75 @@ $('#xls').onclick=function(){var pe=$('#perr'),b=$('#xls'),out=$('#xout');pe.hid
       var fb=function(){var ta=document.createElement('textarea');ta.value=xTsv;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,xTsv.length);var ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();m.textContent=ok?'تم النسخ. افتح Excel أو Google Sheets والصق في الخلية الأولى.':'تعذر النسخ التلقائي.'};
       if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(xTsv).then(function(){m.textContent='تم النسخ. افتح Excel أو Google Sheets والصق في الخلية الأولى.'}).catch(fb)}else fb()};
   }).catch(function(x){pe.hidden=false;pe.textContent=fe(x)}).then(function(){b.disabled=false;b.textContent='تصدير البلاغات إلى Excel (ملف CSV)'})};
+
+var RQ={reporter:'مُبلّغ',inspector:'مأمور ضبط',supervisor:'مشرف بلاغات'};
+function loadReqs(){var bx=$('#reqBox');if(!bx)return;rpc('list_requests',{},true).then(function(a){a=a||[];
+  if(!a.length){bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل</p><p class="hint">لا توجد طلبات جديدة.</p>';return}
+  bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل ('+a.length+')</p>'+a.map(function(q){var id=esc(q.id);return '<div class="item"><p><b>'+esc(q.name)+'</b> — طلب: <span class="tag">'+esc(RQ[q.requested_role]||q.requested_role)+'</span></p>'+
+    '<div class="kv"><span>الإيميل</span><b dir="ltr">'+esc(q.email)+'</b></div><div class="kv"><span>الجوال</span><b dir="ltr">'+esc(q.phone)+'</b></div><div class="kv"><span>المسمى</span><b>'+esc(q.job_title)+'</b></div><div class="kv"><span>المدينة</span><b>'+esc(q.city)+'</b></div><div class="kv"><span>تاريخ الطلب</span><b>'+fmt(q.created_at)+'</b></div>'+
+    (q.confirmed?'':'<p class="err">لم يؤكد بريده بعد، ولا تمكن الموافقة قبل التأكيد.</p>')+
+    '<label>الصلاحية الممنوحة</label><select class="rq-role" data-id="'+id+'">'+Object.keys(RQ).map(function(k){return '<option value="'+k+'"'+(k===q.requested_role?' selected':'')+'>'+RQ[k]+'</option>'}).join('')+'</select>'+
+    '<label>المدن (مفصولة بفاصلة، فارغة = كل المدن)</label><input class="rq-cities" data-id="'+id+'" value="'+esc(q.city||'')+'">'+
+    '<div class="row" style="margin-top:8px"><button class="btn sm" data-rqok="'+id+'" style="flex:1;width:auto;margin:0"'+(q.confirmed?'':' disabled')+'>موافقة</button><button class="btn alt sm" data-rqno="'+id+'" style="flex:1;width:auto;margin:0;color:var(--bad)">رفض</button></div><p class="hint" data-rqm="'+id+'"></p></div>'}).join('');
+  document.querySelectorAll('[data-rqok]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqok,m=document.querySelector('[data-rqm="'+id+'"]');b.disabled=true;m.textContent='جارٍ التفعيل…';
+    rpc('approve_request',{p_id:+id,p_role:q1('rq-role',id).value,p_cities:parseCities(q1('rq-cities',id).value)},true).then(function(){return loadMe()}).then(function(){loadList()}).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
+  document.querySelectorAll('[data-rqno]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqno,m=document.querySelector('[data-rqm="'+id+'"]'),why=prompt('سبب الرفض (يظهر لصاحب الطلب):','');if(why===null)return;b.disabled=true;
+    rpc('reject_request',{p_id:+id,p_reason:why.trim()||null},true).then(loadReqs).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
+}).catch(function(){bx.innerHTML=''})}
+
+/* كلمة المرور */
+var pwDone=null;
+function askPw(force,done){pwDone=done||null;$('#v-pw').hidden=false;document.querySelector('nav').hidden=true;['new','track','insp'].forEach(function(v){$('#v-'+v).hidden=true});
+  $('#pw-title').textContent=force?'تغيير كلمة المرور المؤقتة':'تغيير كلمة المرور';
+  $('#pw-hint').textContent=force?'هذا أول دخول لك. اختر كلمة مرور خاصة بك قبل المتابعة.':'';
+  $('#pw-cancel').hidden=!!force;$('#np1').value='';$('#np2').value='';$('#pw-msg').hidden=true;window.scrollTo(0,0)}
+function closePw(){$('#v-pw').hidden=true;document.querySelector('nav').hidden=false;document.querySelector('nav button[aria-selected="true"]').click()}
+$('#pw-go').onclick=function(){var m=$('#pw-msg'),a=$('#np1').value,b=$('#np2').value,bt=this;m.hidden=false;
+  if(a.length<8){m.textContent='كلمة المرور 8 أحرف على الأقل.';return}
+  if(a!==b){m.textContent='كلمتا المرور غير متطابقتين.';return}
+  bt.disabled=true;m.textContent='جارٍ الحفظ…';
+  api('/auth/v1/user',{m:'PUT',auth:true,body:JSON.stringify({password:a})}).then(function(){return rpc('password_changed',{},true).catch(function(){})})
+  .then(function(){if(me)me.must_change_password=false;var d=pwDone;pwDone=null;closePw();if(d)d();else alert('تم تغيير كلمة المرور.')})
+  .catch(function(x){m.textContent=/different|same/i.test(x.message)?'اختر كلمة مرور مختلفة عن السابقة.':fe(x)}).then(function(){bt.disabled=false})};
+$('#pw-cancel').onclick=function(){pwDone=null;closePw()};
+document.addEventListener('click',function(e){var t=e.target.closest('[data-chpw]');if(t){e.preventDefault();askPw(false)}});
+
+/* نسيت كلمة المرور */
+var BASE=location.origin+location.pathname;
+document.addEventListener('click',function(e){var t=e.target.closest('[data-forgot]');if(!t)return;e.preventDefault();
+  var fid=t.dataset.forgot,erEl=fid==='em'?$('#lerr'):$('#nlerr'),em=$('#'+fid).value.trim();erEl.hidden=false;
+  if(!em){erEl.textContent='اكتب بريدك الإلكتروني في الخانة أعلاه، ثم اضغط «نسيت كلمة المرور» مرة أخرى.';$('#'+fid).focus();return}
+  erEl.textContent='جارٍ الإرسال…';
+  api('/auth/v1/recover?redirect_to='+encodeURIComponent(BASE),{m:'POST',body:JSON.stringify({email:em})})
+  .then(function(){erEl.textContent='إن كان الإيميل مسجّلاً فستصلك رسالة فيها رابط لتعيين كلمة مرور جديدة. تفقّد البريد المزعج أيضاً.'})
+  .catch(function(x){erEl.textContent=/rate|seconds/i.test(x.message)?'طلبات كثيرة. انتظر قليلاً ثم حاول.':fe(x)})});
+
+/* طلب تسجيل */
+document.addEventListener('click',function(e){var t=e.target.closest('[data-reg]');if(!t)return;e.preventDefault();
+  document.querySelector('nav button[data-v="insp"]').click();$('#login').hidden=true;$('#reg').hidden=false;window.scrollTo(0,0)});
+$('#reg-back').onclick=function(e){e.preventDefault();$('#reg').hidden=true;$('#login').hidden=!!tok};
+$('#reg-go').onclick=function(){var m=$('#reg-msg'),g=function(i){return $('#'+i).value.trim()},b=this;m.hidden=false;m.style.color='';
+  var em=g('remail').toLowerCase(),ph=dig(g('rphone'));
+  if(!g('rname')||!g('rjob')||!g('rcity')){m.textContent='أكمل جميع الحقول.';return}
+  if(!/@nwc\.com\.sa$/.test(em)){m.textContent='التسجيل متاح لإيميلات الشركة (@nwc.com.sa) فقط.';return}
+  if(!/^05\d{8}$/.test(ph)){m.textContent='رقم الجوال بصيغة 05XXXXXXXX.';return}
+  if($('#rpw').value.length<8){m.textContent='كلمة المرور 8 أحرف على الأقل.';return}
+  if($('#rpw').value!==$('#rpw2').value){m.textContent='كلمتا المرور غير متطابقتين.';return}
+  b.disabled=true;m.textContent='جارٍ الإرسال…';
+  api('/auth/v1/signup?redirect_to='+encodeURIComponent(BASE),{m:'POST',body:JSON.stringify({email:em,password:$('#rpw').value,data:{name:g('rname'),phone:ph,job_title:g('rjob'),city:g('rcity'),requested_role:$('#rrole').value}})})
+  .then(function(r){$('#rpw').value='';$('#rpw2').value='';m.style.color='var(--pri)';
+    m.textContent=(r&&r.access_token)?'تم إرسال طلبك، وهو الآن قيد المراجعة لدى مدير الرقابة.':'أرسلنا رابط تأكيد إلى بريدك. افتحه لتأكيد الإيميل، ثم يراجع مدير الرقابة طلبك.'})
+  .catch(function(x){var t=x.message||'';m.textContent=/already/i.test(t)?'هذا الإيميل مسجّل من قبل. استخدم «نسيت كلمة المرور» إن لم تتذكرها.':/Database error/i.test(t)?'تعذر إنشاء الطلب. تأكد أن الإيميل من نطاق الشركة.':/not allowed|disabled/i.test(t)?'التسجيل الذاتي غير مفعّل حالياً. راجع مدير الرقابة.':fe(x)})
+  .then(function(){b.disabled=false})};
+
+/* روابط البريد: تأكيد الإيميل واستعادة كلمة المرور */
+(function(){var h=location.hash.replace(/^#/,''),q={};h.split('&').forEach(function(x){var i=x.indexOf('=');if(i>0)q[x.slice(0,i)]=decodeURIComponent(x.slice(i+1).replace(/\+/g,' '))});
+  if(q.access_token){history.replaceState(null,'',location.pathname+location.search);
+    if(q.type==='recovery'){tok=q.access_token;askPw(false,function(){setSess(q.access_token)});$('#pw-title').textContent='تعيين كلمة مرور جديدة';$('#pw-cancel').hidden=true;return}
+    document.querySelector('nav button[data-v="insp"]').click();setSess(q.access_token);return}
+  if(q.error_description){history.replaceState(null,'',location.pathname+location.search);document.querySelector('nav button[data-v="insp"]').click();var le=$('#lerr');le.hidden=false;le.textContent='انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.';}
+  try{var st=sessionStorage.getItem('tk');if(st)setSess(st)}catch(e){}})();
+
 </script>
 </body>
 </html>

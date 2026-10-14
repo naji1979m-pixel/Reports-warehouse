@@ -114,10 +114,14 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <select id="role"><option>فرد</option><option>موظف شركة المياه</option><option>مقاول</option><option>جهة حكومية</option><option>جهة أخرى</option></select>
 <label for="city">المدينة / المحافظة <i>*</i></label>
 <select id="city"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option><option>أخرى</option></select>
+<label for="district">الحي <i>*</i></label>
+<input id="district" placeholder="اسم الحي">
 <label for="type">نوع البلاغ <i>*</i></label>
 <select id="type"><option value="">اختر نوع المخالفة</option><option>توصيلة مياه غير نظامية / تعدٍ على الشبكة</option><option>توصيلة مباشرة قبل العداد</option><option>إخفاء عداد أو صندوق عداد</option><option>عبث أو كسر في العداد</option><option>إزالة عداد دون إجراء نظامي</option><option>اشتباه في استهلاك غير نظامي</option><option>صهريج أو تعبئة مياه غير نظامية</option><option>تعدٍ ظاهر آخر</option><option>اشتباه بتعدٍ غير ظاهر</option><option>أخرى</option></select>
 <label for="urg">درجة الاستعجال</label>
 <select id="urg"><option value="0">عادي</option><option value="1">عاجل - يوجد هدر مياه مستمر</option><option value="2">عاجل جداً - خطر أو تسرب كبير</option></select>
+<div id="urg-box" hidden><label for="urgr">سبب الاستعجال <i>*</i></label>
+<input id="urgr" placeholder="مثال: تسرب مستمر في الشارع"></div>
 <label for="loc">موقع البلاغ <i>*</i></label>
 <input id="loc" placeholder="الصق رابط Google Maps أو الإحداثيات" dir="ltr" style="text-align:right">
 <button type="button" class="btn alt sm" id="gps">استخدام موقعي الحالي</button>
@@ -214,6 +218,7 @@ document.querySelectorAll('nav button').forEach(function(b){b.onclick=function()
   document.querySelectorAll('nav button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
   ['new','track','insp'].forEach(function(v){$('#v-'+v).hidden=v!==b.dataset.v});}});
 
+$('#urg').onchange=function(){$('#urg-box').hidden=!(+this.value>0)};
 $('#gps').onclick=function(){var m=$('#gpsmsg');
   if(!navigator.geolocation){m.textContent='المتصفح لا يدعم تحديد الموقع. الصق الرابط أو الإحداثيات يدوياً.';return}
   m.textContent='جارٍ تحديد الموقع…';
@@ -243,7 +248,8 @@ function upload(f){var id=(window.crypto&&crypto.randomUUID?crypto.randomUUID():
 
 $('#f').onsubmit=function(e){e.preventDefault();
   var ok=true,er=$('#ferr');
-  ['name','phone','city','type','loc','desc'].forEach(function(k){var el=$('#'+k),v=el.value.trim();
+  var req=['name','phone','city','district','type','loc','desc'];if(+$('#urg').value>0)req.push('urgr');
+  req.forEach(function(k){var el=$('#'+k),v=el.value.trim();
     if(k==='phone'&&!/^05\d{8}$/.test(dig(v)))v='';
     if(!v){el.classList.add('bad');ok=false}else el.classList.remove('bad')});
   if(!ok){er.hidden=false;er.textContent='أكمل الحقول المطلوبة المعلّمة بالأحمر، وتأكد أن الجوال بصيغة 05XXXXXXXX.';return}
@@ -253,11 +259,11 @@ $('#f').onsubmit=function(e){e.preventDefault();
   var loc=$('#loc').value.trim(),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
   Promise.all(files.map(upload)).then(function(paths){
     return rpc('submit_report',{p_name:$('#name').value.trim(),p_phone:dig($('#phone').value),p_role:$('#role').value,p_city:$('#city').value,p_type:$('#type').value,
-      p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths,p_district:null,p_urgency_reason:null},true)})
+      p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths,p_district:$('#district').value.trim(),p_urgency_reason:+$('#urg').value>0?$('#urgr').value.trim():null},true)})
   .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id;picked=[];renderPicked()})
   .catch(function(x){er.hidden=false;er.textContent=fe(x)})
   .then(function(){btn.disabled=false;btn.textContent='إرسال البلاغ'})};
-$('#again').onclick=function(){$('#f').reset();picked=[];renderPicked();if(isReporter())fillReporter();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
+$('#again').onclick=function(){$('#f').reset();$('#urg-box').hidden=true;picked=[];renderPicked();if(isReporter())fillReporter();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
 $('#copy').onclick=function(){var t=$('#newid').textContent;
   try{navigator.clipboard.writeText(t).then(function(){$('#copy').textContent='تم النسخ'},function(){$('#copy').textContent='انسخ الرقم يدوياً'})}catch(e){$('#copy').textContent='انسخ الرقم يدوياً'}};
 

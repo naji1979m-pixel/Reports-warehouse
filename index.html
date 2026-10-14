@@ -259,7 +259,7 @@ function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.re
 function fillReporter(){if(!me)return;$('#rep-who').textContent='مقدّم البلاغ: '+me.name;
   $('#name').value=me.name;$('#name').readOnly=true;$('#role').value='موظف شركة المياه';
   if(me.cities&&me.cities.length===1)$('#city').value=me.cities[0];
-  api('/rest/v1/staff?select=phone&id=eq.'+encodeURIComponent(me.id),{auth:true}).then(function(a){if(a&&a[0]&&a[0].phone)$('#phone').value=a[0].phone}).catch(function(){})}
+  api('/rest/v1/staff?select=phone,job_title&id=eq.'+encodeURIComponent(me.id),{auth:true}).then(function(a){var x=a&&a[0];if(!x)return;if(x.phone)$('#phone').value=x.phone;if(x.job_title)$('#rep-who').textContent='مقدّم البلاغ: '+me.name+' — '+x.job_title}).catch(function(){})}
 function doLogin(emEl,pwEl,erEl){erEl.hidden=true;
   api('/auth/v1/token?grant_type=password',{m:'POST',body:JSON.stringify({email:emEl.value.trim(),password:pwEl.value})})
   .then(function(r){pwEl.value='';setSess(r.access_token)}).catch(function(x){erEl.hidden=false;erEl.textContent=fe(x)})}

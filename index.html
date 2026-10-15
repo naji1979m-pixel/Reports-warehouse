@@ -389,9 +389,9 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
       .catch(function(x){msg.textContent=fe(x)}).then(function(){nb.disabled=false})}}
 
 function staffName(id){var x=staffList.filter(function(z){return z.id===id})[0];return x?x.name:''}
-function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities&active=eq.true',{auth:true}).then(function(a){
+function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities,job_title&active=eq.true',{auth:true}).then(function(a){
   staffList=a;me=a.filter(function(x){return x.id===uid()})[0]||null;
-  $('#who').textContent=me?('البلاغات — '+me.name):'البلاغات';return loadAllStaff()})}
+  $('#who').textContent=me?(me.name+(me.job_title?' — '+me.job_title:'')):'البلاغات';return loadAllStaff()})}
 function loadDash(){api('/rest/v1/reports?select=status,city,urgency,created_at&limit=1000',{auth:true}).then(function(a){
   var cnt=function(f){return a.filter(f).length},open=function(x){return x.status!=='closed'&&x.status!=='no_violation'};
   var late=cnt(function(x){return x.status==='new'&&Date.now()-new Date(x.created_at)>48*36e5});

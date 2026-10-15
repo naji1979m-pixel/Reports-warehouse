@@ -297,7 +297,9 @@ function uid(){try{return JSON.parse(atob(tok.split('.')[1].replace(/-/g,'+').re
 function isSup(){return !!me&&(me.role==='supervisor'||me.role==='admin')}
 function isAdmin(){return !!me&&me.role==='admin'}
 function isReporter(){return !!me&&me.role==='reporter'}
-var ROLE_AR={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور الضبط'};
+var ROLE_AR={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور الضبط',reporter:'مُبلّغ'};
+var SH_LABELS={created_active:'إنشاء الحساب',created_pending:'تسجيل ذاتي (بانتظار التفعيل)',activated:'تفعيل الحساب',deactivated:'تعطيل الحساب',updated:'تعديل البيانات'};
+function staffName2(id){var x=allStaffList.filter(function(z){return z.id===id})[0];return x?x.name:null}
 var allStaffList=[];
 function loadAllStaff(){if(!isAdmin()){allStaffList=[];renderStaffAdmin();return Promise.resolve()}
   return api('/rest/v1/staff?select=id,name,role,cities,active&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
@@ -313,7 +315,8 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
     '<label>المدن (مفصولة بفاصلة، اتركها فارغة لرؤية كل المدن)</label><input class="sa-cities" data-id="'+esc(z.id)+'" value="'+esc(citiesStr(z.cities))+'">'+
     '<label class="row" style="align-items:center;gap:8px;margin-top:10px"><input type="checkbox" class="sa-active sa-chk" data-id="'+esc(z.id)+'"'+(z.active?' checked':'')+'> الحساب مفعّل (يستطيع الدخول)</label>'+
     (z.id===uid()?'<p class="hint">تنبيه: هذا حسابك. تعطيله سيمنعك من الدخول فوراً.</p>':'')+
-    '<button class="btn sm" data-sasave="'+esc(z.id)+'">حفظ التعديلات</button><p class="hint" id="sa-msg-'+esc(z.id)+'"></p></div>'}).join('');
+    '<button class="btn sm" data-sasave="'+esc(z.id)+'">حفظ التعديلات</button><p class="hint" id="sa-msg-'+esc(z.id)+'"></p>'+
+    '<button class="btn alt sm" data-hist="'+esc(z.id)+'">سجل العمليات</button><div id="hist-'+esc(z.id)+'" hidden></div></div>'}).join('');
   box.innerHTML='<p class="lbl" style="margin-top:18px">إدارة حسابات الموظفين'+(pendingCount?' <span class="tag u2">'+pendingCount+' بانتظار التفعيل</span>':'')+'</p>'+rows+
     '<div class="item"><p><b>إضافة حساب موظف جديد</b></p><p class="hint">أنشئ الحساب أولاً من Supabase (Authentication ← Users ← Create new user)، ثم الصق رقم الـ UID هنا لربطه بدور وصلاحية.</p>'+
     '<label>UID</label><input id="sa-new-id" dir="ltr" style="text-align:right">'+
@@ -346,6 +349,15 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
     api('/rest/v1/staff?id=eq.'+encodeURIComponent(id),{m:'PATCH',auth:true,body:JSON.stringify({name:name,role:role,cities:cities,active:active})})
       .then(function(){msg.textContent='تم الحفظ.';return loadMe()}).then(function(){return loadList()})
       .catch(function(x){msg.textContent=fe(x)}).then(function(){btn.disabled=false})}});
+  document.querySelectorAll('[data-hist]').forEach(function(btn){btn.onclick=function(){var id=btn.dataset.hist,box=$('#hist-'+id);
+    if(!box.hidden){box.hidden=true;return}
+    box.hidden=false;box.innerHTML='<p class="hint">جارٍ التحميل…</p>';
+    api('/rest/v1/staff_history?staff_id=eq.'+encodeURIComponent(id)+'&select=*&order=changed_at.desc&limit=50',{auth:true}).then(function(a){
+      if(!a.length){box.innerHTML='<p class="hint">لا يوجد سجل بعد.</p>';return}
+      box.innerHTML='<ul class="tl">'+a.map(function(h){
+        var by=h.changed_by?(staffName2(h.changed_by)||'موظف محذوف'):'تسجيل ذاتي / تلقائي';
+        return '<li><b>'+esc(SH_LABELS[h.action]||h.action)+'</b><br><small>'+fmt(h.changed_at)+' — بواسطة '+esc(by)+'</small></li>'}).join('')+'</ul>'
+    }).catch(function(x){box.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
   var nb=$('#sa-new-save');if(nb)nb.onclick=function(){var msg=$('#sa-new-msg');
     var id=$('#sa-new-id').value.trim(),name=$('#sa-new-name').value.trim(),role=$('#sa-new-role').value,cities=parseCities($('#sa-new-cities').value);
     if(!id||!name){msg.textContent='رقم UID والاسم مطلوبان.';return}

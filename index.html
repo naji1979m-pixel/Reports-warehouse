@@ -320,7 +320,7 @@ var SH_LABELS={created_active:'إنشاء الحساب',created_pending:'تسج�
 function staffName2(id){var x=allStaffList.filter(function(z){return z.id===id})[0];return x?x.name:null}
 var allStaffList=[];
 function loadAllStaff(){if(!isAdmin()){allStaffList=[];renderStaffAdmin();return Promise.resolve()}
-  return api('/rest/v1/staff?select=id,name,role,cities,active&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
+  return api('/rest/v1/staff?select=id,name,role,cities,active,phone,job_title&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
 function citiesStr(a){return (a||[]).join('، ')}
 function parseCities(s){return s.split(/[،,]/).map(function(x){return x.trim()}).filter(Boolean)}
 function roleOptions(sel){return Object.keys(ROLE_AR).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+ROLE_AR[k]+'</option>'}).join('')}
@@ -329,6 +329,8 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
   var pendingCount=sorted.filter(function(z){return !z.active}).length;
   var rows=sorted.map(function(z){return '<div class="item"><p><b>'+esc(z.name||'(بلا اسم)')+'</b> — <span class="tag">'+ROLE_AR[z.role]+'</span>'+(z.active?'':' <span class="tag u2">معطّل</span>')+'</p>'+
     '<label>الاسم</label><input class="sa-name" data-id="'+esc(z.id)+'" value="'+esc(z.name||'')+'">'+
+    '<label>رقم الجوال</label><input class="sa-phone" data-id="'+esc(z.id)+'" dir="ltr" style="text-align:right" value="'+esc(z.phone||'')+'">'+
+    '<label>المسمى الوظيفي</label><input class="sa-job" data-id="'+esc(z.id)+'" value="'+esc(z.job_title||'')+'">'+
     '<label>الدور</label><select class="sa-role" data-id="'+esc(z.id)+'">'+roleOptions(z.role)+'</select>'+
     '<label>المدن (مفصولة بفاصلة، اتركها فارغة لرؤية كل المدن)</label><input class="sa-cities" data-id="'+esc(z.id)+'" value="'+esc(citiesStr(z.cities))+'">'+
     '<label class="row" style="align-items:center;gap:8px;margin-top:10px"><input type="checkbox" class="sa-active sa-chk" data-id="'+esc(z.id)+'"'+(z.active?' checked':'')+'> الحساب مفعّل (يستطيع الدخول)</label>'+
@@ -359,12 +361,14 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
       .catch(function(x){msg.textContent=fe(x)}).then(function(){ib.disabled=false})}
   document.querySelectorAll('[data-sasave]').forEach(function(btn){btn.onclick=function(){var id=btn.dataset.sasave,msg=$('#sa-msg-'+id);
     var name=document.querySelector('.sa-name[data-id="'+id+'"]').value.trim();
+    var phone=dig(document.querySelector('.sa-phone[data-id="'+id+'"]').value.trim());
+    var job=document.querySelector('.sa-job[data-id="'+id+'"]').value.trim();
     var role=document.querySelector('.sa-role[data-id="'+id+'"]').value;
     var cities=parseCities(document.querySelector('.sa-cities[data-id="'+id+'"]').value);
     var active=document.querySelector('.sa-active[data-id="'+id+'"]').checked;
     if(!name){msg.textContent='الاسم مطلوب.';return}
     btn.disabled=true;msg.textContent='جارٍ الحفظ…';
-    api('/rest/v1/staff?id=eq.'+encodeURIComponent(id),{m:'PATCH',auth:true,body:JSON.stringify({name:name,role:role,cities:cities,active:active})})
+    api('/rest/v1/staff?id=eq.'+encodeURIComponent(id),{m:'PATCH',auth:true,body:JSON.stringify({name:name,phone:phone||null,job_title:job||null,role:role,cities:cities,active:active})})
       .then(function(){msg.textContent='تم الحفظ.';return loadMe()}).then(function(){return loadList()})
       .catch(function(x){msg.textContent=fe(x)}).then(function(){btn.disabled=false})}});
   document.querySelectorAll('[data-hist]').forEach(function(btn){btn.onclick=function(){var id=btn.dataset.hist,box=$('#hist-'+id);

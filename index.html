@@ -157,6 +157,8 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="em" type="email" dir="ltr" style="text-align:right" autocomplete="username">
 <label for="pw">كلمة المرور</label>
 <input id="pw" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
+<label class="row" style="align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="rem" class="sa-chk"> تذكرني على هذا الجهاز</label>
+<p class="hint" style="margin-top:4px">إن فعّلتها، يبقى دخولك محفوظاً على هذا الجهاز حتى تضغط «خروج» بنفسك. لا تفعّلها على جهاز مشترك.</p>
 <button class="btn" id="lg">تسجيل الدخول</button>
 <p class="err" id="lerr" hidden></p>
 </div>
@@ -210,7 +212,7 @@ var SK=['new','verifying','confirmed','no_violation','closed'];
 var SL={new:'جديد',verifying:'قيد التحقق الميداني',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
 var UR=['عادي','عاجل','عاجل جداً'];
 var ERR={invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».',weak_password:'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',invalid_role:'الدور المختار غير صحيح.'};
-var tok=null;
+var tok=null,refreshTok=null;
 function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';if(/already.*registered|already.*exists/i.test(m))return 'هذا البريد مسجّل مسبقاً. سجّل الدخول أو تواصل مع مدير النظام.';return 'حدث خطأ: '+m}
 function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.auth&&tok)h.Authorization='Bearer '+tok;
   return fetch(U+path,{method:o.m||'GET',headers:h,body:o.body}).then(function(r){return r.text().then(function(t){var j=null;try{j=JSON.parse(t)}catch(e){}
@@ -268,18 +270,28 @@ $('#tgo').onclick=function(){var out=$('#tres'),b=$('#tgo');b.disabled=true;out.
 /* الموظفون */
 $('#flt').innerHTML='<option value="">كل الحالات</option>'+SK.map(function(k){return '<option value="'+k+'">'+SL[k]+'</option>'}).join('');
 $('#flt').onchange=loadList;
+function storeRefresh(rt,remember){refreshTok=rt||null;try{
+  if(rt)sessionStorage.setItem('rtk',rt);else sessionStorage.removeItem('rtk');
+  if(rt&&remember)localStorage.setItem('rtk',rt);else localStorage.removeItem('rtk');
+}catch(e){}}
+function doRefresh(){if(!refreshTok)return Promise.reject(new Error('no_refresh'));
+  return api('/auth/v1/token?grant_type=refresh_token',{m:'POST',body:JSON.stringify({refresh_token:refreshTok})}).then(function(r){
+    var rem=false;try{rem=!!localStorage.getItem('rtk')}catch(e){}
+    storeRefresh(r.refresh_token,rem);tok=r.access_token;try{sessionStorage.setItem('tk',tok)}catch(e){}return tok})}
 function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.removeItem('tk')}catch(e){}$('#login').hidden=!!t;$('#panel').hidden=!t;$('#new-locked').hidden=!!t;$('#new-body').hidden=!t;
   if(t)loadMe().then(function(){
     if(!me){ // logged in successfully but no active staff row: pending approval or disabled
-      setSess(null);var er=$('#lerr');er.hidden=false;er.textContent='حسابك غير مفعّل بعد. إن كنت قد سجّلت مؤخراً فهو بانتظار موافقة مدير النظام، وإلا تواصل معه.';return
+      storeRefresh(null,false);setSess(null);var er=$('#lerr');er.hidden=false;er.textContent='حسابك غير مفعّل بعد. إن كنت قد سجّلت مؤخراً فهو بانتظار موافقة مدير النظام، وإلا تواصل معه.';return
     }
     return loadList()
-  }).catch(function(){})}
+  }).catch(function(x){
+    if(x&&/JWT|expired|401/i.test(x.message))return doRefresh().then(function(nt){setSess(nt)}).catch(function(){storeRefresh(null,false);setSess(null)});
+  })}
 $('#new-goto-login').onclick=function(){document.querySelector('nav button[data-v="insp"]').click()};
-$('#lg').onclick=function(){var er=$('#lerr');er.hidden=true;
+$('#lg').onclick=function(){var er=$('#lerr');er.hidden=true;var rem=!!($('#rem')&&$('#rem').checked);
   api('/auth/v1/token?grant_type=password',{m:'POST',body:JSON.stringify({email:$('#em').value.trim(),password:$('#pw').value})})
-  .then(function(r){$('#pw').value='';setSess(r.access_token)}).catch(function(x){er.hidden=false;er.textContent=fe(x)})};
-$('#out').onclick=function(){setSess(null)};
+  .then(function(r){$('#pw').value='';storeRefresh(r.refresh_token,rem);setSess(r.access_token)}).catch(function(x){er.hidden=false;er.textContent=fe(x)})};
+$('#out').onclick=function(){storeRefresh(null,false);setSess(null)};
 $('#rg-go').onclick=function(){var er=$('#rg-err');er.hidden=true;
   var name=$('#rg-name').value.trim(),email=$('#rg-email').value.trim(),pass=$('#rg-pass').value,phone=dig($('#rg-phone').value.trim()),job=$('#rg-job').value.trim(),city=$('#rg-city').value,role=$('#rg-role').value;
   if(!name||!email||!pass||!role){er.hidden=false;er.textContent='أكمل الحقول المطلوبة.';return}
@@ -291,7 +303,13 @@ $('#rg-go').onclick=function(){var er=$('#rg-err');er.hidden=true;
       $('#reg-body').hidden=true;$('#reg-done').hidden=false})
     .catch(function(x){er.hidden=false;er.textContent=fe(x)})
     .then(function(){btn.disabled=false;btn.textContent='إرسال طلب التسجيل'})};
-try{var st=sessionStorage.getItem('tk');if(st)setSess(st)}catch(e){}
+try{
+  var st=sessionStorage.getItem('tk');
+  var srt=sessionStorage.getItem('rtk')||localStorage.getItem('rtk');
+  if(srt)refreshTok=srt;
+  if(st)setSess(st);
+  else if(srt)doRefresh().then(function(t){setSess(t)}).catch(function(){storeRefresh(null,false)});
+}catch(e){}
 var me=null,staffList=[];
 function uid(){try{return JSON.parse(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub}catch(e){return null}}
 function isSup(){return !!me&&(me.role==='supervisor'||me.role==='admin')}
@@ -423,7 +441,7 @@ function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;loadDash(
         return Promise.all(ps.map(function(p){return api('/storage/v1/object/sign/report-photos/'+p.file_path,{m:'POST',auth:true,body:JSON.stringify({expiresIn:600})})})).then(function(s){
           o.innerHTML='<div class="imgs">'+s.map(function(x){return '<a href="'+U+'/storage/v1'+x.signedURL+'" target="_blank" rel="noopener"><img alt="صورة البلاغ" src="'+U+'/storage/v1'+x.signedURL+'"></a>'}).join('')+'</div>'})})
       .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
-  }).catch(function(x){if(/JWT|expired|401/i.test(x.message)){setSess(null);return}pe.hidden=false;pe.textContent=fe(x)})}
+  }).catch(function(x){if(/JWT|expired|401/i.test(x.message)){doRefresh().then(function(t){setSess(t)}).catch(function(){storeRefresh(null,false);setSess(null)});return}pe.hidden=false;pe.textContent=fe(x)})}
 
 /* تصدير إلى شيت: خطوتان ليعمل على الآيفون */
 var xCsv='',xTsv='',xName='balaghat.csv';

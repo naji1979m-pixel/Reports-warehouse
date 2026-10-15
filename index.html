@@ -114,7 +114,7 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <div id="new-body" hidden>
 <div class="row" style="justify-content:space-between;margin-bottom:6px"><b id="rep-who"></b><span class="row"><button class="btn alt sm" data-chpw="1" style="width:auto;margin:0;padding:6px 14px">تغيير كلمة المرور</button><button class="btn alt sm" id="rep-out" style="width:auto;margin:0;padding:6px 14px">خروج</button></span></div>
 <div id="rpt-box" class="vn" hidden style="margin-bottom:12px"><p style="margin:0 0 4px"><b>تقرير البلاغات</b> <span class="tag" id="rpt-scope"></span></p>
-<div class="row"><label style="margin:0;flex:1">من<input type="date" id="rpt-from"></label><label style="margin:0;flex:1">إلى<input type="date" id="rpt-to"></label></div>
+<div class="row"><label style="margin:0;flex:1">من<input type="date" id="rpt-from" dir="ltr"></label><label style="margin:0;flex:1">إلى<input type="date" id="rpt-to" dir="ltr"></label></div>
 <button class="btn sm" id="rpt-go">عرض التقرير وطباعته</button><p class="hint" id="rpt-msg"></p></div>
 <form id="f" novalidate>
 <label for="name">اسم المبلّغ <i>*</i></label>
@@ -331,7 +331,7 @@ function afterLogin(){
     if(isReporter()){$('#rep-note').hidden=false;fillReporter();document.querySelector('nav button[data-v="new"]').click()}
     else{$('#rep-who').textContent=me.name;$('#rpt-box').hidden=true;$('#rpt-admin').hidden=!isAdmin();$('#panel').hidden=false;loadList()}}
 
-function fillReporter(){if(!me)return;var rb=$('#rpt-box');rb.hidden=!(me.report_scope&&me.report_scope!=='none');if(!rb.hidden){var pk=posKey(me.department,me.report_scope);$('#rpt-scope').textContent=(POS[pk]?POS[pk].l:'')+(me.report_scope==='branch'&&me.cities&&me.cities[0]?' — '+me.cities[0]:'')}$('#rep-who').textContent='مقدّم البلاغ: '+me.name;
+function fillReporter(){if(!me)return;var rb=$('#rpt-box');rb.hidden=!(me.report_scope&&me.report_scope!=='none');if(!rb.hidden){var pk=posOf(me);$('#rpt-scope').textContent=(POS[pk]?POS[pk].l:'')+(me.report_scope==='branch'&&me.cities&&me.cities[0]?' — '+me.cities[0]:'')}$('#rep-who').textContent='مقدّم البلاغ: '+me.name;
   $('#name').value=me.name;$('#name').readOnly=true;$('#role').value='موظف شركة المياه';
   if(me.cities&&me.cities.length===1)$('#city').value=me.cities[0];
   api('/rest/v1/staff?select=phone,job_title&id=eq.'+encodeURIComponent(me.id),{auth:true}).then(function(a){var x=a&&a[0];if(!x)return;if(x.phone)$('#phone').value=x.phone;if(x.job_title)$('#rep-who').textContent='مقدّم البلاغ: '+me.name+' — '+x.job_title}).catch(function(){})}
@@ -349,7 +349,7 @@ function isReporter(){return !!me&&me.role==='reporter'}
 var ROLE_AR={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور الضبط',reporter:'مُبلّغ'};
 var allStaffList=[];
 function loadAllStaff(){if(!isAdmin()){allStaffList=[];renderStaffAdmin();return Promise.resolve()}
-  return api('/rest/v1/staff?select=id,name,role,cities,active,department,report_scope&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
+  return api('/rest/v1/staff?select=id,name,role,cities,active,department,report_scope,position&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
 function citiesStr(a){return (a||[]).join('، ')}
 function parseCities(s){return s.split(/[،,]/).map(function(x){return x.trim()}).filter(Boolean)}
 function roleOptions(sel){return Object.keys(ROLE_AR).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+ROLE_AR[k]+'</option>'}).join('')}
@@ -357,7 +357,7 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
   var rows=allStaffList.map(function(z){return '<div class="item"><p><b>'+esc(z.name||'(بلا اسم)')+'</b> — <span class="tag">'+ROLE_AR[z.role]+'</span>'+(z.active?'':' <span class="tag u2">معطّل</span>')+'</p>'+
     '<label>الاسم</label><input class="sa-name" data-id="'+esc(z.id)+'" value="'+esc(z.name||'')+'">'+
     '<label>الدور</label><select class="sa-role" data-id="'+esc(z.id)+'">'+roleOptions(z.role)+'</select>'+
-    (z.role==='reporter'?'<label>المنصب ونطاق التقرير</label><select class="sa-pos" data-id="'+esc(z.id)+'">'+posOpts(posKey(z.department,z.report_scope))+'</select>':'')+
+    (z.role==='reporter'?'<label>المنصب ونطاق التقرير</label><select class="sa-pos" data-id="'+esc(z.id)+'">'+posOpts(posOf(z))+'</select>':'')+
     '<label>المدن (مفصولة بفاصلة، اتركها فارغة لرؤية كل المدن)</label><input class="sa-cities" data-id="'+esc(z.id)+'" value="'+esc(citiesStr(z.cities))+'">'+
     '<label class="row" style="align-items:center;gap:8px;margin-top:10px"><input type="checkbox" class="sa-active sa-chk" data-id="'+esc(z.id)+'"'+(z.active?' checked':'')+'> الحساب مفعّل (يستطيع الدخول)</label>'+
     (z.id===uid()?'<p class="hint">تنبيه: هذا حسابك. تعطيله سيمنعك من الدخول فوراً.</p>':'')+
@@ -391,7 +391,7 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
     var active=document.querySelector('.sa-active[data-id="'+id+'"]').checked;
     if(!name){msg.textContent='الاسم مطلوب.';return}
     btn.disabled=true;msg.textContent='جارٍ الحفظ…';
-    var pe2=document.querySelector('.sa-pos[data-id="'+id+'"]'),pp=pe2&&POS[pe2.value],patch={name:name,role:role,cities:cities,active:active};if(pp){patch.department=pp.d;patch.report_scope=pp.sc}
+    var pe2=document.querySelector('.sa-pos[data-id="'+id+'"]'),pp=pe2&&POS[pe2.value],patch={name:name,role:role,cities:cities,active:active};if(pp){patch.department=pp.d;patch.report_scope=pp.sc;patch.position=pe2.value}
     api('/rest/v1/staff?id=eq.'+encodeURIComponent(id),{m:'PATCH',auth:true,body:JSON.stringify(patch)})
       .then(function(){msg.textContent='تم الحفظ.';return loadMe()}).then(function(){return loadList()})
       .catch(function(x){msg.textContent=fe(x)}).then(function(){btn.disabled=false})}});
@@ -414,7 +414,7 @@ function actBox(r){var id=esc(r.id),h='';if(isReporter())return '';
   return h}
 function q1(c,id){return document.querySelector('.'+c+'[data-id="'+id+'"]')}
 function staffName(id){var x=staffList.filter(function(z){return z.id===id})[0];return x?x.name:''}
-function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities,must_change_password,department,report_scope&active=eq.true',{auth:true}).then(function(a){
+function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities,must_change_password,department,report_scope,position&active=eq.true',{auth:true}).then(function(a){
   staffList=a;me=a.filter(function(x){return x.id===uid()})[0]||null;
   if(!me){return rpc('my_request',{},true).catch(function(){return null}).then(function(q){
     var t=q&&q.status==='pending'?'طلب تسجيلك قيد المراجعة لدى مدير الرقابة. ستتمكن من الدخول بعد الموافقة.':q&&q.status==='rejected'?('رُفض طلب التسجيل'+(q.reason?': '+q.reason:'.')):'حسابك غير مفعّل في المنصة. راجع مدير الرقابة.';
@@ -534,9 +534,10 @@ var RQ={reporter:'مُبلّغ',inspector:'مأمور ضبط',supervisor:'مشر
 var DEP={management:'إدارة الفرع',customer_service:'خدمات العملاء',environmental:'الخدمات البيئية',operations:'التشغيل والصيانة'};
 var POS={emp_mgmt:{l:'موظف بإدارة الفرع (تبليغ فقط)',d:'management',sc:'none'},emp_cs:{l:'موظف خدمات العملاء (تبليغ فقط)',d:'customer_service',sc:'none'},
   emp_env:{l:'موظف الخدمات البيئية (تبليغ فقط)',d:'environmental',sc:'none'},emp_om:{l:'موظف التشغيل والصيانة (تبليغ فقط)',d:'operations',sc:'none'},
-  branch_manager:{l:'مدير فرع',d:'management',sc:'branch'},unit_manager:{l:'مدير الوحدة',d:'management',sc:'unit'},
+  branch_manager:{l:'مدير فرع',d:'management',sc:'branch'},branch_supervisor:{l:'مشرف فرع',d:'management',sc:'branch'},unit_manager:{l:'مدير الوحدة',d:'management',sc:'unit'},
   cs_head:{l:'رئيس خدمات العملاء بالفرع',d:'customer_service',sc:'branch'},cs_unit:{l:'مدير خدمات العملاء بالوحدة',d:'customer_service',sc:'unit'},
   env_head:{l:'رئيس الخدمات البيئية',d:'environmental',sc:'branch'},om_head:{l:'مشرف / رئيس التشغيل والصيانة',d:'operations',sc:'branch'}};
+function posOf(z){return z&&POS[z.position]?z.position:posKey(z&&z.department,z&&z.report_scope)}
 function posKey(d,sc){for(var k in POS)if(POS[k].d===d&&POS[k].sc===sc)return k;return ''}
 function posOpts(sel){return '<option value="">— غير محدد —</option>'+Object.keys(POS).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+POS[k].l+'</option>'}).join('')}
 function loadReqs(){var bx=$('#reqBox');if(!bx)return;rpc('list_requests',{},true).then(function(a){a=a||[];
@@ -550,7 +551,7 @@ function loadReqs(){var bx=$('#reqBox');if(!bx)return;rpc('list_requests',{},tru
     '<div class="row" style="margin-top:8px"><button class="btn sm" data-rqok="'+id+'" style="flex:1;width:auto;margin:0"'+(q.confirmed?'':' disabled')+'>موافقة</button><button class="btn alt sm" data-rqno="'+id+'" style="flex:1;width:auto;margin:0;color:var(--bad)">رفض</button></div><p class="hint" data-rqm="'+id+'"></p></div>'}).join('');
   document.querySelectorAll('[data-rqok]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqok,m=document.querySelector('[data-rqm="'+id+'"]');b.disabled=true;m.textContent='جارٍ التفعيل…';
     var rl=q1('rq-role',id).value,ps=POS[q1('rq-pos',id).value];if(rl==='reporter'&&!ps){m.textContent='حدد المنصب.';b.disabled=false;return}
-    rpc('approve_request',{p_id:+id,p_role:rl,p_cities:parseCities(q1('rq-cities',id).value),p_department:rl==='reporter'?ps.d:null,p_scope:rl==='reporter'?ps.sc:'none'},true).then(function(){return loadMe()}).then(function(){loadList()}).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
+    rpc('approve_request',{p_id:+id,p_role:rl,p_cities:parseCities(q1('rq-cities',id).value),p_department:rl==='reporter'?ps.d:null,p_scope:rl==='reporter'?ps.sc:'none',p_position:rl==='reporter'?q1('rq-pos',id).value:null},true).then(function(){return loadMe()}).then(function(){loadList()}).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
   document.querySelectorAll('[data-rqno]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqno,m=document.querySelector('[data-rqm="'+id+'"]'),why=prompt('سبب الرفض (يظهر لصاحب الطلب):','');if(why===null)return;b.disabled=true;
     rpc('reject_request',{p_id:+id,p_reason:why.trim()||null},true).then(loadReqs).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
 }).catch(function(){bx.innerHTML=''})}
@@ -562,7 +563,7 @@ function buildReport(from,to,msgEl){msgEl.textContent='جارٍ تجهيز ال�
     var cnt=function(f){return a.filter(f).length},by=function(k,lab){var o={};a.forEach(function(x){var v=lab?lab(x[k]):x[k];v=v||'غير محدد';o[v]=(o[v]||0)+1});return o};
     var late=cnt(function(x){return x.status==='new'&&Date.now()-new Date(x.created_at)>48*36e5});
     var tbl=function(o,h){var ks=Object.keys(o).sort(function(p,q){return o[q]-o[p]});return ks.length?'<table><tr><th>'+h+'</th><th>العدد</th></tr>'+ks.map(function(k){return '<tr><td>'+esc(k)+'</td><td>'+o[k]+'</td></tr>'}).join('')+'</table>':''};
-    var pk=me?posKey(me.department,me.report_scope):'',scope=isAdmin()?'جميع البلاغات':((POS[pk]?POS[pk].l:'')+(me.report_scope==='branch'&&me.cities&&me.cities[0]?' — '+me.cities[0]:''));
+    var pk=me?posOf(me):'',scope=isAdmin()?'جميع البلاغات':((POS[pk]?POS[pk].l:'')+(me.report_scope==='branch'&&me.cities&&me.cities[0]?' — '+me.cities[0]:''));
     var per=(from||to)?('الفترة: '+(from||'البداية')+' إلى '+(to||'اليوم')):'الفترة: كل البلاغات';
     var pa=$('#print-area');
     pa.innerHTML='<div class="pa-bar"><button class="btn sm" id="pa-print" style="width:auto;margin:0">طباعة / حفظ PDF</button><button class="btn alt sm" id="pa-close" style="width:auto;margin:0">إغلاق</button></div>'+

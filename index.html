@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>منصة البلاغات لإدارة المخالفات والتفتيش بالوحدة الشمالية</title>
+<title>منصة البلاغات لإدارة المخالفات والتعديات بالقطاع الشرقي</title>
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ar_SA">
-<meta property="og:title" content="منصة البلاغات لإدارة المخالفات والتفتيش بالوحدة الشمالية">
+<meta property="og:title" content="منصة البلاغات لإدارة المخالفات والتعديات بالقطاع الشرقي">
 <meta property="og:description" content="قدّم بلاغك عن التعديات والمخالفات على خدمات وشبكات المياه وتابع حالته إلكترونياً.">
 <meta name="description" content="قدّم بلاغك عن التعديات والمخالفات على خدمات وشبكات المياه وتابع حالته إلكترونياً.">
 <meta name="twitter:card" content="summary">
@@ -78,19 +78,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .vn .row select{flex:1;min-width:0}
 .sa-chk{width:auto!important}
 [hidden]{display:none!important}
-a.lnk{color:var(--pri);font-weight:600;font-size:14px;text-decoration:none}
-#print-area{position:fixed;inset:0;z-index:50;overflow:auto;background:#fff;color:#111;padding:18px;font-size:13px}
-#print-area h2{margin:0 0 4px;font-size:18px}#print-area .pa-bar{display:flex;gap:8px;margin-bottom:14px;position:sticky;top:0;background:#fff;padding:6px 0}
-#print-area table{width:100%;border-collapse:collapse;margin:8px 0 16px}#print-area th,#print-area td{border:1px solid #bbb;padding:5px 6px;text-align:right;vertical-align:top}
-#print-area th{background:#e8f1f6}#print-area .pa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
-#print-area .pa-grid div{border:1px solid #bbb;border-radius:8px;padding:8px;text-align:center}#print-area .pa-grid b{display:block;font-size:20px}
-@media print{body>*:not(#print-area){display:none!important}#print-area{position:static;padding:0}#print-area .pa-bar{display:none}@page{size:A4;margin:12mm}}
 footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px}
 </style>
 </head>
 <body>
 <header>
-<h1>منصة البلاغات لإدارة المخالفات والتفتيش بالوحدة الشمالية</h1>
+<h1>منصة البلاغات لإدارة المخالفات والتعديات بالقطاع الشرقي</h1>
 <p>استقبال البلاغات المتعلقة بالتعديات والمخالفات على خدمات وشبكات المياه ومتابعتها إلكترونياً.</p>
 </header>
 <main>
@@ -98,24 +91,15 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <button role="tab" data-v="new" aria-selected="true">تقديم بلاغ</button>
 <button role="tab" data-v="track" aria-selected="false">متابعة بلاغ</button>
 <button role="tab" data-v="insp" aria-selected="false">دخول الموظفين</button>
+<button role="tab" data-v="reg" aria-selected="false">تسجيل جديد</button>
 </nav>
 
 <section id="v-new" class="card">
 <div id="new-locked">
-<p class="hint" style="margin-top:0">تقديم البلاغ متاح لحسابات الموظفين المسجَّلين فقط. سجّل دخولك لتقديم بلاغ.</p>
-<label for="nem">البريد الإلكتروني</label>
-<input id="nem" type="email" dir="ltr" style="text-align:right" autocomplete="username">
-<label for="npw">كلمة المرور</label>
-<input id="npw" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
-<button class="btn" id="nlg">تسجيل الدخول لتقديم بلاغ</button>
-<p class="err" id="nlerr" hidden></p>
-<div class="row" style="justify-content:space-between;margin-top:12px"><a href="#" class="lnk" data-reg="1">طلب تسجيل جديد</a><a href="#" class="lnk" data-forgot="nem">نسيت كلمة المرور؟</a></div>
+<p class="hint" style="margin-top:0">تقديم البلاغ متاح لحسابات الموظفين المسجَّلين فقط.</p>
+<button class="btn" id="new-goto-login">تسجيل الدخول لتقديم بلاغ</button>
 </div>
 <div id="new-body" hidden>
-<div class="row" style="justify-content:space-between;margin-bottom:6px"><b id="rep-who"></b><span class="row"><button class="btn alt sm" data-chpw="1" style="width:auto;margin:0;padding:6px 14px">تغيير كلمة المرور</button><button class="btn alt sm" id="rep-out" style="width:auto;margin:0;padding:6px 14px">خروج</button></span></div>
-<div id="rpt-box" class="vn" hidden style="margin-bottom:12px"><p style="margin:0 0 4px"><b>تقرير البلاغات</b> <span class="tag" id="rpt-scope"></span></p>
-<div class="row"><label style="margin:0;flex:1">من<input type="date" id="rpt-from" dir="ltr"></label><label style="margin:0;flex:1">إلى<input type="date" id="rpt-to" dir="ltr"></label></div>
-<button class="btn sm" id="rpt-go">عرض التقرير وطباعته</button><p class="hint" id="rpt-msg"></p></div>
 <form id="f" novalidate>
 <label for="name">اسم المبلّغ <i>*</i></label>
 <input id="name" placeholder="الاسم الثلاثي" autocomplete="name">
@@ -125,14 +109,10 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <select id="role"><option>فرد</option><option>موظف شركة المياه</option><option>مقاول</option><option>جهة حكومية</option><option>جهة أخرى</option></select>
 <label for="city">المدينة / المحافظة <i>*</i></label>
 <select id="city"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option><option>أخرى</option></select>
-<label for="district">الحي <i>*</i></label>
-<input id="district" placeholder="اسم الحي">
 <label for="type">نوع البلاغ <i>*</i></label>
 <select id="type"><option value="">اختر نوع المخالفة</option><option>توصيلة مياه غير نظامية / تعدٍ على الشبكة</option><option>توصيلة مباشرة قبل العداد</option><option>إخفاء عداد أو صندوق عداد</option><option>عبث أو كسر في العداد</option><option>إزالة عداد دون إجراء نظامي</option><option>اشتباه في استهلاك غير نظامي</option><option>صهريج أو تعبئة مياه غير نظامية</option><option>تعدٍ ظاهر آخر</option><option>اشتباه بتعدٍ غير ظاهر</option><option>أخرى</option></select>
 <label for="urg">درجة الاستعجال</label>
 <select id="urg"><option value="0">عادي</option><option value="1">عاجل - يوجد هدر مياه مستمر</option><option value="2">عاجل جداً - خطر أو تسرب كبير</option></select>
-<div id="urg-box" hidden><label for="urgr">سبب الاستعجال <i>*</i></label>
-<input id="urgr" placeholder="مثال: تسرب مستمر في الشارع"></div>
 <label for="loc">موقع البلاغ <i>*</i></label>
 <input id="loc" placeholder="الصق رابط Google Maps أو الإحداثيات" dir="ltr" style="text-align:right">
 <button type="button" class="btn alt sm" id="gps">استخدام موقعي الحالي</button>
@@ -145,17 +125,9 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="acct" placeholder="اختياري" inputmode="numeric">
 <label for="desc">وصف البلاغ <i>*</i></label>
 <textarea id="desc" placeholder="اشرح الحالة باختصار، ومتى تمت ملاحظتها، وأي معلومات تساعد الفريق الميداني."></textarea>
-<label>إرفاق صور أو فيديو (حتى 5 ملفات)</label>
-<div class="row">
-<button type="button" class="btn alt sm" id="pk-cam" style="flex:1;width:auto;margin:0">📷 تصوير صورة</button>
-<button type="button" class="btn alt sm" id="pk-vid" style="flex:1;width:auto;margin:0">🎥 تصوير فيديو</button>
-<button type="button" class="btn alt sm" id="pk-gal" style="flex:1;width:auto;margin:0">🖼️ من الاستديو</button>
-</div>
-<input id="in-cam" type="file" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0">
-<input id="in-vid" type="file" accept="video/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0">
-<input id="in-gal" type="file" accept="image/*,video/*" multiple style="position:absolute;width:1px;height:1px;opacity:0">
-<div id="pk-list"></div>
-<p class="hint">يفضل إرفاق صورة واضحة للموقع والمخالفة وما يثبت رقم العداد إن كان ظاهراً. حجم الفيديو حتى 50 ميجابايت.</p>
+<label for="pics">إرفاق صور البلاغ (حتى 5 صور)</label>
+<input id="pics" type="file" accept="image/*" multiple>
+<p class="hint">يفضل إرفاق صورة واضحة للموقع والمخالفة وما يثبت رقم العداد إن كان ظاهراً.</p>
 <div class="note">بإرسال البلاغ، يقر المبلّغ بصحة المعلومات المقدمة حسب علمه، وتستخدم البيانات لغرض دراسة البلاغ واتخاذ الإجراء النظامي. تقديم البلاغ لا يعني ثبوت المخالفة قبل التحقق الميداني والمراجعة.</div>
 <button class="btn" id="sub" type="submit">إرسال البلاغ</button>
 <p class="err" id="ferr" hidden></p>
@@ -187,34 +159,12 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="pw" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
 <button class="btn" id="lg">تسجيل الدخول</button>
 <p class="err" id="lerr" hidden></p>
-<div class="row" style="justify-content:space-between;margin-top:12px"><a href="#" class="lnk" data-reg="1">طلب تسجيل جديد</a><a href="#" class="lnk" data-forgot="em">نسيت كلمة المرور؟</a></div>
-</div>
-<div id="reg" hidden>
-<p style="margin-top:0"><b>طلب تسجيل جديد</b></p>
-<p class="hint">يُفعَّل الحساب بعد تأكيد البريد الإلكتروني وموافقة مدير الرقابة.</p>
-<label for="rname">الاسم الثلاثي <i>*</i></label><input id="rname">
-<label for="remail">البريد الإلكتروني <i>*</i></label><input id="remail" type="email" dir="ltr" style="text-align:right" placeholder="name@example.com">
-<label for="rphone">رقم الجوال <i>*</i></label><input id="rphone" inputmode="tel" dir="ltr" style="text-align:right" placeholder="05XXXXXXXX">
-<label for="rjob">المسمى الوظيفي <i>*</i></label><input id="rjob">
-<label for="rcity">المدينة <i>*</i></label><select id="rcity"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option></select>
-<label for="rrole">الصلاحية المطلوبة <i>*</i></label><select id="rrole"><option value="reporter">مُبلّغ (تقديم البلاغات ومتابعتها)</option><option value="inspector">مأمور ضبط</option><option value="supervisor">مشرف بلاغات</option></select>
-<div id="rpos-w"><label for="rpos">المنصب <i>*</i></label><select id="rpos"></select></div>
-<label for="rpw">كلمة المرور (8 أحرف على الأقل) <i>*</i></label><input id="rpw" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
-<label for="rpw2">تأكيد كلمة المرور <i>*</i></label><input id="rpw2" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
-<button class="btn" id="reg-go">إرسال الطلب</button>
-<p class="err" id="reg-msg" hidden></p>
-<a href="#" class="lnk" id="reg-back" style="display:block;margin-top:12px">رجوع لتسجيل الدخول</a>
-</div>
-<div id="rep-note" hidden>
-<p class="hint" style="margin-top:0">بوابة الموظفين مخصّصة لموظفي الرقابة فقط. حسابك مسجّل كمُبلّغ، ويمكنك تقديم البلاغات من تبويب «تقديم بلاغ» ومتابعتها من تبويب «متابعة بلاغ».</p>
-<button class="btn alt sm" id="rep-out2">خروج</button>
 </div>
 <div id="panel" hidden>
-<div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><span class="row"><button class="btn alt sm" data-chpw="1" style="width:auto;margin:0;padding:6px 14px">تغيير كلمة المرور</button><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></span></div>
+<div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></div>
 <div id="dash"></div>
 <label for="flt">تصفية حسب الحالة</label>
 <select id="flt"></select>
-<button class="btn alt sm" id="rpt-admin">تقرير البلاغات للطباعة (PDF)</button>
 <button class="btn alt sm" id="xls">تصدير البلاغات إلى Excel (ملف CSV)</button>
 <div id="xout"></div>
 <div id="list"></div>
@@ -222,17 +172,34 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <div id="staffAdminBox"></div>
 </div>
 </section>
-</main>
-<section id="v-pw" class="card" hidden style="max-width:640px;margin:0 auto 14px">
-<p style="margin-top:0"><b id="pw-title">تغيير كلمة المرور</b></p>
-<p class="hint" id="pw-hint"></p>
-<label for="np1">كلمة المرور الجديدة (8 أحرف على الأقل)</label><input id="np1" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
-<label for="np2">تأكيد كلمة المرور</label><input id="np2" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
-<button class="btn" id="pw-go">حفظ كلمة المرور</button>
-<button class="btn alt" id="pw-cancel">إلغاء</button>
-<p class="err" id="pw-msg" hidden></p>
+
+<section id="v-reg" class="card" hidden>
+<div id="reg-body">
+<p class="hint" style="margin-top:0">سجّل بيانات حسابك الوظيفي هنا. سيبقى الحساب <b>بانتظار موافقة مدير النظام</b> قبل أن تتمكن من الدخول.</p>
+<label for="rg-name">الاسم الثلاثي <i>*</i></label>
+<input id="rg-name" autocomplete="name">
+<label for="rg-email">البريد الإلكتروني <i>*</i></label>
+<input id="rg-email" type="email" dir="ltr" style="text-align:right" autocomplete="username">
+<label for="rg-pass">كلمة المرور <i>*</i></label>
+<input id="rg-pass" type="password" dir="ltr" style="text-align:right" autocomplete="new-password">
+<p class="hint">8 أحرف على الأقل.</p>
+<label for="rg-phone">رقم الجوال</label>
+<input id="rg-phone" inputmode="tel" placeholder="05XXXXXXXX" dir="ltr" style="text-align:right">
+<label for="rg-job">المسمى الوظيفي</label>
+<input id="rg-job">
+<label for="rg-city">المدينة (اختياري)</label>
+<select id="rg-city"><option value="">— كل المدن —</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option></select>
+<label for="rg-role">الدور المطلوب <i>*</i></label>
+<select id="rg-role"><option value="">اختر</option><option value="inspector">مأمور الضبط</option><option value="supervisor">مشرف البلاغات</option><option value="reporter">مُبلّغ</option></select>
+<button class="btn" id="rg-go">إرسال طلب التسجيل</button>
+<p class="err" id="rg-err" hidden></p>
+</div>
+<div id="reg-done" hidden>
+<h2 style="margin:0 0 6px;font-size:18px">تم إرسال طلبك</h2>
+<p class="hint" style="margin:0">حسابك الآن بانتظار موافقة مدير النظام. سيتم إشعارك أو يمكنك محاولة تسجيل الدخول لاحقاً بعد التفعيل.</p>
+</div>
 </section>
-<div id="print-area" hidden></div>
+</main>
 <footer>إدارة المخالفات والتفتيش</footer>
 
 <script>
@@ -240,11 +207,11 @@ var U='https://ahsvlqmensttzxbgkcwo.supabase.co',K='sb_publishable_ETq2Ug9ids2iq
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var SK=['new','verifying','confirmed','no_violation','closed'];
-var SL={new:'جديد',verifying:'تحت الإجراء',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
+var SL={new:'جديد',verifying:'قيد التحقق الميداني',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
 var UR=['عادي','عاجل','عاجل جداً'];
-var ERR={email_not_confirmed:'لم يؤكد صاحب الطلب بريده بعد.',domain_not_allowed:'التسجيل متاح لإيميلات الشركة فقط.',inspector_only:'إغلاق البلاغ لمأمور الضبط فقط.',not_assigned:'هذا البلاغ ليس مسنداً إليك.',report_closed:'البلاغ مغلق.',use_close:'استخدم «إغلاق البلاغ» لتسجيل النتيجة.',invalid_file:'ملف غير صالح أو أكثر من 10 ملفات.',note_required:'اكتب ملاحظة الإغلاق.',violation_no_required:'أدخل رقم المخالفة.',admin_only:'هذا الإجراء لمدير الرقابة فقط.',invalid_target:'الاختيار غير صالح.',not_closed:'البلاغ غير مغلق.',remind_too_early:'يمكن التذكير بعد مرور 3 أيام على البلاغ.',remind_wait:'أرسلت تذكيراً مؤخراً. يمكنك التذكير مرة كل يوم.',reports_description_check:'وصف البلاغ قصير. اكتب وصفاً أوضح للحالة.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
+var ERR={invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».',weak_password:'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',invalid_role:'الدور المختار غير صحيح.'};
 var tok=null;
-function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';if(/Email not confirmed/i.test(m))return 'أكّد بريدك أولاً من الرابط المرسل إليك.';return 'حدث خطأ: '+m}
+function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';if(/already.*registered|already.*exists/i.test(m))return 'هذا البريد مسجّل مسبقاً. سجّل الدخول أو تواصل مع مدير النظام.';return 'حدث خطأ: '+m}
 function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.auth&&tok)h.Authorization='Bearer '+tok;
   return fetch(U+path,{method:o.m||'GET',headers:h,body:o.body}).then(function(r){return r.text().then(function(t){var j=null;try{j=JSON.parse(t)}catch(e){}
     if(!r.ok)throw new Error((j&&(j.message||j.msg||j.error_description))||('HTTP '+r.status));return j})})}
@@ -255,10 +222,8 @@ function mapUrl(l){return /^https?:\/\//i.test(l)?l:'https://www.google.com/maps
 
 document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){
   document.querySelectorAll('nav button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
-  ['new','track','insp'].forEach(function(v){$('#v-'+v).hidden=v!==b.dataset.v});}});
+  ['new','track','insp','reg'].forEach(function(v){$('#v-'+v).hidden=v!==b.dataset.v});}});
 
-['input','change'].forEach(function(ev){$('#f').addEventListener(ev,function(e){var t=e.target;t.classList.remove('bad');var n=t.nextElementSibling;if(n&&n.classList.contains('fe'))n.remove()})});
-$('#urg').onchange=function(){$('#urg-box').hidden=!(+this.value>0)};
 $('#gps').onclick=function(){var m=$('#gpsmsg');
   if(!navigator.geolocation){m.textContent='المتصفح لا يدعم تحديد الموقع. الصق الرابط أو الإحداثيات يدوياً.';return}
   m.textContent='جارٍ تحديد الموقع…';
@@ -269,100 +234,87 @@ function shrink(f){return new Promise(function(res,rej){var im=new Image(),u=URL
   im.onload=function(){var s=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){URL.revokeObjectURL(u);b?res(b):rej(new Error('تعذر معالجة الصورة'))},'image/jpeg',.8)};
   im.onerror=function(){rej(new Error('تعذر قراءة الصورة'))};im.src=u})}
-var picked=[];
-function isVid(f){return /^video\//.test(f.type)||/\.(mp4|mov|m4v|webm)$/i.test(f.name)}
-function renderPicked(){$('#pk-list').innerHTML=picked.map(function(f,i){return '<div class="kv"><span>'+(isVid(f)?'🎥 فيديو':'📷 صورة')+' '+(i+1)+'</span><b><button type="button" class="btn alt sm" data-rm="'+i+'" style="width:auto;margin:0;padding:4px 12px">حذف</button></b></div>'}).join('');
-  document.querySelectorAll('[data-rm]').forEach(function(b){b.onclick=function(){picked.splice(+b.dataset.rm,1);renderPicked()}})}
-function addPicked(inp){var er=$('#ferr');Array.prototype.slice.call(inp.files).forEach(function(f){
-    if(picked.length>=5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
-    if(isVid(f)&&f.size>50*1024*1024){er.hidden=false;er.textContent='حجم الفيديو أكبر من 50 ميجابايت. صوّر مقطعاً أقصر.';return}
-    picked.push(f)});inp.value='';renderPicked()}
-['cam','vid','gal'].forEach(function(k){$('#pk-'+k).onclick=function(){$('#in-'+k).click()};$('#in-'+k).onchange=function(){addPicked(this)}});
-function upload(f){var id=(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random().toString(36).slice(2));
-  if(isVid(f)){var ext=(f.name.match(/\.(mp4|mov|m4v|webm)$/i)||[,'mp4'])[1].toLowerCase(),vp='pending/'+id+'.'+ext;
-    var vh={apikey:K,'Content-Type':f.type||'video/mp4'};if(tok)vh.Authorization='Bearer '+tok;
-    return fetch(U+'/storage/v1/object/report-photos/'+vp,{method:'POST',headers:vh,body:f}).then(function(r){if(!r.ok)throw new Error('فشل رفع الفيديو');return vp})}
-  var p='pending/'+id+'.jpg';
+function upload(f){var p='pending/'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random().toString(36).slice(2))+'.jpg';
   return shrink(f).then(function(b){var h={apikey:K,'Content-Type':'image/jpeg'};if(tok)h.Authorization='Bearer '+tok;return fetch(U+'/storage/v1/object/report-photos/'+p,{method:'POST',headers:h,body:b})})
   .then(function(r){if(!r.ok)throw new Error('فشل رفع صورة');return p})}
 
 $('#f').onsubmit=function(e){e.preventDefault();
   var ok=true,er=$('#ferr');
-  var req=['name','phone','city','district','type','loc','desc'];if(+$('#urg').value>0)req.push('urgr');
-  var FN={name:'اسم المبلّغ',phone:'رقم الجوال (05XXXXXXXX)',city:'المدينة',district:'الحي',type:'نوع البلاغ',loc:'موقع البلاغ',desc:'وصف البلاغ (10 أحرف على الأقل)',urgr:'سبب الاستعجال'};
-  var bad=[];document.querySelectorAll('#f .fe').forEach(function(x){x.remove()});
-  req.forEach(function(k){var el=$('#'+k),v=el.value.trim();
+  ['name','phone','city','type','loc','desc'].forEach(function(k){var el=$('#'+k),v=el.value.trim();
     if(k==='phone'&&!/^05\d{8}$/.test(dig(v)))v='';
-    if(k==='desc'&&v.length<10)v='';
-    if(!v){el.classList.add('bad');bad.push(k);var m=document.createElement('p');m.className='err fe';m.textContent='مطلوب: '+FN[k];el.insertAdjacentElement('afterend',m)}else el.classList.remove('bad')});
-  if(bad.length){er.hidden=false;er.textContent='أكمل الحقول التالية: '+bad.map(function(k){return FN[k]}).join('، ');var f0=$('#'+bad[0]);f0.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){f0.focus()},400);return}
-  var files=picked.slice();
+    if(!v){el.classList.add('bad');ok=false}else el.classList.remove('bad')});
+  if(!ok){er.hidden=false;er.textContent='أكمل الحقول المطلوبة المعلّمة بالأحمر، وتأكد أن الجوال بصيغة 05XXXXXXXX.';return}
+  var files=Array.prototype.slice.call($('#pics').files);
   if(files.length>5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
   er.hidden=true;var btn=$('#sub');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
   var loc=$('#loc').value.trim(),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
   Promise.all(files.map(upload)).then(function(paths){
     return rpc('submit_report',{p_name:$('#name').value.trim(),p_phone:dig($('#phone').value),p_role:$('#role').value,p_city:$('#city').value,p_type:$('#type').value,
-      p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths,p_district:$('#district').value.trim(),p_urgency_reason:+$('#urg').value>0?$('#urgr').value.trim():null},true)})
-  .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id;picked=[];renderPicked()})
-  .catch(function(x){er.hidden=false;er.textContent=fe(x);if(/description_check/.test(x.message)){$('#desc').classList.add('bad');$('#desc').scrollIntoView({behavior:'smooth',block:'center'})}})
+      p_urgency:+$('#urg').value,p_location:loc,p_lat:m?+m[1]:null,p_lng:m?+m[2]:null,p_meter:$('#meter').value.trim(),p_account:$('#acct').value.trim(),p_subscription:$('#subs').value.trim(),p_desc:$('#desc').value.trim(),p_photos:paths},true)})
+  .then(function(id){$('#f').hidden=true;$('#done').hidden=false;$('#newid').textContent=id})
+  .catch(function(x){er.hidden=false;er.textContent=fe(x)})
   .then(function(){btn.disabled=false;btn.textContent='إرسال البلاغ'})};
-$('#again').onclick=function(){$('#f').reset();document.querySelectorAll('#f .fe').forEach(function(x){x.remove()});$('#urg-box').hidden=true;picked=[];renderPicked();if(isReporter())fillReporter();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
+$('#again').onclick=function(){$('#f').reset();$('#f').hidden=false;$('#done').hidden=true;$('#copy').textContent='نسخ رقم البلاغ'};
 $('#copy').onclick=function(){var t=$('#newid').textContent;
   try{navigator.clipboard.writeText(t).then(function(){$('#copy').textContent='تم النسخ'},function(){$('#copy').textContent='انسخ الرقم يدوياً'})}catch(e){$('#copy').textContent='انسخ الرقم يدوياً'}};
 
 $('#tgo').onclick=function(){var out=$('#tres'),b=$('#tgo');b.disabled=true;out.innerHTML='';
   rpc('track_report',{p_id:$('#tid').value.trim(),p_last4:dig($('#tph').value)}).then(function(r){
     if(!r){out.innerHTML='<p class="err">لم نجد بلاغاً بهذه البيانات. تحقق من الرقم وآخر 4 أرقام من الجوال.</p>';return}
-    out.innerHTML='<div class="item"><div class="row"><b>'+esc(r.id)+'</b><span class="tag">'+esc(SL[r.status])+'</span></div><p>'+esc(r.type)+' — '+esc(r.city)+''+(r.district?'، '+esc(r.district):'')+'</p><small class="hint">قُدّم في '+fmt(r.created_at)+'</small><ul class="tl">'+
-      (r.history||[]).slice().reverse().map(function(h){return '<li><b>'+esc(SL[h.status]||h.status)+'</b><br><small>'+fmt(h.at)+'</small></li>'}).join('')+'</ul>'+remindHtml(r)+'</div>';var rb=$('#rmd');if(rb)rb.onclick=function(){rb.disabled=true;rpc('remind_report',{p_id:r.id,p_last4:dig($('#tph').value)}).then(function(){$('#rmdm').textContent='تم إرسال التذكير للفريق المختص.';rb.hidden=true}).catch(function(x){$('#rmdm').textContent=fe(x);rb.disabled=false})}})
+    out.innerHTML='<div class="item"><div class="row"><b>'+esc(r.id)+'</b><span class="tag">'+esc(SL[r.status])+'</span></div><p>'+esc(r.type)+' — '+esc(r.city)+'</p><small class="hint">قُدّم في '+fmt(r.created_at)+'</small><ul class="tl">'+
+      (r.history||[]).slice().reverse().map(function(h){return '<li><b>'+esc(SL[h.status])+'</b><br><small>'+fmt(h.at)+'</small></li>'}).join('')+'</ul></div>'})
   .catch(function(x){out.innerHTML='<p class="err">'+esc(fe(x))+'</p>'}).then(function(){b.disabled=false})};
-function remindHtml(r){if(['confirmed','no_violation','closed'].indexOf(r.status)>-1)return '';
-  if(r.can_remind)return '<button class="btn alt sm" id="rmd">إرسال تذكير بالبلاغ</button><p class="hint" id="rmdm"></p>';
-  return r.remind_from?'<p class="hint">إن لم يُتخذ إجراء، يمكنك إرسال تذكير ابتداءً من '+fmt(r.remind_from)+'.</p>':''}
 
 /* الموظفون */
 $('#flt').innerHTML='<option value="">كل الحالات</option>'+SK.map(function(k){return '<option value="'+k+'">'+SL[k]+'</option>'}).join('');
 $('#flt').onchange=loadList;
-function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.removeItem('tk')}catch(e){}
-  $('#login').hidden=!!t;$('#reg').hidden=true;$('#panel').hidden=true;$('#rep-note').hidden=true;$('#new-locked').hidden=!!t;$('#new-body').hidden=!t;
-  if(!t){me=null;$('#name').readOnly=false;return}
-  loadMe().then(function(ok){if(!ok)return;if(me.must_change_password){askPw(true,afterLogin);return}afterLogin()}).catch(function(){})}
-function afterLogin(){
-    if(isReporter()){$('#rep-note').hidden=false;fillReporter();document.querySelector('nav button[data-v="new"]').click()}
-    else{$('#rep-who').textContent=me.name;$('#rpt-box').hidden=true;$('#rpt-admin').hidden=!isAdmin();$('#panel').hidden=false;loadList()}}
-
-function fillReporter(){if(!me)return;var rb=$('#rpt-box');rb.hidden=!(me.report_scope&&me.report_scope!=='none');if(!rb.hidden){var pk=posOf(me);$('#rpt-scope').textContent=(POS[pk]?POS[pk].l:'')+(me.report_scope==='branch'&&me.cities&&me.cities[0]?' — '+me.cities[0]:'')}$('#rep-who').textContent='مقدّم البلاغ: '+me.name;
-  $('#name').value=me.name;$('#name').readOnly=true;$('#role').value='موظف شركة المياه';
-  if(me.cities&&me.cities.length===1)$('#city').value=me.cities[0];
-  api('/rest/v1/staff?select=phone,job_title&id=eq.'+encodeURIComponent(me.id),{auth:true}).then(function(a){var x=a&&a[0];if(!x)return;if(x.phone)$('#phone').value=x.phone;if(x.job_title)$('#rep-who').textContent='مقدّم البلاغ: '+me.name+' — '+x.job_title}).catch(function(){})}
-function doLogin(emEl,pwEl,erEl){erEl.hidden=true;
-  api('/auth/v1/token?grant_type=password',{m:'POST',body:JSON.stringify({email:emEl.value.trim(),password:pwEl.value})})
-  .then(function(r){pwEl.value='';setSess(r.access_token)}).catch(function(x){erEl.hidden=false;erEl.textContent=fe(x)})}
-$('#lg').onclick=function(){doLogin($('#em'),$('#pw'),$('#lerr'))};
-$('#nlg').onclick=function(){doLogin($('#nem'),$('#npw'),$('#nlerr'))};
-$('#out').onclick=$('#rep-out').onclick=$('#rep-out2').onclick=function(){setSess(null)};
+function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.removeItem('tk')}catch(e){}$('#login').hidden=!!t;$('#panel').hidden=!t;$('#new-locked').hidden=!!t;$('#new-body').hidden=!t;
+  if(t)loadMe().then(function(){
+    if(!me){ // logged in successfully but no active staff row: pending approval or disabled
+      setSess(null);var er=$('#lerr');er.hidden=false;er.textContent='حسابك غير مفعّل بعد. إن كنت قد سجّلت مؤخراً فهو بانتظار موافقة مدير النظام، وإلا تواصل معه.';return
+    }
+    return loadList()
+  }).catch(function(){})}
+$('#new-goto-login').onclick=function(){document.querySelector('nav button[data-v="insp"]').click()};
+$('#lg').onclick=function(){var er=$('#lerr');er.hidden=true;
+  api('/auth/v1/token?grant_type=password',{m:'POST',body:JSON.stringify({email:$('#em').value.trim(),password:$('#pw').value})})
+  .then(function(r){$('#pw').value='';setSess(r.access_token)}).catch(function(x){er.hidden=false;er.textContent=fe(x)})};
+$('#out').onclick=function(){setSess(null)};
+$('#rg-go').onclick=function(){var er=$('#rg-err');er.hidden=true;
+  var name=$('#rg-name').value.trim(),email=$('#rg-email').value.trim(),pass=$('#rg-pass').value,phone=dig($('#rg-phone').value.trim()),job=$('#rg-job').value.trim(),city=$('#rg-city').value,role=$('#rg-role').value;
+  if(!name||!email||!pass||!role){er.hidden=false;er.textContent='أكمل الحقول المطلوبة.';return}
+  if(pass.length<8){er.hidden=false;er.textContent=ERR.weak_password;return}
+  var btn=$('#rg-go');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
+  fetch(U+'/functions/v1/manage-staff-auth',{method:'POST',headers:{apikey:K,'Content-Type':'application/json'},body:JSON.stringify({action:'self_register',name:name,email:email,password:pass,phone:phone,job_title:job,city:city,role:role})})
+    .then(function(r){return r.json()}).then(function(j){
+      if(j.error){er.hidden=false;er.textContent=fe({message:j.error});return}
+      $('#reg-body').hidden=true;$('#reg-done').hidden=false})
+    .catch(function(x){er.hidden=false;er.textContent=fe(x)})
+    .then(function(){btn.disabled=false;btn.textContent='إرسال طلب التسجيل'})};
+try{var st=sessionStorage.getItem('tk');if(st)setSess(st)}catch(e){}
 var me=null,staffList=[];
 function uid(){try{return JSON.parse(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub}catch(e){return null}}
 function isSup(){return !!me&&(me.role==='supervisor'||me.role==='admin')}
 function isAdmin(){return !!me&&me.role==='admin'}
 function isReporter(){return !!me&&me.role==='reporter'}
-var ROLE_AR={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور الضبط',reporter:'مُبلّغ'};
+var ROLE_AR={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور الضبط'};
 var allStaffList=[];
 function loadAllStaff(){if(!isAdmin()){allStaffList=[];renderStaffAdmin();return Promise.resolve()}
-  return api('/rest/v1/staff?select=id,name,role,cities,active,department,report_scope,position&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
+  return api('/rest/v1/staff?select=id,name,role,cities,active&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
 function citiesStr(a){return (a||[]).join('، ')}
 function parseCities(s){return s.split(/[،,]/).map(function(x){return x.trim()}).filter(Boolean)}
 function roleOptions(sel){return Object.keys(ROLE_AR).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+ROLE_AR[k]+'</option>'}).join('')}
 function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.innerHTML='';return}
-  var rows=allStaffList.map(function(z){return '<div class="item"><p><b>'+esc(z.name||'(بلا اسم)')+'</b> — <span class="tag">'+ROLE_AR[z.role]+'</span>'+(z.active?'':' <span class="tag u2">معطّل</span>')+'</p>'+
+  var sorted=allStaffList.slice().sort(function(a,b){return (a.active===b.active)?0:(a.active?1:-1)});
+  var pendingCount=sorted.filter(function(z){return !z.active}).length;
+  var rows=sorted.map(function(z){return '<div class="item"><p><b>'+esc(z.name||'(بلا اسم)')+'</b> — <span class="tag">'+ROLE_AR[z.role]+'</span>'+(z.active?'':' <span class="tag u2">معطّل</span>')+'</p>'+
     '<label>الاسم</label><input class="sa-name" data-id="'+esc(z.id)+'" value="'+esc(z.name||'')+'">'+
     '<label>الدور</label><select class="sa-role" data-id="'+esc(z.id)+'">'+roleOptions(z.role)+'</select>'+
-    (z.role==='reporter'?'<label>المنصب ونطاق التقرير</label><select class="sa-pos" data-id="'+esc(z.id)+'">'+posOpts(posOf(z))+'</select>':'')+
     '<label>المدن (مفصولة بفاصلة، اتركها فارغة لرؤية كل المدن)</label><input class="sa-cities" data-id="'+esc(z.id)+'" value="'+esc(citiesStr(z.cities))+'">'+
     '<label class="row" style="align-items:center;gap:8px;margin-top:10px"><input type="checkbox" class="sa-active sa-chk" data-id="'+esc(z.id)+'"'+(z.active?' checked':'')+'> الحساب مفعّل (يستطيع الدخول)</label>'+
     (z.id===uid()?'<p class="hint">تنبيه: هذا حسابك. تعطيله سيمنعك من الدخول فوراً.</p>':'')+
     '<button class="btn sm" data-sasave="'+esc(z.id)+'">حفظ التعديلات</button><p class="hint" id="sa-msg-'+esc(z.id)+'"></p></div>'}).join('');
-  box.innerHTML='<div id="reqBox"></div><p class="lbl" style="margin-top:18px">إدارة حسابات الموظفين</p>'+rows+
+  box.innerHTML='<p class="lbl" style="margin-top:18px">إدارة حسابات الموظفين'+(pendingCount?' <span class="tag u2">'+pendingCount+' بانتظار التفعيل</span>':'')+'</p>'+rows+
     '<div class="item"><p><b>إضافة حساب موظف جديد</b></p><p class="hint">أنشئ الحساب أولاً من Supabase (Authentication ← Users ← Create new user)، ثم الصق رقم الـ UID هنا لربطه بدور وصلاحية.</p>'+
     '<label>UID</label><input id="sa-new-id" dir="ltr" style="text-align:right">'+
     '<label>الاسم</label><input id="sa-new-name">'+
@@ -391,36 +343,22 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
     var active=document.querySelector('.sa-active[data-id="'+id+'"]').checked;
     if(!name){msg.textContent='الاسم مطلوب.';return}
     btn.disabled=true;msg.textContent='جارٍ الحفظ…';
-    var pe2=document.querySelector('.sa-pos[data-id="'+id+'"]'),pp=pe2&&POS[pe2.value],patch={name:name,role:role,cities:cities,active:active};if(pp){patch.department=pp.d;patch.report_scope=pp.sc;patch.position=pe2.value}
-    api('/rest/v1/staff?id=eq.'+encodeURIComponent(id),{m:'PATCH',auth:true,body:JSON.stringify(patch)})
+    api('/rest/v1/staff?id=eq.'+encodeURIComponent(id),{m:'PATCH',auth:true,body:JSON.stringify({name:name,role:role,cities:cities,active:active})})
       .then(function(){msg.textContent='تم الحفظ.';return loadMe()}).then(function(){return loadList()})
       .catch(function(x){msg.textContent=fe(x)}).then(function(){btn.disabled=false})}});
-  loadReqs();
   var nb=$('#sa-new-save');if(nb)nb.onclick=function(){var msg=$('#sa-new-msg');
     var id=$('#sa-new-id').value.trim(),name=$('#sa-new-name').value.trim(),role=$('#sa-new-role').value,cities=parseCities($('#sa-new-cities').value);
     if(!id||!name){msg.textContent='رقم UID والاسم مطلوبان.';return}
     nb.disabled=true;msg.textContent='جارٍ الإضافة…';
-    api('/rest/v1/staff',{m:'POST',auth:true,body:JSON.stringify({id:id,name:name,role:role,cities:cities,active:true,must_change_password:true})})
+    api('/rest/v1/staff',{m:'POST',auth:true,body:JSON.stringify({id:id,name:name,role:role,cities:cities,active:true})})
       .then(function(){msg.textContent='تمت الإضافة.';$('#sa-new-id').value='';$('#sa-new-name').value='';$('#sa-new-cities').value='';return loadMe()}).then(function(){return loadList()})
       .catch(function(x){msg.textContent=fe(x)}).then(function(){nb.disabled=false})}}
 
-function isClosed(r){return ['confirmed','no_violation','closed'].indexOf(r.status)>-1}
-function isInsp(){return !!me&&me.role==='inspector'}
-function actBox(r){var id=esc(r.id),h='';if(isReporter())return '';
-  if(isInsp()&&r.assigned_to===uid()&&!isClosed(r))h+='<div class="vn"><p><b>إغلاق البلاغ وتسجيل النتيجة</b></p><label>النتيجة</label><select class="cl-res" data-id="'+id+'"><option value="confirmed">تأكدت المخالفة</option><option value="no_violation">لا توجد مخالفة</option></select><div class="cl-vnw" data-id="'+id+'"><label>رقم المخالفة <i>*</i></label><input class="cl-vn" data-id="'+id+'" dir="ltr" style="text-align:right"></div><label>ملاحظة الإغلاق <i>*</i></label><textarea class="cl-note" data-id="'+id+'" style="min-height:80px"></textarea><label>مرفقات الإغلاق (صور أو فيديو، حتى 10)</label><input type="file" class="cl-files" data-id="'+id+'" accept="image/*,video/*" multiple><button class="btn sm" data-cl="'+id+'">إغلاق البلاغ</button><p class="hint" data-clm="'+id+'"></p></div>';
-  if(isSup()&&isClosed(r))h+='<div class="vn"><p><b>إعادة فتح البلاغ للتصحيح</b></p><label>إسناده إلى</label><select class="ro-st" data-id="'+id+'"><option value="">اختر مأمور الضبط</option>'+staffList.filter(function(z){return z.role==='inspector'}).map(function(z){return '<option value="'+esc(z.id)+'">'+esc(z.name)+'</option>'}).join('')+'</select><label>السبب <i>*</i></label><input class="ro-why" data-id="'+id+'"><button class="btn sm" data-ro="'+id+'">إعادة فتح</button><p class="hint" data-rom="'+id+'"></p></div>';
-  if(isSup()&&!isClosed(r))h+='<div class="vn"><label>بلاغ مكرر؟ أدخل رقم البلاغ الأصلي</label><div class="row"><input class="dup-of" data-id="'+id+'" placeholder="B123456" dir="ltr" style="text-align:right"><button class="btn sm" data-dup="'+id+'">تعليم كمكرر</button></div><p class="hint" data-dupm="'+id+'"></p></div>';
-  if(isAdmin())h+='<button class="btn alt sm" data-del="'+id+'" style="color:var(--bad)">حذف البلاغ نهائياً</button>';
-  return h}
-function q1(c,id){return document.querySelector('.'+c+'[data-id="'+id+'"]')}
 function staffName(id){var x=staffList.filter(function(z){return z.id===id})[0];return x?x.name:''}
-function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities,must_change_password,department,report_scope,position&active=eq.true',{auth:true}).then(function(a){
+function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities&active=eq.true',{auth:true}).then(function(a){
   staffList=a;me=a.filter(function(x){return x.id===uid()})[0]||null;
-  if(!me){return rpc('my_request',{},true).catch(function(){return null}).then(function(q){
-    var t=q&&q.status==='pending'?'طلب تسجيلك قيد المراجعة لدى مدير الرقابة. ستتمكن من الدخول بعد الموافقة.':q&&q.status==='rejected'?('رُفض طلب التسجيل'+(q.reason?': '+q.reason:'.')):'حسابك غير مفعّل في المنصة. راجع مدير الرقابة.';
-    setSess(null);['#lerr','#nlerr'].forEach(function(k){var le=$(k);le.hidden=false;le.textContent=t});return false})}
-  $('#who').textContent='البلاغات — '+me.name;$('#xls').hidden=isReporter();return loadAllStaff().then(function(){return true})})}
-function loadDash(){if(isReporter()){$('#dash').innerHTML='';return}api('/rest/v1/reports?select=status,city,urgency,created_at&limit=1000',{auth:true}).then(function(a){
+  $('#who').textContent=me?('البلاغات — '+me.name):'البلاغات';return loadAllStaff()})}
+function loadDash(){api('/rest/v1/reports?select=status,city,urgency,created_at&limit=1000',{auth:true}).then(function(a){
   var cnt=function(f){return a.filter(f).length},open=function(x){return x.status!=='closed'&&x.status!=='no_violation'};
   var late=cnt(function(x){return x.status==='new'&&Date.now()-new Date(x.created_at)>48*36e5});
   var byCity={};a.forEach(function(x){byCity[x.city]=(byCity[x.city]||0)+1});
@@ -443,38 +381,21 @@ function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;loadDash(
     var kv=function(l,v){return '<div class="kv"><span>'+l+'</span><b>'+(v?esc(v):'—')+'</b></div>'};
     $('#list').innerHTML=a.map(function(r){var c=cm[r.id];
       return '<div class="item"><div class="row"><b>'+esc(r.id)+'</b>'+(r.urgency?'<span class="tag u'+r.urgency+'">'+UR[r.urgency]+'</span>':'')+'<span class="tag">'+esc(r.city)+'</span></div>'+
-      '<p><b>'+esc(r.type)+'</b></p>'+kv('الحي',r.district)+
+      '<p><b>'+esc(r.type)+'</b></p>'+
       kv('رقم الحصر',r.account_no)+kv('رقم الحساب',r.subscription_no)+kv('رقم العداد',r.meter_no)+
       kv('اسم المبلّغ',c&&c.name)+
       '<div class="kv"><span>جوال المبلّغ</span><b>'+(c?'<span dir="ltr">'+esc(c.phone)+'</span>':'<small class="hint">يظهر بعد إسناد البلاغ إليك</small>')+'</b></div>'+
       '<p class="lbl">وصف البلاغ</p><p>'+esc(r.description)+'</p>'+
       '<p class="hint">'+fmt(r.created_at)+'</p>'+
       '<p><a href="'+esc(mapUrl(r.location_text))+'" target="_blank" rel="noopener">فتح الموقع على الخريطة</a></p>'+
-      (isReporter()||isClosed(r)?'<p class="tag" style="display:inline-block;margin:8px 0">'+esc(SL[r.status])+'</p>':'<p class="lbl">الحالة</p><select class="st-sel" data-id="'+esc(r.id)+'">'+['new','verifying'].map(function(k){return '<option value="'+k+'"'+(k===r.status?' selected':'')+'>'+SL[k]+'</option>'}).join('')+'</select>')+
-      (isReporter()?'':kv('المُسنَد إليه',staffName(r.assigned_to)))+(isSup()&&!isClosed(r)?'<div class="vn"><label for="as-'+esc(r.id)+'">إسناد البلاغ (يُحفظ فور الاختيار)</label><select class="as-sel" id="as-'+esc(r.id)+'" data-as="'+esc(r.id)+'"><option value="">اختر موظفاً</option>'+staffList.filter(function(z){return z.role==='inspector'||z.role==='supervisor'}).map(function(z){return '<option value="'+esc(z.id)+'"'+(z.id===r.assigned_to?' selected':'')+'>'+esc(z.name)+(z.cities&&z.cities.length?' ('+esc(z.cities.join('، '))+')':'')+'</option>'}).join('')+'</select></div>':'')+
-      (r.violation_no?kv('رقم المخالفة',r.violation_no):'')+(r.close_note&&!isReporter()?kv('ملاحظة الإغلاق',r.close_note):'')+actBox(r)+
-      '<div class="row"><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور والفيديو</button>'+'<button class="btn alt sm" data-hist="'+esc(r.id)+'" style="width:auto;padding:8px 14px">سلسلة الإسناد والحالة</button></div>'+'<div data-o="'+esc(r.id)+'"></div><div data-h="'+esc(r.id)+'"></div></div>'}).join('');
-    document.querySelectorAll('.st-sel').forEach(function(s){s.onchange=function(){
+      (isReporter()?'<p class="tag" style="display:inline-block;margin:8px 0">'+SL[r.status]+'</p>':'<select data-id="'+esc(r.id)+'" aria-label="حالة البلاغ '+esc(r.id)+'">'+SK.map(function(k){return '<option value="'+k+'"'+(k===r.status?' selected':'')+'>'+SL[k]+'</option>'}).join('')+'</select>')+
+      (isReporter()?'':kv('المُسنَد إليه',staffName(r.assigned_to)))+(isSup()?'<div class="vn"><label for="as-'+esc(r.id)+'">إسناد البلاغ (يُحفظ فور الاختيار)</label><select class="as-sel" id="as-'+esc(r.id)+'" data-as="'+esc(r.id)+'"><option value="">اختر موظفاً</option>'+staffList.filter(function(z){return z.role!=='admin'}).map(function(z){return '<option value="'+esc(z.id)+'"'+(z.id===r.assigned_to?' selected':'')+'>'+esc(z.name)+(z.cities&&z.cities.length?' ('+esc(z.cities.join('، '))+')':'')+'</option>'}).join('')+'</select></div>':'')+
+      (isReporter()?(r.violation_no?kv('رقم المخالفة',r.violation_no):''):(r.status==='confirmed'
+        ?'<div class="vn"><label for="vn-'+esc(r.id)+'">رقم المخالفة</label><div class="row"><input id="vn-'+esc(r.id)+'" value="'+esc(r.violation_no||'')+'" placeholder="أدخل رقم المخالفة" dir="ltr" style="text-align:right"><button class="btn sm" data-vn="'+esc(r.id)+'">حفظ</button></div></div>'
+        :(r.violation_no?kv('رقم المخالفة',r.violation_no):'')))+
+      '<div class="row"><button class="btn alt sm" data-im="'+esc(r.id)+'" style="width:auto;padding:8px 14px">عرض الصور</button>'+'<button class="btn alt sm" data-hist="'+esc(r.id)+'" style="width:auto;padding:8px 14px">سلسلة الإسناد والحالة</button></div>'+'<div data-o="'+esc(r.id)+'"></div><div data-h="'+esc(r.id)+'"></div></div>'}).join('');
+    document.querySelectorAll('#list select').forEach(function(s){s.onchange=function(){
       rpc('set_status',{p_id:s.dataset.id,p_status:s.value,p_note:null},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);loadList()})}});
-    document.querySelectorAll('.cl-res').forEach(function(s){s.onchange=function(){q1('cl-vnw',s.dataset.id).hidden=s.value!=='confirmed'}});
-    document.querySelectorAll('[data-cl]').forEach(function(b){b.onclick=function(){var id=b.dataset.cl,m=document.querySelector('[data-clm="'+id+'"]');
-      var res=q1('cl-res',id).value,vn=q1('cl-vn',id).value.trim(),note=q1('cl-note',id).value.trim(),fs=Array.prototype.slice.call(q1('cl-files',id).files);
-      if(res==='confirmed'&&!vn){m.textContent='أدخل رقم المخالفة.';q1('cl-vn',id).focus();return}
-      if(!note){m.textContent='اكتب ملاحظة الإغلاق.';q1('cl-note',id).focus();return}
-      if(fs.length>10){m.textContent='الحد الأقصى 10 ملفات.';return}
-      b.disabled=true;m.textContent='جارٍ رفع المرفقات والإغلاق…';
-      Promise.all(fs.map(upload)).then(function(paths){return rpc('close_report',{p_id:id,p_result:res,p_violation_no:res==='confirmed'?vn:null,p_note:note,p_files:paths,p_kinds:fs.map(function(f){return isVid(f)?'video':'photo'}),p_remove:[]},true)})
-      .then(function(){m.textContent='تم إغلاق البلاغ.';loadList()}).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
-    document.querySelectorAll('[data-ro]').forEach(function(b){b.onclick=function(){var id=b.dataset.ro,m=document.querySelector('[data-rom="'+id+'"]'),st=q1('ro-st',id).value,why=q1('ro-why',id).value.trim();
-      if(!st||!why){m.textContent='اختر مأمور الضبط واكتب السبب.';return}
-      b.disabled=true;rpc('reopen_report',{p_id:id,p_staff:st,p_reason:why},true).then(loadList).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
-    document.querySelectorAll('[data-dup]').forEach(function(b){b.onclick=function(){var id=b.dataset.dup,m=document.querySelector('[data-dupm="'+id+'"]'),of=q1('dup-of',id).value.trim().toUpperCase();
-      if(!of){m.textContent='أدخل رقم البلاغ الأصلي.';return}
-      if(!confirm('تعليم البلاغ '+id+' كمكرر للبلاغ '+of+' وإغلاقه؟'))return;
-      b.disabled=true;rpc('mark_duplicate',{p_id:id,p_of:of},true).then(loadList).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
-    document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){var id=b.dataset.del;
-      if(!confirm('حذف البلاغ '+id+' نهائياً مع صوره وسجله؟ لا يمكن التراجع.'))return;
-      b.disabled=true;rpc('delete_report',{p_id:id},true).then(loadList).catch(function(x){pe.hidden=false;pe.textContent=fe(x);b.disabled=false})}});
     document.querySelectorAll('[data-vn]').forEach(function(b){b.onclick=function(){var id=b.dataset.vn,v=document.getElementById('vn-'+id).value.trim();b.disabled=true;
       rpc('set_violation_no',{p_id:id,p_no:v},true).then(function(){b.textContent='تم الحفظ'}).catch(function(x){pe.hidden=false;pe.textContent=fe(x)}).then(function(){b.disabled=false;setTimeout(function(){b.textContent='حفظ'},1500)})}});
     document.querySelectorAll('.as-sel').forEach(function(s){s.onchange=function(){var id=s.dataset.as,v=s.value;if(!v)return;
@@ -484,15 +405,11 @@ function loadList(){var f=$('#flt').value,pe=$('#perr');pe.hidden=true;loadDash(
         if(!h.length){o.innerHTML='<p class="hint">لا يوجد سجل.</p>';return}
         o.innerHTML='<ul class="tl">'+h.map(function(x){return '<li>'+esc(x.note?x.note:SL[x.status])+'<br><small>'+fmt(x.changed_at)+'</small></li>'}).join('')+'</ul>'})
       .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
-    document.querySelectorAll('[data-im]').forEach(function(b){b.onclick=function(){var rid=b.dataset.im,o=document.querySelector('[data-o="'+rid+'"]');
-      Promise.all([api('/rest/v1/report_photos?report_id=eq.'+encodeURIComponent(rid)+'&select=file_path',{auth:true}),
-        api('/rest/v1/report_evidence?report_id=eq.'+encodeURIComponent(rid)+'&archived=eq.false&select=file_path',{auth:true}).catch(function(){return []})]).then(function(rs){
-        var ps=rs[0].map(function(x){return {p:x.file_path,ev:0}}).concat(rs[1].map(function(x){return {p:x.file_path,ev:1}}));
-        if(!ps.length){o.innerHTML='<p class="hint">لا توجد مرفقات.</p>';return}
-        return Promise.all(ps.map(function(p){return api('/storage/v1/object/sign/report-photos/'+p.p,{m:'POST',auth:true,body:JSON.stringify({expiresIn:600})})})).then(function(sg){
-          var one=function(x,i){var u=U+'/storage/v1'+x.signedURL;return /\.(mp4|mov|m4v|webm)$/i.test(ps[i].p)?'<video controls playsinline preload="metadata" src="'+u+'" style="width:100%;max-width:320px;border-radius:10px"></video>':'<a href="'+u+'" target="_blank" rel="noopener"><img alt="مرفق البلاغ" src="'+u+'"></a>'};
-          var a1=[],a2=[];sg.forEach(function(x,i){(ps[i].ev?a2:a1).push(one(x,i))});
-          o.innerHTML=(a1.length?'<p class="lbl">مرفقات البلاغ</p><div class="imgs">'+a1.join('')+'</div>':'')+(a2.length?'<p class="lbl">مرفقات الإغلاق</p><div class="imgs">'+a2.join('')+'</div>':'')})})
+    document.querySelectorAll('[data-im]').forEach(function(b){b.onclick=function(){var o=document.querySelector('[data-o="'+b.dataset.im+'"]');
+      api('/rest/v1/report_photos?report_id=eq.'+encodeURIComponent(b.dataset.im)+'&select=file_path',{auth:true}).then(function(ps){
+        if(!ps.length){o.innerHTML='<p class="hint">لا توجد صور.</p>';return}
+        return Promise.all(ps.map(function(p){return api('/storage/v1/object/sign/report-photos/'+p.file_path,{m:'POST',auth:true,body:JSON.stringify({expiresIn:600})})})).then(function(s){
+          o.innerHTML='<div class="imgs">'+s.map(function(x){return '<a href="'+U+'/storage/v1'+x.signedURL+'" target="_blank" rel="noopener"><img alt="صورة البلاغ" src="'+U+'/storage/v1'+x.signedURL+'"></a>'}).join('')+'</div>'})})
       .catch(function(x){o.innerHTML='<p class="err">'+esc(fe(x))+'</p>'})}});
   }).catch(function(x){if(/JWT|expired|401/i.test(x.message)){setSess(null);return}pe.hidden=false;pe.textContent=fe(x)})}
 
@@ -506,10 +423,10 @@ $('#xls').onclick=function(){var pe=$('#perr'),b=$('#xls'),out=$('#xout');pe.hid
     var cm={};r[1].forEach(function(c){cm[c.report_id]=c});
     var q=function(v){v=String(v==null?'':v);if(/^[=+\-@]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
     var tx=function(v){v=String(v==null?'':v);return /^\d+$/.test(v)?'="'+v+'"':q(v)};
-    var hd=['رقم البلاغ','التاريخ','المدينة','الحي','نوع المخالفة','الاستعجال','الحالة','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','جوال المبلّغ','وصف البلاغ','رقم المخالفة','الموقع'];
-    var raw=r[0].map(function(x){var c=cm[x.id]||{};return [x.id,fmt(x.created_at),x.city,x.district,x.type,UR[x.urgency],SL[x.status],x.account_no,x.subscription_no,x.meter_no,c.name,c.phone,x.description,x.violation_no,x.location_text]});
+    var hd=['رقم البلاغ','التاريخ','المدينة','نوع المخالفة','الاستعجال','الحالة','رقم الحصر','رقم الحساب','رقم العداد','اسم المبلّغ','جوال المبلّغ','وصف البلاغ','رقم المخالفة','الموقع'];
+    var raw=r[0].map(function(x){var c=cm[x.id]||{};return [x.id,fmt(x.created_at),x.city,x.type,UR[x.urgency],SL[x.status],x.account_no,x.subscription_no,x.meter_no,c.name,c.phone,x.description,x.violation_no,x.location_text]});
     var rowsCsv=r[0].map(function(x){var c=cm[x.id]||{};
-      return [q(x.id),q(fmt(x.created_at)),q(x.city),q(x.district),q(x.type),q(UR[x.urgency]),q(SL[x.status]),tx(x.account_no),tx(x.subscription_no),tx(x.meter_no),q(c.name),tx(c.phone),q(x.description),tx(x.violation_no),q(x.location_text)].join(',')});
+      return [q(x.id),q(fmt(x.created_at)),q(x.city),q(x.type),q(UR[x.urgency]),q(SL[x.status]),tx(x.account_no),tx(x.subscription_no),tx(x.meter_no),q(c.name),tx(c.phone),q(x.description),tx(x.violation_no),q(x.location_text)].join(',')});
     xCsv='\ufeff'+[hd.map(q).join(',')].concat(rowsCsv).join('\r\n');
     var t=function(v){return String(v==null?'':v).replace(/[\t\r\n]+/g,' ')};
     xTsv=[hd.join('\t')].concat(raw.map(function(a){return a.map(t).join('\t')})).join('\n');
@@ -529,111 +446,6 @@ $('#xls').onclick=function(){var pe=$('#perr'),b=$('#xls'),out=$('#xout');pe.hid
       var fb=function(){var ta=document.createElement('textarea');ta.value=xTsv;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,xTsv.length);var ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();m.textContent=ok?'تم النسخ. افتح Excel أو Google Sheets والصق في الخلية الأولى.':'تعذر النسخ التلقائي.'};
       if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(xTsv).then(function(){m.textContent='تم النسخ. افتح Excel أو Google Sheets والصق في الخلية الأولى.'}).catch(fb)}else fb()};
   }).catch(function(x){pe.hidden=false;pe.textContent=fe(x)}).then(function(){b.disabled=false;b.textContent='تصدير البلاغات إلى Excel (ملف CSV)'})};
-
-var RQ={reporter:'مُبلّغ',inspector:'مأمور ضبط',supervisor:'مشرف بلاغات'};
-var DEP={management:'إدارة الفرع',customer_service:'خدمات العملاء',environmental:'الخدمات البيئية',operations:'التشغيل والصيانة'};
-var POS={emp_mgmt:{l:'موظف بإدارة الفرع (تبليغ فقط)',d:'management',sc:'none'},emp_cs:{l:'موظف خدمات العملاء (تبليغ فقط)',d:'customer_service',sc:'none'},
-  emp_env:{l:'موظف الخدمات البيئية (تبليغ فقط)',d:'environmental',sc:'none'},emp_om:{l:'موظف التشغيل والصيانة (تبليغ فقط)',d:'operations',sc:'none'},
-  branch_manager:{l:'مدير فرع',d:'management',sc:'branch'},branch_supervisor:{l:'مشرف فرع',d:'management',sc:'branch'},unit_manager:{l:'مدير الوحدة',d:'management',sc:'unit'},
-  cs_head:{l:'رئيس خدمات العملاء بالفرع',d:'customer_service',sc:'branch'},cs_unit:{l:'مدير خدمات العملاء بالوحدة',d:'customer_service',sc:'unit'},
-  env_head:{l:'رئيس الخدمات البيئية',d:'environmental',sc:'branch'},om_head:{l:'مشرف / رئيس التشغيل والصيانة',d:'operations',sc:'branch'}};
-function posOf(z){return z&&POS[z.position]?z.position:posKey(z&&z.department,z&&z.report_scope)}
-function posKey(d,sc){for(var k in POS)if(POS[k].d===d&&POS[k].sc===sc)return k;return ''}
-function posOpts(sel){return '<option value="">— غير محدد —</option>'+Object.keys(POS).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+POS[k].l+'</option>'}).join('')}
-function loadReqs(){var bx=$('#reqBox');if(!bx)return;rpc('list_requests',{},true).then(function(a){a=a||[];
-  if(!a.length){bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل</p><p class="hint">لا توجد طلبات جديدة.</p>';return}
-  bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل ('+a.length+')</p>'+a.map(function(q){var id=esc(q.id);return '<div class="item"><p><b>'+esc(q.name)+'</b> — طلب: <span class="tag">'+esc(RQ[q.requested_role]||q.requested_role)+'</span></p>'+
-    '<div class="kv"><span>الإيميل</span><b dir="ltr">'+esc(q.email)+'</b></div><div class="kv"><span>الجوال</span><b dir="ltr">'+esc(q.phone)+'</b></div><div class="kv"><span>المسمى</span><b>'+esc(q.job_title)+'</b></div><div class="kv"><span>المدينة</span><b>'+esc(q.city)+'</b></div><div class="kv"><span>تاريخ الطلب</span><b>'+fmt(q.created_at)+'</b></div>'+
-    (q.confirmed?'':'<p class="err">لم يؤكد بريده بعد، ولا تمكن الموافقة قبل التأكيد.</p>')+
-    '<label>الصلاحية الممنوحة</label><select class="rq-role" data-id="'+id+'">'+Object.keys(RQ).map(function(k){return '<option value="'+k+'"'+(k===q.requested_role?' selected':'')+'>'+RQ[k]+'</option>'}).join('')+'</select>'+
-    '<label>المنصب (للمبلّغ)</label><select class="rq-pos" data-id="'+id+'">'+posOpts(q.position||'')+'</select>'+
-    '<label>المدن (مفصولة بفاصلة، فارغة = كل المدن)</label><input class="rq-cities" data-id="'+id+'" value="'+esc(q.city||'')+'">'+
-    '<div class="row" style="margin-top:8px"><button class="btn sm" data-rqok="'+id+'" style="flex:1;width:auto;margin:0"'+(q.confirmed?'':' disabled')+'>موافقة</button><button class="btn alt sm" data-rqno="'+id+'" style="flex:1;width:auto;margin:0;color:var(--bad)">رفض</button></div><p class="hint" data-rqm="'+id+'"></p></div>'}).join('');
-  document.querySelectorAll('[data-rqok]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqok,m=document.querySelector('[data-rqm="'+id+'"]');b.disabled=true;m.textContent='جارٍ التفعيل…';
-    var rl=q1('rq-role',id).value,ps=POS[q1('rq-pos',id).value];if(rl==='reporter'&&!ps){m.textContent='حدد المنصب.';b.disabled=false;return}
-    rpc('approve_request',{p_id:+id,p_role:rl,p_cities:parseCities(q1('rq-cities',id).value),p_department:rl==='reporter'?ps.d:null,p_scope:rl==='reporter'?ps.sc:'none',p_position:rl==='reporter'?q1('rq-pos',id).value:null},true).then(function(){return loadMe()}).then(function(){loadList()}).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
-  document.querySelectorAll('[data-rqno]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqno,m=document.querySelector('[data-rqm="'+id+'"]'),why=prompt('سبب الرفض (يظهر لصاحب الطلب):','');if(why===null)return;b.disabled=true;
-    rpc('reject_request',{p_id:+id,p_reason:why.trim()||null},true).then(loadReqs).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
-}).catch(function(){bx.innerHTML=''})}
-
-
-/* تقرير البلاغات للطباعة */
-function buildReport(from,to,msgEl){msgEl.textContent='جارٍ تجهيز التقرير…';
-  rpc('scope_reports',{p_from:from||null,p_to:to||null},true).then(function(a){a=a||[];msgEl.textContent='';
-    var cnt=function(f){return a.filter(f).length},by=function(k,lab){var o={};a.forEach(function(x){var v=lab?lab(x[k]):x[k];v=v||'غير محدد';o[v]=(o[v]||0)+1});return o};
-    var late=cnt(function(x){return x.status==='new'&&Date.now()-new Date(x.created_at)>48*36e5});
-    var tbl=function(o,h){var ks=Object.keys(o).sort(function(p,q){return o[q]-o[p]});return ks.length?'<table><tr><th>'+h+'</th><th>العدد</th></tr>'+ks.map(function(k){return '<tr><td>'+esc(k)+'</td><td>'+o[k]+'</td></tr>'}).join('')+'</table>':''};
-    var pk=me?posOf(me):'',scope=isAdmin()?'جميع البلاغات':((POS[pk]?POS[pk].l:'')+(me.report_scope==='branch'&&me.cities&&me.cities[0]?' — '+me.cities[0]:''));
-    var per=(from||to)?('الفترة: '+(from||'البداية')+' إلى '+(to||'اليوم')):'الفترة: كل البلاغات';
-    var pa=$('#print-area');
-    pa.innerHTML='<div class="pa-bar"><button class="btn sm" id="pa-print" style="width:auto;margin:0">طباعة / حفظ PDF</button><button class="btn alt sm" id="pa-close" style="width:auto;margin:0">إغلاق</button></div>'+
-      '<p style="margin:0;color:#555">إدارة المخالفات والتفتيش — منصة البلاغات بالوحدة الشمالية</p><h2>تقرير البلاغات</h2>'+
-      '<p style="margin:2px 0">النطاق: <b>'+esc(scope)+'</b> · '+per+'</p><p style="margin:2px 0">أعدّه: '+esc(me?me.name:'')+' · تاريخ الإصدار: '+fmt(new Date())+'</p>'+
-      '<div class="pa-grid"><div><b>'+a.length+'</b>الإجمالي</div><div><b>'+cnt(function(x){return x.status==='new'})+'</b>جديد</div><div><b>'+cnt(function(x){return x.status==='verifying'})+'</b>تحت الإجراء</div><div><b>'+late+'</b>جديد متأخر +48 ساعة</div>'+
-      '<div><b>'+cnt(function(x){return x.status==='confirmed'})+'</b>مخالفة مؤكدة</div><div><b>'+cnt(function(x){return x.status==='no_violation'})+'</b>لا توجد مخالفة</div><div><b>'+cnt(function(x){return x.status==='closed'})+'</b>مغلق</div><div><b>'+cnt(function(x){return x.urgency>0})+'</b>عاجل</div></div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+tbl(by('branch'),'الفرع')+tbl(by('department',function(d){return DEP[d]}),'القسم')+'</div>'+tbl(by('type'),'نوع البلاغ')+
-      '<h3 style="margin:8px 0 0;font-size:15px">القائمة التفصيلية</h3>'+(a.length?'<table><tr><th>#</th><th>رقم البلاغ</th><th>التاريخ</th><th>الفرع</th><th>الحي</th><th>النوع</th><th>الحالة</th><th>رقم المخالفة</th><th>المبلّغ</th></tr>'+
-        a.map(function(x,i){return '<tr><td>'+(i+1)+'</td><td>'+esc(x.id)+'</td><td>'+fmt(x.created_at)+'</td><td>'+esc(x.branch||x.city)+'</td><td>'+esc(x.district||'')+'</td><td>'+esc(x.type)+'</td><td>'+esc(SL[x.status]||x.status)+'</td><td>'+esc(x.violation_no||'')+'</td><td>'+esc(x.reporter||'')+'</td></tr>'}).join('')+'</table>':'<p>لا توجد بلاغات في هذا النطاق والفترة.</p>');
-    pa.hidden=false;$('#pa-print').onclick=function(){window.print()};$('#pa-close').onclick=function(){pa.hidden=true}})
-  .catch(function(x){msgEl.textContent=/forbidden/.test(x.message)?'لا تملك صلاحية طباعة التقارير.':fe(x)})}
-$('#rpt-go').onclick=function(){buildReport($('#rpt-from').value,$('#rpt-to').value,$('#rpt-msg'))};
-$('#rpt-admin').onclick=function(){buildReport(null,null,$('#perr'));$('#perr').hidden=false};
-
-/* كلمة المرور */
-var pwDone=null;
-function askPw(force,done){pwDone=done||null;$('#v-pw').hidden=false;document.querySelector('nav').hidden=true;['new','track','insp'].forEach(function(v){$('#v-'+v).hidden=true});
-  $('#pw-title').textContent=force?'تغيير كلمة المرور المؤقتة':'تغيير كلمة المرور';
-  $('#pw-hint').textContent=force?'هذا أول دخول لك. اختر كلمة مرور خاصة بك قبل المتابعة.':'';
-  $('#pw-cancel').hidden=!!force;$('#np1').value='';$('#np2').value='';$('#pw-msg').hidden=true;window.scrollTo(0,0)}
-function closePw(){$('#v-pw').hidden=true;document.querySelector('nav').hidden=false;document.querySelector('nav button[aria-selected="true"]').click()}
-$('#pw-go').onclick=function(){var m=$('#pw-msg'),a=$('#np1').value,b=$('#np2').value,bt=this;m.hidden=false;
-  if(a.length<8){m.textContent='كلمة المرور 8 أحرف على الأقل.';return}
-  if(a!==b){m.textContent='كلمتا المرور غير متطابقتين.';return}
-  bt.disabled=true;m.textContent='جارٍ الحفظ…';
-  api('/auth/v1/user',{m:'PUT',auth:true,body:JSON.stringify({password:a})}).then(function(){return rpc('password_changed',{},true).catch(function(){})})
-  .then(function(){if(me)me.must_change_password=false;var d=pwDone;pwDone=null;closePw();if(d)d();else alert('تم تغيير كلمة المرور.')})
-  .catch(function(x){m.textContent=/different|same/i.test(x.message)?'اختر كلمة مرور مختلفة عن السابقة.':fe(x)}).then(function(){bt.disabled=false})};
-$('#pw-cancel').onclick=function(){pwDone=null;closePw()};
-document.addEventListener('click',function(e){var t=e.target.closest('[data-chpw]');if(t){e.preventDefault();askPw(false)}});
-
-/* نسيت كلمة المرور */
-var BASE=location.origin+location.pathname;
-document.addEventListener('click',function(e){var t=e.target.closest('[data-forgot]');if(!t)return;e.preventDefault();
-  var fid=t.dataset.forgot,erEl=fid==='em'?$('#lerr'):$('#nlerr'),em=$('#'+fid).value.trim();erEl.hidden=false;
-  if(!em){erEl.textContent='اكتب بريدك الإلكتروني في الخانة أعلاه، ثم اضغط «نسيت كلمة المرور» مرة أخرى.';$('#'+fid).focus();return}
-  erEl.textContent='جارٍ الإرسال…';
-  api('/auth/v1/recover?redirect_to='+encodeURIComponent(BASE),{m:'POST',body:JSON.stringify({email:em})})
-  .then(function(){erEl.textContent='إن كان الإيميل مسجّلاً فستصلك رسالة فيها رابط لتعيين كلمة مرور جديدة. تفقّد البريد المزعج أيضاً.'})
-  .catch(function(x){erEl.textContent=/rate|seconds/i.test(x.message)?'طلبات كثيرة. انتظر قليلاً ثم حاول.':fe(x)})});
-
-/* طلب تسجيل */
-document.addEventListener('click',function(e){var t=e.target.closest('[data-reg]');if(!t)return;e.preventDefault();
-  document.querySelector('nav button[data-v="insp"]').click();$('#login').hidden=true;$('#reg').hidden=false;window.scrollTo(0,0)});
-$('#rpos').innerHTML=posOpts('');$('#rrole').onchange=function(){$('#rpos-w').hidden=this.value!=='reporter'};
-$('#reg-back').onclick=function(e){e.preventDefault();$('#reg').hidden=true;$('#login').hidden=!!tok};
-$('#reg-go').onclick=function(){var m=$('#reg-msg'),g=function(i){return $('#'+i).value.trim()},b=this;m.hidden=false;m.style.color='';
-  var em=g('remail').toLowerCase(),ph=dig(g('rphone'));
-  if(!g('rname')||!g('rjob')||!g('rcity')){m.textContent='أكمل جميع الحقول.';return}
-  if($('#rrole').value==='reporter'&&!$('#rpos').value){m.textContent='اختر منصبك.';return}
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){m.textContent='اكتب بريداً إلكترونياً صحيحاً.';return}
-  if(!/^05\d{8}$/.test(ph)){m.textContent='رقم الجوال بصيغة 05XXXXXXXX.';return}
-  if($('#rpw').value.length<8){m.textContent='كلمة المرور 8 أحرف على الأقل.';return}
-  if($('#rpw').value!==$('#rpw2').value){m.textContent='كلمتا المرور غير متطابقتين.';return}
-  b.disabled=true;m.textContent='جارٍ الإرسال…';
-  api('/auth/v1/signup?redirect_to='+encodeURIComponent(BASE),{m:'POST',body:JSON.stringify({email:em,password:$('#rpw').value,data:{name:g('rname'),phone:ph,job_title:g('rjob'),city:g('rcity'),requested_role:$('#rrole').value,position:$('#rrole').value==='reporter'?$('#rpos').value:null}})})
-  .then(function(r){$('#rpw').value='';$('#rpw2').value='';m.style.color='var(--pri)';
-    m.textContent=(r&&r.access_token)?'تم إرسال طلبك، وهو الآن قيد المراجعة لدى مدير الرقابة.':'أرسلنا رابط تأكيد إلى بريدك. افتحه لتأكيد الإيميل، ثم يراجع مدير الرقابة طلبك.'})
-  .catch(function(x){var t=x.message||'';m.textContent=/already/i.test(t)?'هذا الإيميل مسجّل من قبل. استخدم «نسيت كلمة المرور» إن لم تتذكرها.':/Database error/i.test(t)?'تعذر إنشاء الطلب. حاول مرة أخرى أو راجع مدير الرقابة.':/not allowed|disabled/i.test(t)?'التسجيل الذاتي غير مفعّل حالياً. راجع مدير الرقابة.':fe(x)})
-  .then(function(){b.disabled=false})};
-
-/* روابط البريد: تأكيد الإيميل واستعادة كلمة المرور */
-(function(){var h=location.hash.replace(/^#/,''),q={};h.split('&').forEach(function(x){var i=x.indexOf('=');if(i>0)q[x.slice(0,i)]=decodeURIComponent(x.slice(i+1).replace(/\+/g,' '))});
-  if(q.access_token){history.replaceState(null,'',location.pathname+location.search);
-    if(q.type==='recovery'){tok=q.access_token;askPw(false,function(){setSess(q.access_token)});$('#pw-title').textContent='تعيين كلمة مرور جديدة';$('#pw-cancel').hidden=true;return}
-    document.querySelector('nav button[data-v="insp"]').click();setSess(q.access_token);return}
-  if(q.error_description){history.replaceState(null,'',location.pathname+location.search);document.querySelector('nav button[data-v="insp"]').click();var le=$('#lerr');le.hidden=false;le.textContent='انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.';}
-  try{var st=sessionStorage.getItem('tk');if(st)setSess(st)}catch(e){}})();
-
 </script>
 </body>
 </html>

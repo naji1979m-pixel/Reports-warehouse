@@ -191,9 +191,9 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 </div>
 <div id="reg" hidden>
 <p style="margin-top:0"><b>طلب تسجيل جديد</b></p>
-<p class="hint">التسجيل متاح لإيميلات الشركة (@nwc.com.sa) فقط، ويُفعَّل الحساب بعد موافقة مدير الرقابة.</p>
+<p class="hint">يُفعَّل الحساب بعد تأكيد البريد الإلكتروني وموافقة مدير الرقابة.</p>
 <label for="rname">الاسم الثلاثي <i>*</i></label><input id="rname">
-<label for="remail">إيميل الشركة <i>*</i></label><input id="remail" type="email" dir="ltr" style="text-align:right" placeholder="name.c@nwc.com.sa">
+<label for="remail">البريد الإلكتروني <i>*</i></label><input id="remail" type="email" dir="ltr" style="text-align:right" placeholder="name@example.com">
 <label for="rphone">رقم الجوال <i>*</i></label><input id="rphone" inputmode="tel" dir="ltr" style="text-align:right" placeholder="05XXXXXXXX">
 <label for="rjob">المسمى الوظيفي <i>*</i></label><input id="rjob">
 <label for="rcity">المدينة <i>*</i></label><select id="rcity"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option></select>
@@ -615,7 +615,7 @@ $('#reg-go').onclick=function(){var m=$('#reg-msg'),g=function(i){return $('#'+i
   var em=g('remail').toLowerCase(),ph=dig(g('rphone'));
   if(!g('rname')||!g('rjob')||!g('rcity')){m.textContent='أكمل جميع الحقول.';return}
   if($('#rrole').value==='reporter'&&!$('#rpos').value){m.textContent='اختر منصبك.';return}
-  if(!/@nwc\.com\.sa$/.test(em)){m.textContent='التسجيل متاح لإيميلات الشركة (@nwc.com.sa) فقط.';return}
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){m.textContent='اكتب بريداً إلكترونياً صحيحاً.';return}
   if(!/^05\d{8}$/.test(ph)){m.textContent='رقم الجوال بصيغة 05XXXXXXXX.';return}
   if($('#rpw').value.length<8){m.textContent='كلمة المرور 8 أحرف على الأقل.';return}
   if($('#rpw').value!==$('#rpw2').value){m.textContent='كلمتا المرور غير متطابقتين.';return}
@@ -623,7 +623,7 @@ $('#reg-go').onclick=function(){var m=$('#reg-msg'),g=function(i){return $('#'+i
   api('/auth/v1/signup?redirect_to='+encodeURIComponent(BASE),{m:'POST',body:JSON.stringify({email:em,password:$('#rpw').value,data:{name:g('rname'),phone:ph,job_title:g('rjob'),city:g('rcity'),requested_role:$('#rrole').value,position:$('#rrole').value==='reporter'?$('#rpos').value:null}})})
   .then(function(r){$('#rpw').value='';$('#rpw2').value='';m.style.color='var(--pri)';
     m.textContent=(r&&r.access_token)?'تم إرسال طلبك، وهو الآن قيد المراجعة لدى مدير الرقابة.':'أرسلنا رابط تأكيد إلى بريدك. افتحه لتأكيد الإيميل، ثم يراجع مدير الرقابة طلبك.'})
-  .catch(function(x){var t=x.message||'';m.textContent=/already/i.test(t)?'هذا الإيميل مسجّل من قبل. استخدم «نسيت كلمة المرور» إن لم تتذكرها.':/Database error/i.test(t)?'تعذر إنشاء الطلب. تأكد أن الإيميل من نطاق الشركة.':/not allowed|disabled/i.test(t)?'التسجيل الذاتي غير مفعّل حالياً. راجع مدير الرقابة.':fe(x)})
+  .catch(function(x){var t=x.message||'';m.textContent=/already/i.test(t)?'هذا الإيميل مسجّل من قبل. استخدم «نسيت كلمة المرور» إن لم تتذكرها.':/Database error/i.test(t)?'تعذر إنشاء الطلب. حاول مرة أخرى أو راجع مدير الرقابة.':/not allowed|disabled/i.test(t)?'التسجيل الذاتي غير مفعّل حالياً. راجع مدير الرقابة.':fe(x)})
   .then(function(){b.disabled=false})};
 
 /* روابط البريد: تأكيد الإيميل واستعادة كلمة المرور */

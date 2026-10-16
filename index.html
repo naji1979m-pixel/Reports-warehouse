@@ -124,8 +124,9 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <label for="role">صفة المبلّغ</label>
 <select id="role"><option>فرد</option><option>موظف شركة المياه</option><option>مقاول</option><option>جهة حكومية</option><option>جهة أخرى</option></select>
 <label for="city">المدينة / المحافظة <i>*</i></label>
-<select id="city"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option><option>أخرى</option></select>
+<select id="city"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option><option>الدمام</option><option>الخبر</option><option>الظهران</option><option>الأحساء</option><option>القطيف</option><option>الجبيل</option><option>رأس تنورة</option><option>بقيق</option><option>أخرى</option></select>
 <label for="district">الحي <i>*</i></label>
+<select id="district-sel" hidden></select>
 <input id="district" placeholder="اسم الحي">
 <label for="type">نوع البلاغ <i>*</i></label>
 <select id="type"><option value="">اختر نوع المخالفة</option><option>توصيلة مياه غير نظامية / تعدٍ على الشبكة</option><option>توصيلة مباشرة قبل العداد</option><option>إخفاء عداد أو صندوق عداد</option><option>عبث أو كسر في العداد</option><option>إزالة عداد دون إجراء نظامي</option><option>اشتباه في استهلاك غير نظامي</option><option>صهريج أو تعبئة مياه غير نظامية</option><option>تعدٍ ظاهر آخر</option><option>اشتباه بتعدٍ غير ظاهر</option><option>أخرى</option></select>
@@ -286,6 +287,18 @@ function upload(f){var id=(window.crypto&&crypto.randomUUID?crypto.randomUUID():
   return shrink(f).then(function(b){var h={apikey:K,'Content-Type':'image/jpeg'};if(tok)h.Authorization='Bearer '+tok;return fetch(U+'/storage/v1/object/report-photos/'+p,{method:'POST',headers:h,body:b})})
   .then(function(r){if(!r.ok)throw new Error('فشل رفع صورة');return p})}
 
+/* الأحياء حسب المدينة (من دليل أحياء المنطقة الشرقية) */
+var DISTRICTS={"الدمام":["الشاطئ","المزروعية","الزهور","النورس","الراكة الشمالية","المنتزه","الناصرية","النهضة","الفيصلية","المنار","أحد","بدر","الندى","طيبة","الفرسان","النور","الضباب","النزهة","الجامعيين","الروضة","الريان","الاتصالات","البساتين","الحسام","القادسية","البديع","السلام","العزيزية","مدينة العمال","ابن خلدون","الخالدية الشمالية","الخالدية الجنوبية","الصفا","الفردوس","الفنار","البحيرة","الجوهرة","الدواسر","العدامة","السوق","غرناطة","المريكبات"],"الخبر":["الحزام الذهبي","الحزام الأخضر","الكورنيش","الهدا","البندرية","اليرموك","الروابي","الجوهرة","العليا","العقربية","مدينة العمال","الخبر الشمالية","الخبر الجنوبية (الثقبة)","الراكة الجنوبية","البستان","قرطبة","الأندلس","الصدفة","البحر","الجسر","الخزامى","التحلية","الشراع","الأمواج"],"الأحساء":["الكوت","النعائل","الرفعة","الصالحية","الرقيقة","الملك فهد (المحدود)","الشهابية","البصيرة","المزروع","السنيدية","الخالدية","العزيزية","محاسن (أرامكو، البلدية، القادسية)","الراشدية","النزهة","الشعبة","الأندلس","الغروب","مساكن أرامكو","العيون (أحياء متعددة)","العمران (أحياء متعددة)"],"القطيف":["الناصرة","المجيدية","المنيرة","المزروع","الخزامى","الرابعة","البحر","القلعة","باب الشمال","الشاطئ (تاروت)","الدخل المحدود","الغروب","الغدير (سيهات)","الفيحاء (سيهات)","النمر الشمالي (سيهات)","العروبة (صفوى)","البدرية (صفوى)"],"الجبيل":["البلد","المرقاب","الجوهرة","الخالدية","طيبة","الكوثر","نجد (الصناعية)","الفردوس (الصناعية)","الفناتير (الصناعية)","جلمودة (الصناعية)","مكة (الصناعية)","الحجاز (الصناعية)","دارين (الصناعية)"],"الظهران":["الدوحة الجنوبية","الدوحة الشمالية","الدانة الجنوبية","الدانة الشمالية","الجامعة (جامعة الملك فهد)","سكن أرامكو","القشلة","تلال الدوحة","الربوة"],"حفر الباطن":["المحمدية","الخالدية","العزيزية","الربوة","البلدية","النايفية","فليج","الروضة","الرائد","مكيّد","الوادي","السليمانية"],"الخفجي":["العزيزية","الخالدية","الملك فهد","الأندلس","الفيصلية","الياسمين","الريان","الغربية","السلام"],"رأس تنورة":["النعيم","الروضة","الفيحاء","الأندلس","المنتزه","قرطبة","رضوى"],"بقيق":["الروضة","الخالدية","المطار","الأنصار","الفرحة","النزهة"]};
+var D_OTHER='أخرى (اكتب اسم الحي)';
+function refreshDistrict(){var c=$('#city').value,list=DISTRICTS[c],sel=$('#district-sel'),inp=$('#district');
+  inp.value='';sel.classList.remove('bad');
+  if(list){sel.innerHTML='<option value="">اختر الحي</option>'+list.map(function(d){return '<option>'+esc(d)+'</option>'}).join('')+'<option value="__other">'+D_OTHER+'</option>';sel.hidden=false;inp.hidden=true}
+  else{sel.hidden=true;sel.innerHTML='';inp.hidden=false}}
+$('#city').addEventListener('change',refreshDistrict);
+$('#district-sel').addEventListener('change',function(){var sel=$('#district-sel'),inp=$('#district');
+  if(sel.value==='__other'){inp.value='';inp.hidden=false;inp.focus()}else{inp.hidden=true;inp.value=sel.value}
+  sel.classList.remove('bad')});
+$('#f').addEventListener('reset',function(){setTimeout(refreshDistrict,0)});
 $('#f').onsubmit=function(e){e.preventDefault();
   var ok=true,er=$('#ferr');
   var req=['name','phone','city','district','type','loc','desc'];if(+$('#urg').value>0)req.push('urgr');
@@ -295,7 +308,7 @@ $('#f').onsubmit=function(e){e.preventDefault();
     if(k==='phone'&&!/^05\d{8}$/.test(dig(v)))v='';
     if(k==='desc'&&v.length<10)v='';
     if(!v){el.classList.add('bad');bad.push(k);var m=document.createElement('p');m.className='err fe';m.textContent='مطلوب: '+FN[k];el.insertAdjacentElement('afterend',m)}else el.classList.remove('bad')});
-  if(bad.length){er.hidden=false;er.textContent='أكمل الحقول التالية: '+bad.map(function(k){return FN[k]}).join('، ');var f0=$('#'+bad[0]);f0.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){f0.focus()},400);return}
+  if(bad.length){er.hidden=false;er.textContent='أكمل الحقول التالية: '+bad.map(function(k){return FN[k]}).join('، ');if(bad.indexOf('district')>-1&&!$('#district-sel').hidden&&$('#district').hidden)$('#district-sel').classList.add('bad');var f0=(bad[0]==='district'&&!$('#district-sel').hidden&&$('#district').hidden)?$('#district-sel'):$('#'+bad[0]);f0.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){f0.focus()},400);return}
   var files=picked.slice();
   if(files.length>5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
   er.hidden=true;var btn=$('#sub');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
@@ -333,7 +346,7 @@ function afterLogin(){
 
 function fillReporter(){if(!me)return;var rb=$('#rpt-box');rb.hidden=!(me.report_scope&&me.report_scope!=='none');if(!rb.hidden){var pk=posOf(me);$('#rpt-scope').textContent=(POS[pk]?POS[pk].l:'')+(me.report_scope==='branch'&&me.cities&&me.cities[0]?' — '+me.cities[0]:'')}$('#rep-who').textContent='مقدّم البلاغ: '+me.name;
   $('#name').value=me.name;$('#name').readOnly=true;$('#role').value='موظف شركة المياه';
-  if(me.cities&&me.cities.length===1)$('#city').value=me.cities[0];
+  if(me.cities&&me.cities.length===1){$('#city').value=me.cities[0];refreshDistrict()}
   api('/rest/v1/staff?select=phone,job_title&id=eq.'+encodeURIComponent(me.id),{auth:true}).then(function(a){var x=a&&a[0];if(!x)return;if(x.phone)$('#phone').value=x.phone;if(x.job_title)$('#rep-who').textContent='مقدّم البلاغ: '+me.name+' — '+x.job_title}).catch(function(){})}
 function doLogin(emEl,pwEl,erEl){erEl.hidden=true;
   api('/auth/v1/token?grant_type=password',{m:'POST',body:JSON.stringify({email:emEl.value.trim(),password:pwEl.value})})

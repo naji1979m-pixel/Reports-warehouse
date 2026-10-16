@@ -91,6 +91,13 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 .mw>input,.mw>textarea{padding-left:46px}
 .mic{position:absolute;left:6px;top:6px;width:36px;height:36px;border-radius:50%;border:0;background:var(--soft);color:var(--pri);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;margin:0}
 .mic svg{width:19px;height:19px;fill:currentColor;pointer-events:none}
+.cl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+label.cc{display:flex;align-items:center;gap:9px;margin:0;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:14px;font-weight:500;cursor:pointer;position:relative}
+label.cc input{position:absolute;opacity:0;width:1px;height:1px;padding:0;margin:0;border:0}
+label.cc span{width:18px;height:18px;border-radius:50%;border:2px solid var(--pri);flex:none;box-sizing:border-box}
+label.cc input:checked+span{background:var(--pri);box-shadow:inset 0 0 0 3px var(--card)}
+label.cc input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2px}
+.cl-all{border:0;background:none;color:var(--pri);font:600 13px inherit;font-family:inherit;cursor:pointer;padding:4px 0;text-decoration:underline}
 .mw>[hidden]~.mic{display:none}
 .mic.on{background:var(--bad);color:#fff;animation:micp 1.1s ease-in-out infinite}
 .mic.busy{opacity:.6;cursor:wait}
@@ -570,6 +577,9 @@ var POS={emp_mgmt:{l:'موظف بإدارة الفرع (تبليغ فقط)',d:'m
 function posOf(z){return z&&POS[z.position]?z.position:posKey(z&&z.department,z&&z.report_scope)}
 function posKey(d,sc){for(var k in POS)if(POS[k].d===d&&POS[k].sc===sc)return k;return ''}
 function posOpts(sel){return '<option value="">— غير محدد —</option>'+Object.keys(POS).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+POS[k].l+'</option>'}).join('')}
+var EAST_CITIES=['حفر الباطن','القيصومة','الخفجي','النعيرية','القرية العليا','مليجة','الدمام','الخبر','الظهران','الأحساء','القطيف','الجبيل','رأس تنورة','بقيق','أخرى'];
+function cityChecks(id,sel){return '<div class="cl-grid">'+EAST_CITIES.map(function(c){return '<label class="cc"><input type="checkbox" class="rq-city" data-id="'+id+'" value="'+esc(c)+'"'+(sel.indexOf(c)>-1?' checked':'')+'><span></span>'+esc(c)+'</label>'}).join('')+'</div>'}
+function pickedCities(id){return Array.prototype.map.call(document.querySelectorAll('.rq-city[data-id="'+id+'"]:checked'),function(x){return x.value})}
 function loadReqs(){var bx=$('#reqBox');if(!bx)return;rpc('list_requests',{},true).then(function(a){a=a||[];
   if(!a.length){bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل</p><p class="hint">لا توجد طلبات جديدة.</p>';return}
   bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل ('+a.length+')</p>'+a.map(function(q){var id=esc(q.id);return '<div class="item"><p><b>'+esc(q.name)+'</b> — طلب: <span class="tag">'+esc(RQ[q.requested_role]||q.requested_role)+'</span></p>'+
@@ -577,11 +587,12 @@ function loadReqs(){var bx=$('#reqBox');if(!bx)return;rpc('list_requests',{},tru
     (q.confirmed?'':'<p class="err">لم يؤكد بريده بعد، ولا تمكن الموافقة قبل التأكيد.</p>')+
     '<label>الصلاحية الممنوحة</label><select class="rq-role" data-id="'+id+'">'+Object.keys(RQ).map(function(k){return '<option value="'+k+'"'+(k===q.requested_role?' selected':'')+'>'+RQ[k]+'</option>'}).join('')+'</select>'+
     '<label>المنصب (للمبلّغ)</label><select class="rq-pos" data-id="'+id+'">'+posOpts(q.position||'')+'</select>'+
-    '<label>المدن (مفصولة بفاصلة، فارغة = كل المدن)</label><input class="rq-cities" data-id="'+id+'" value="'+esc(q.city||'')+'">'+
+    '<label>نطاق المدن</label><p class="hint" style="margin:0">اختر المدن التابعة له. بدون اختيار = كل المدن.</p>'+cityChecks(id,parseCities(q.city||''))+'<button type="button" class="cl-all" data-clall="'+id+'">تحديد الكل / إلغاء التحديد</button>'+
     '<div class="row" style="margin-top:8px"><button class="btn sm" data-rqok="'+id+'" style="flex:1;width:auto;margin:0"'+(q.confirmed?'':' disabled')+'>موافقة</button><button class="btn alt sm" data-rqno="'+id+'" style="flex:1;width:auto;margin:0;color:var(--bad)">رفض</button></div><p class="hint" data-rqm="'+id+'"></p></div>'}).join('');
   document.querySelectorAll('[data-rqok]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqok,m=document.querySelector('[data-rqm="'+id+'"]');b.disabled=true;m.textContent='جارٍ التفعيل…';
     var rl=q1('rq-role',id).value,ps=POS[q1('rq-pos',id).value];if(rl==='reporter'&&!ps){m.textContent='حدد المنصب.';b.disabled=false;return}
-    rpc('approve_request',{p_id:+id,p_role:rl,p_cities:parseCities(q1('rq-cities',id).value),p_department:rl==='reporter'?ps.d:null,p_scope:rl==='reporter'?ps.sc:'none',p_position:rl==='reporter'?q1('rq-pos',id).value:null},true).then(function(){return loadMe()}).then(function(){loadList()}).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
+    rpc('approve_request',{p_id:+id,p_role:rl,p_cities:pickedCities(id),p_department:rl==='reporter'?ps.d:null,p_scope:rl==='reporter'?ps.sc:'none',p_position:rl==='reporter'?q1('rq-pos',id).value:null},true).then(function(){return loadMe()}).then(function(){loadList()}).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
+  document.querySelectorAll('[data-clall]').forEach(function(b){b.onclick=function(){var cs=document.querySelectorAll('.rq-city[data-id="'+b.dataset.clall+'"]'),all=Array.prototype.every.call(cs,function(x){return x.checked});Array.prototype.forEach.call(cs,function(x){x.checked=!all})}});
   document.querySelectorAll('[data-rqno]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqno,m=document.querySelector('[data-rqm="'+id+'"]'),why=prompt('سبب الرفض (يظهر لصاحب الطلب):','');if(why===null)return;b.disabled=true;
     rpc('reject_request',{p_id:+id,p_reason:why.trim()||null},true).then(loadReqs).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
 }).catch(function(){bx.innerHTML=''})}

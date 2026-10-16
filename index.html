@@ -87,6 +87,16 @@ a.lnk{color:var(--pri);font-weight:600;font-size:14px;text-decoration:none}
 #print-area .pa-grid div{border:1px solid #bbb;border-radius:8px;padding:8px;text-align:center}#print-area .pa-grid b{display:block;font-size:20px}
 @media print{body>*:not(#print-area){display:none!important}#print-area{position:static;padding:0}#print-area .pa-bar{display:none}@page{size:A4;margin:12mm}}
 footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px}
+.mw{position:relative;display:block}
+.mw>input,.mw>textarea{padding-left:46px}
+.mic{position:absolute;left:6px;top:6px;width:36px;height:36px;border-radius:50%;border:0;background:var(--soft);color:var(--pri);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;margin:0}
+.mic svg{width:19px;height:19px;fill:currentColor;pointer-events:none}
+.mic.on{background:var(--bad);color:#fff;animation:micp 1.1s ease-in-out infinite}
+.mic.busy{opacity:.6;cursor:wait}
+@keyframes micp{50%{box-shadow:0 0 0 7px rgba(194,59,59,.18)}}
+@media(prefers-reduced-motion:reduce){.mic.on{animation:none}}
+.mic-undo{display:inline-block;margin:6px 0 0;border:0;background:none;color:var(--pri);font:600 13px inherit;font-family:inherit;cursor:pointer;padding:2px 0;text-decoration:underline}
+.mic-st{display:block;margin:4px 0 0;font-size:12.5px;color:var(--mut)}
 </style>
 </head>
 <body>
@@ -653,6 +663,74 @@ $('#reg-go').onclick=function(){var m=$('#reg-msg'),g=function(i){return $('#'+i
   if(q.error_description){history.replaceState(null,'',location.pathname+location.search);document.querySelector('nav button[data-v="insp"]').click();var le=$('#lerr');le.hidden=false;le.textContent='انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.';}
   try{var st=sessionStorage.getItem('tk');if(st)setSess(st)}catch(e){}})();
 
+</script>
+<script>
+/* الإدخال الصوتي: ميكروفون على حقول النص، والذكاء الاصطناعي يحوّل المنطوق إلى صياغة مكتوبة واضحة */
+(function(){
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR)return;
+var SEL='#name,#district,#urgr,#desc,#rname,#rjob,#sa-new-name,.cl-note,.ro-why';
+var POLISH='#urgr,#desc,.cl-note,.ro-why';
+var ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>';
+var cur=null;
+function mk(el){
+  if(el.dataset.mic)return;el.dataset.mic='1';
+  var w=document.createElement('span');w.className='mw';
+  el.parentNode.insertBefore(w,el);w.appendChild(el);
+  var b=document.createElement('button');b.type='button';b.className='mic';b.innerHTML=ICON;
+  b.setAttribute('aria-label','إدخال صوتي');b.title='إدخال صوتي';
+  w.appendChild(b);
+  var st=document.createElement('span');st.className='mic-st';st.hidden=true;st.setAttribute('aria-live','polite');
+  w.parentNode.insertBefore(st,w.nextSibling);
+  b.addEventListener('click',function(){toggle(el,b,st)});
+}
+function scan(){document.querySelectorAll(SEL).forEach(mk)}
+var t;new MutationObserver(function(){clearTimeout(t);t=setTimeout(scan,150)}).observe(document.body,{childList:true,subtree:true});
+scan();
+function setv(el,v){el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}))}
+function say(st,m){st.textContent=m;st.hidden=!m}
+function toggle(el,b,st){
+  if(cur){var c=cur;cur.rec.stop();if(c.el===el)return}
+  var rec=new SR();rec.lang='ar-SA';rec.continuous=true;rec.interimResults=true;
+  var base=el.value,fin='',live='';
+  cur={rec:rec,el:el};b.classList.add('on');say(st,'جارٍ الاستماع… تحدّث ثم اضغط الميكروفون للإيقاف.');
+  rec.onresult=function(e){
+    var i,f='',n='';
+    for(i=0;i<e.results.length;i++){if(e.results[i].isFinal)f+=e.results[i][0].transcript+' ';else n+=e.results[i][0].transcript}
+    fin=f;live=n;
+    setv(el,(base?base+' ':'')+(fin+live).trim());
+  };
+  rec.onerror=function(e){
+    var m=e.error==='not-allowed'||e.error==='service-not-allowed'?'لا يوجد إذن للميكروفون. فعّله من إعدادات المتصفح ثم أعد المحاولة.':(e.error==='no-speech'?'لم يُسمع صوت. حاول مرة أخرى.':'تعذّر الإدخال الصوتي. اكتب النص يدوياً.');
+    say(st,m);
+  };
+  rec.onend=function(){
+    b.classList.remove('on');cur=null;
+    var spoken=(fin+live).trim();
+    if(!spoken){if(!st.textContent||/^جارٍ/.test(st.textContent))say(st,'');return}
+    setv(el,(base?base+' ':'')+spoken);
+    if(el.matches(POLISH))polish(el,b,st,base,spoken);else say(st,'');
+  };
+  try{rec.start()}catch(x){b.classList.remove('on');cur=null;say(st,'تعذّر تشغيل الميكروفون.')}
+}
+function polish(el,b,st,base,spoken){
+  if(typeof tok==='undefined'||!tok){say(st,'');return}
+  b.classList.add('busy');say(st,'جارٍ تحويل الكلام إلى صياغة مكتوبة…');
+  var ctl=new AbortController(),to=setTimeout(function(){ctl.abort()},20000);
+  fetch(U+'/functions/v1/polish-text',{method:'POST',signal:ctl.signal,headers:{apikey:K,'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({text:spoken})})
+  .then(function(r){return r.ok?r.json():Promise.reject(r.status)})
+  .then(function(d){
+    clearTimeout(to);b.classList.remove('busy');
+    if(!d||!d.text){say(st,'');return}
+    setv(el,(base?base+' ':'')+d.text);
+    say(st,'تمت صياغة النص. راجعه قبل الإرسال.');
+    var u=document.createElement('button');u.type='button';u.className='mic-undo';u.textContent='استرجاع الكلام الأصلي';
+    u.onclick=function(){setv(el,(base?base+' ':'')+spoken);u.remove();say(st,'')};
+    st.appendChild(document.createElement('br'));st.appendChild(u);
+  })
+  .catch(function(){clearTimeout(to);b.classList.remove('busy');say(st,'تعذّرت الصياغة التلقائية، تم إدخال الكلام كما نُطق. راجعه قبل الإرسال.')});
+}
+})();
 </script>
 </body>
 </html>

@@ -97,6 +97,7 @@ label.cc input{position:absolute;opacity:0;width:1px;height:1px;padding:0;margin
 label.cc span{width:18px;height:18px;border-radius:50%;border:2px solid var(--pri);flex:none;box-sizing:border-box}
 label.cc input:checked+span{background:var(--pri);box-shadow:inset 0 0 0 3px var(--card)}
 label.cc input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2px}
+.cl-unit{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:13px;color:var(--mut,#5b6b82)}
 .cl-all{border:0;background:none;color:var(--pri);font:600 13px inherit;font-family:inherit;cursor:pointer;padding:4px 0;text-decoration:underline}
 .mw>[hidden]~.mic{display:none}
 .mic.on{background:var(--bad);color:#fff;animation:micp 1.1s ease-in-out infinite}
@@ -144,7 +145,7 @@ label.cc input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2p
 <label for="role">صفة المبلّغ</label>
 <select id="role"><option>فرد</option><option>موظف شركة المياه</option><option>مقاول</option><option>جهة حكومية</option><option>جهة أخرى</option></select>
 <label for="city">المدينة / المحافظة <i>*</i></label>
-<select id="city"><option value="">اختر</option><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option><option>الدمام</option><option>الخبر</option><option>الظهران</option><option>الأحساء</option><option>القطيف</option><option>الجبيل</option><option>رأس تنورة</option><option>بقيق</option><option>أخرى</option></select>
+<select id="city"><option value="">اختر</option><optgroup label="وحدة أعمال الدمام"><option>الدمام</option><option>الخبر</option><option>الظهران</option><option>الجبيل</option><option>البيظاء</option><option>القطيف</option><option>رأس تنورة</option><option>سيهات</option><option>صفوى</option><option>عنك</option></optgroup><optgroup label="الوحدة الشمالية"><option>حفر الباطن</option><option>القيصومة</option><option>الخفجي</option><option>النعيرية</option><option>القرية العليا</option><option>مليجة</option></optgroup><optgroup label="الوحدة الجنوبية"><option>الأحساء</option><option>بقيق</option></optgroup><option>أخرى</option></select>
 <label for="district">الحي <i>*</i></label>
 <select id="district-sel" hidden></select>
 <input id="district" placeholder="اسم الحي">
@@ -395,7 +396,7 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
     '<label>الاسم</label><input class="sa-name" data-id="'+esc(z.id)+'" value="'+esc(z.name||'')+'">'+
     '<label>الدور</label><select class="sa-role" data-id="'+esc(z.id)+'">'+roleOptions(z.role)+'</select>'+
     (z.role==='reporter'?'<label>المنصب ونطاق التقرير</label><select class="sa-pos" data-id="'+esc(z.id)+'">'+posOpts(posOf(z))+'</select>':'')+
-    '<label>المدن (مفصولة بفاصلة، اتركها فارغة لرؤية كل المدن)</label><input class="sa-cities" data-id="'+esc(z.id)+'" value="'+esc(citiesStr(z.cities))+'">'+
+    '<label>المدن (بدون اختيار = كل المدن)</label>'+cityChecks('sa'+esc(z.id),z.cities||[])+
     '<label class="row" style="align-items:center;gap:8px;margin-top:10px"><input type="checkbox" class="sa-active sa-chk" data-id="'+esc(z.id)+'"'+(z.active?' checked':'')+'> الحساب مفعّل (يستطيع الدخول)</label>'+
     (z.id===uid()?'<p class="hint">تنبيه: هذا حسابك. تعطيله سيمنعك من الدخول فوراً.</p>':'')+
     '<button class="btn sm" data-sasave="'+esc(z.id)+'">حفظ التعديلات</button><p class="hint" id="sa-msg-'+esc(z.id)+'"></p></div>'}).join('');
@@ -404,7 +405,7 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
     '<label>UID</label><input id="sa-new-id" dir="ltr" style="text-align:right">'+
     '<label>الاسم</label><input id="sa-new-name">'+
     '<label>الدور</label><select id="sa-new-role">'+roleOptions('inspector')+'</select>'+
-    '<label>المدن (اختياري، مفصولة بفاصلة)</label><input id="sa-new-cities">'+
+    '<label>المدن (اختياري)</label>'+cityChecks('sanew',[])+
     '<button class="btn sm" id="sa-new-save">إضافة</button><p class="hint" id="sa-new-msg"></p></div>';
   box.innerHTML+='<div class="item"><p><b>استيراد دفعة مُبلّغين</b></p><p class="hint">الصق بيانات الموظفين بصيغة CSV، سطر لكل موظف: الإيميل,كلمة المرور,الاسم,الجوال,المسمى الوظيفي,المدينة (المدينة اختيارية؛ اتركها فارغة ليرى صاحبها كل المدن). لا تُحفظ هذه البيانات في كود الموقع.</p><textarea id="imp-rows" style="min-height:140px" placeholder="email,password,الاسم,0500000000,المسمى الوظيفي,المدينة"></textarea><button class="btn sm" id="imp-run">استيراد الآن</button><div id="imp-msg"></div></div>';
   var ib=$('#imp-run');if(ib)ib.onclick=function(){var msg=$('#imp-msg'),raw=$('#imp-rows').value.trim();
@@ -424,7 +425,7 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
   document.querySelectorAll('[data-sasave]').forEach(function(btn){btn.onclick=function(){var id=btn.dataset.sasave,msg=$('#sa-msg-'+id);
     var name=document.querySelector('.sa-name[data-id="'+id+'"]').value.trim();
     var role=document.querySelector('.sa-role[data-id="'+id+'"]').value;
-    var cities=parseCities(document.querySelector('.sa-cities[data-id="'+id+'"]').value);
+    var cities=pickedCities('sa'+id);
     var active=document.querySelector('.sa-active[data-id="'+id+'"]').checked;
     if(!name){msg.textContent='الاسم مطلوب.';return}
     btn.disabled=true;msg.textContent='جارٍ الحفظ…';
@@ -434,11 +435,11 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
       .catch(function(x){msg.textContent=fe(x)}).then(function(){btn.disabled=false})}});
   loadReqs();
   var nb=$('#sa-new-save');if(nb)nb.onclick=function(){var msg=$('#sa-new-msg');
-    var id=$('#sa-new-id').value.trim(),name=$('#sa-new-name').value.trim(),role=$('#sa-new-role').value,cities=parseCities($('#sa-new-cities').value);
+    var id=$('#sa-new-id').value.trim(),name=$('#sa-new-name').value.trim(),role=$('#sa-new-role').value,cities=pickedCities('sanew');
     if(!id||!name){msg.textContent='رقم UID والاسم مطلوبان.';return}
     nb.disabled=true;msg.textContent='جارٍ الإضافة…';
     api('/rest/v1/staff',{m:'POST',auth:true,body:JSON.stringify({id:id,name:name,role:role,cities:cities,active:true,must_change_password:true})})
-      .then(function(){msg.textContent='تمت الإضافة.';$('#sa-new-id').value='';$('#sa-new-name').value='';$('#sa-new-cities').value='';return loadMe()}).then(function(){return loadList()})
+      .then(function(){msg.textContent='تمت الإضافة.';$('#sa-new-id').value='';$('#sa-new-name').value='';return loadMe()}).then(function(){return loadList()})
       .catch(function(x){msg.textContent=fe(x)}).then(function(){nb.disabled=false})}}
 
 function isClosed(r){return ['confirmed','no_violation','closed'].indexOf(r.status)>-1}
@@ -577,8 +578,15 @@ var POS={emp_mgmt:{l:'موظف بإدارة الفرع (تبليغ فقط)',d:'m
 function posOf(z){return z&&POS[z.position]?z.position:posKey(z&&z.department,z&&z.report_scope)}
 function posKey(d,sc){for(var k in POS)if(POS[k].d===d&&POS[k].sc===sc)return k;return ''}
 function posOpts(sel){return '<option value="">— غير محدد —</option>'+Object.keys(POS).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+POS[k].l+'</option>'}).join('')}
-var EAST_CITIES=['حفر الباطن','القيصومة','الخفجي','النعيرية','القرية العليا','مليجة','الدمام','الخبر','الظهران','الأحساء','القطيف','الجبيل','رأس تنورة','بقيق','أخرى'];
-function cityChecks(id,sel){return '<div class="cl-grid">'+EAST_CITIES.map(function(c){return '<label class="cc"><input type="checkbox" class="rq-city" data-id="'+id+'" value="'+esc(c)+'"'+(sel.indexOf(c)>-1?' checked':'')+'><span></span>'+esc(c)+'</label>'}).join('')+'</div>'}
+var UNITS=[{n:'وحدة أعمال الدمام',c:['الدمام','الخبر','الظهران','الجبيل','البيظاء','القطيف','رأس تنورة','سيهات','صفوى','عنك']},{n:'الوحدة الشمالية',c:['حفر الباطن','القيصومة','الخفجي','النعيرية','القرية العليا','مليجة']},{n:'الوحدة الجنوبية',c:['الأحساء','بقيق']}];
+var EAST_CITIES=[].concat.apply([],UNITS.map(function(u){return u.c}));
+function cityChecks(id,sel){sel=sel||[];var known=EAST_CITIES.concat(['أخرى']),extra=sel.filter(function(c){return known.indexOf(c)<0});
+  function one(c){return '<label class="cc"><input type="checkbox" class="rq-city" data-id="'+id+'" value="'+esc(c)+'"'+(sel.indexOf(c)>-1?' checked':'')+'><span></span>'+esc(c)+'</label>'}
+  var groups=UNITS.concat([{n:'أخرى',c:['أخرى'].concat(extra)}]);
+  return '<div class="cp" data-cp="'+id+'">'+groups.map(function(u){return '<div class="cl-unit"><b>'+esc(u.n)+'</b><button type="button" class="cl-all" data-clunit="1">تحديد الوحدة</button></div><div class="cl-grid">'+u.c.map(one).join('')+'</div>'}).join('')+'<button type="button" class="cl-all" data-clall="'+id+'">تحديد الكل / إلغاء التحديد</button></div>'}
+document.addEventListener('click',function(e){var t=e.target;if(!t||!t.getAttribute)return;
+  if(t.getAttribute('data-clunit')){var cs=t.parentNode.nextElementSibling.querySelectorAll('input'),all=Array.prototype.every.call(cs,function(x){return x.checked});Array.prototype.forEach.call(cs,function(x){x.checked=!all})}
+  else if(t.getAttribute('data-clall')){var cs2=document.querySelectorAll('.rq-city[data-id="'+t.getAttribute('data-clall')+'"]'),all2=Array.prototype.every.call(cs2,function(x){return x.checked});Array.prototype.forEach.call(cs2,function(x){x.checked=!all2})}});
 function pickedCities(id){return Array.prototype.map.call(document.querySelectorAll('.rq-city[data-id="'+id+'"]:checked'),function(x){return x.value})}
 function loadReqs(){var bx=$('#reqBox');if(!bx)return;rpc('list_requests',{},true).then(function(a){a=a||[];
   if(!a.length){bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل</p><p class="hint">لا توجد طلبات جديدة.</p>';return}
@@ -587,12 +595,11 @@ function loadReqs(){var bx=$('#reqBox');if(!bx)return;rpc('list_requests',{},tru
     (q.confirmed?'':'<p class="err">لم يؤكد بريده بعد، ولا تمكن الموافقة قبل التأكيد.</p>')+
     '<label>الصلاحية الممنوحة</label><div class="cl-grid">'+Object.keys(RQ).map(function(k){return '<label class="cc"><input type="radio" name="rr'+id+'" class="rq-role" data-id="'+id+'" value="'+k+'"'+(k===q.requested_role?' checked':'')+'><span></span>'+RQ[k]+'</label>'}).join('')+'</div>'+
     '<label>المنصب (للمبلّغ)</label><select class="rq-pos" data-id="'+id+'">'+posOpts(q.position||'')+'</select>'+
-    '<label>نطاق المدن</label><p class="hint" style="margin:0">اختر المدن التابعة له. بدون اختيار = كل المدن.</p>'+cityChecks(id,parseCities(q.city||''))+'<button type="button" class="cl-all" data-clall="'+id+'">تحديد الكل / إلغاء التحديد</button>'+
+    '<label>نطاق المدن</label><p class="hint" style="margin:0">اختر المدن التابعة له. بدون اختيار = كل المدن.</p>'+cityChecks(id,parseCities(q.city||''))+
     '<div class="row" style="margin-top:8px"><button class="btn sm" data-rqok="'+id+'" style="flex:1;width:auto;margin:0"'+(q.confirmed?'':' disabled')+'>موافقة</button><button class="btn alt sm" data-rqno="'+id+'" style="flex:1;width:auto;margin:0;color:var(--bad)">رفض</button></div><p class="hint" data-rqm="'+id+'"></p></div>'}).join('');
   document.querySelectorAll('[data-rqok]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqok,m=document.querySelector('[data-rqm="'+id+'"]');b.disabled=true;m.textContent='جارٍ التفعيل…';
     var rl=(document.querySelector('.rq-role[data-id="'+id+'"]:checked')||{}).value||'reporter',ps=POS[q1('rq-pos',id).value];if(rl==='reporter'&&!ps){m.textContent='حدد المنصب.';b.disabled=false;return}
     rpc('approve_request',{p_id:+id,p_role:rl,p_cities:pickedCities(id),p_department:rl==='reporter'?ps.d:null,p_scope:rl==='reporter'?ps.sc:'none',p_position:rl==='reporter'?q1('rq-pos',id).value:null},true).then(function(){return loadMe()}).then(function(){loadList()}).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
-  document.querySelectorAll('[data-clall]').forEach(function(b){b.onclick=function(){var cs=document.querySelectorAll('.rq-city[data-id="'+b.dataset.clall+'"]'),all=Array.prototype.every.call(cs,function(x){return x.checked});Array.prototype.forEach.call(cs,function(x){x.checked=!all})}});
   document.querySelectorAll('[data-rqno]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqno,m=document.querySelector('[data-rqm="'+id+'"]'),why=prompt('سبب الرفض (يظهر لصاحب الطلب):','');if(why===null)return;b.disabled=true;
     rpc('reject_request',{p_id:+id,p_reason:why.trim()||null},true).then(loadReqs).catch(function(x){m.textContent=fe(x);b.disabled=false})}});
 }).catch(function(){bx.innerHTML=''})}

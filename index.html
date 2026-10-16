@@ -233,6 +233,7 @@ label.cc input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2p
 </div>
 <div id="panel" hidden>
 <div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><span class="row"><button class="btn alt sm" data-chpw="1" style="width:auto;margin:0;padding:6px 14px">تغيير كلمة المرور</button><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></span></div>
+<div id="ntBox"></div>
 <div id="dash"></div>
 <label for="flt">تصفية حسب الحالة</label>
 <select id="flt"></select>
@@ -264,7 +265,7 @@ var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){r
 var SK=['new','verifying','confirmed','no_violation','closed'];
 var SL={new:'جديد',verifying:'تحت الإجراء',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
 var UR=['عادي','عاجل','عاجل جداً'];
-var ERR={email_not_confirmed:'لم يؤكد صاحب الطلب بريده بعد.',domain_not_allowed:'التسجيل متاح لإيميلات الشركة فقط.',inspector_only:'إغلاق البلاغ لمأمور الضبط فقط.',not_assigned:'هذا البلاغ ليس مسنداً إليك.',report_closed:'البلاغ مغلق.',use_close:'استخدم «إغلاق البلاغ» لتسجيل النتيجة.',invalid_file:'ملف غير صالح أو أكثر من 10 ملفات.',note_required:'اكتب ملاحظة الإغلاق.',violation_no_required:'أدخل رقم المخالفة.',admin_only:'هذا الإجراء لمدير الرقابة فقط.',invalid_target:'الاختيار غير صالح.',not_closed:'البلاغ غير مغلق.',remind_too_early:'يمكن التذكير بعد مرور 3 أيام على البلاغ.',remind_wait:'أرسلت تذكيراً مؤخراً. يمكنك التذكير مرة كل يوم.',reports_description_check:'وصف البلاغ قصير. اكتب وصفاً أوضح للحالة.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 10 صور وفيديو واحد.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
+var ERR={out_of_scope:'هذا الطلب خارج نطاق مدنك.',email_not_confirmed:'لم يؤكد صاحب الطلب بريده بعد.',domain_not_allowed:'التسجيل متاح لإيميلات الشركة فقط.',inspector_only:'إغلاق البلاغ لمأمور الضبط فقط.',not_assigned:'هذا البلاغ ليس مسنداً إليك.',report_closed:'البلاغ مغلق.',use_close:'استخدم «إغلاق البلاغ» لتسجيل النتيجة.',invalid_file:'ملف غير صالح أو أكثر من 10 ملفات.',note_required:'اكتب ملاحظة الإغلاق.',violation_no_required:'أدخل رقم المخالفة.',admin_only:'هذا الإجراء لمدير الرقابة فقط.',invalid_target:'الاختيار غير صالح.',not_closed:'البلاغ غير مغلق.',remind_too_early:'يمكن التذكير بعد مرور 3 أيام على البلاغ.',remind_wait:'أرسلت تذكيراً مؤخراً. يمكنك التذكير مرة كل يوم.',reports_description_check:'وصف البلاغ قصير. اكتب وصفاً أوضح للحالة.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 10 صور وفيديو واحد.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
 var tok=null;
 function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';if(/Email not confirmed/i.test(m))return 'أكّد بريدك أولاً من الرابط المرسل إليك.';return 'حدث خطأ: '+m}
 function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.auth&&tok)h.Authorization='Bearer '+tok;
@@ -383,21 +384,28 @@ var me=null,staffList=[];
 function uid(){try{return JSON.parse(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub}catch(e){return null}}
 function isSup(){return !!me&&(me.role==='supervisor'||me.role==='admin')}
 function isAdmin(){return !!me&&me.role==='admin'}
+function canApprove(){return !!me&&(me.role==='admin'||(me.role==='supervisor'&&!!me.can_approve))}
 function isReporter(){return !!me&&me.role==='reporter'}
 var ROLE_AR={admin:'مدير الرقابة',supervisor:'مشرف البلاغات',inspector:'مأمور الضبط',reporter:'مُبلّغ'};
 var allStaffList=[];
-function loadAllStaff(){if(!isAdmin()){allStaffList=[];renderStaffAdmin();return Promise.resolve()}
-  return api('/rest/v1/staff?select=id,name,role,cities,active,department,report_scope,position&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
+function loadNotes(){var bx=$('#ntBox');if(!bx)return;if(!isAdmin()){bx.innerHTML='';return}
+  api('/rest/v1/notifications?select=id,title,body,created_at&read=eq.false&order=created_at.desc&limit=20',{auth:true}).then(function(a){a=a||[];
+    if(!a.length){bx.innerHTML='';return}
+    bx.innerHTML='<div class="item" style="border-color:var(--pri)"><p class="lbl" style="margin:0 0 6px">🔔 إشعارات ('+a.length+')</p>'+a.map(function(n){return '<div class="kv" style="align-items:flex-start"><span style="flex:1"><b>'+esc(n.title)+'</b><br>'+esc(n.body||'')+'<br><small class="hint">'+fmt(n.created_at)+'</small></span><button class="btn alt sm" data-nt="'+n.id+'" style="width:auto;margin:0">تم الاطلاع</button></div>'}).join('')+'</div>';
+    bx.querySelectorAll('[data-nt]').forEach(function(b){b.onclick=function(){b.disabled=true;api('/rest/v1/notifications?id=eq.'+b.dataset.nt,{m:'PATCH',auth:true,body:JSON.stringify({read:true})}).then(loadNotes).catch(function(){b.disabled=false})}})}).catch(function(){bx.innerHTML=''})}
+function loadAllStaff(){loadNotes();if(!isAdmin()){allStaffList=[];renderStaffAdmin();return Promise.resolve()}
+  return api('/rest/v1/staff?select=id,name,role,cities,active,department,report_scope,position,can_approve&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
 function citiesStr(a){return (a||[]).join('، ')}
 function parseCities(s){return s.split(/[،,]/).map(function(x){return x.trim()}).filter(Boolean)}
 function roleOptions(sel){return Object.keys(ROLE_AR).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+ROLE_AR[k]+'</option>'}).join('')}
-function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.innerHTML='';return}
+function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){if(canApprove()){box.innerHTML='<div id="reqBox"></div>';loadReqs()}else box.innerHTML='';return}
   var rows=allStaffList.map(function(z){return '<div class="item"><p><b>'+esc(z.name||'(بلا اسم)')+'</b> — <span class="tag">'+ROLE_AR[z.role]+'</span>'+(z.active?'':' <span class="tag u2">معطّل</span>')+'</p>'+
     '<label>الاسم</label><input class="sa-name" data-id="'+esc(z.id)+'" value="'+esc(z.name||'')+'">'+
     '<label>الدور</label><select class="sa-role" data-id="'+esc(z.id)+'">'+roleOptions(z.role)+'</select>'+
     (z.role==='reporter'?'<label>المنصب ونطاق التقرير</label><select class="sa-pos" data-id="'+esc(z.id)+'">'+posOpts(posOf(z))+'</select>':'')+
     '<label>المدن (بدون اختيار = كل المدن)</label>'+cityChecks('sa'+esc(z.id),z.cities||[])+
     '<label class="row" style="align-items:center;gap:8px;margin-top:10px"><input type="checkbox" class="sa-active sa-chk" data-id="'+esc(z.id)+'"'+(z.active?' checked':'')+'> الحساب مفعّل (يستطيع الدخول)</label>'+
+    (z.role==='supervisor'?'<label class="row" style="align-items:center;gap:8px;margin-top:6px"><input type="checkbox" class="sa-canap sa-chk" data-id="'+esc(z.id)+'"'+(z.can_approve?' checked':'')+'> يحق له اعتماد طلبات التسجيل ضمن مدنه</label>':'')+
     (z.id===uid()?'<p class="hint">تنبيه: هذا حسابك. تعطيله سيمنعك من الدخول فوراً.</p>':'')+
     '<button class="btn sm" data-sasave="'+esc(z.id)+'">حفظ التعديلات</button><p class="hint" id="sa-msg-'+esc(z.id)+'"></p></div>'}).join('');
   box.innerHTML='<div id="reqBox"></div><p class="lbl" style="margin-top:18px">إدارة حسابات الموظفين</p>'+rows+
@@ -429,7 +437,7 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){box.inner
     var active=document.querySelector('.sa-active[data-id="'+id+'"]').checked;
     if(!name){msg.textContent='الاسم مطلوب.';return}
     btn.disabled=true;msg.textContent='جارٍ الحفظ…';
-    var pe2=document.querySelector('.sa-pos[data-id="'+id+'"]'),pp=pe2&&POS[pe2.value],patch={name:name,role:role,cities:cities,active:active};if(pp){patch.department=pp.d;patch.report_scope=pp.sc;patch.position=pe2.value}
+    var pe2=document.querySelector('.sa-pos[data-id="'+id+'"]'),pp=pe2&&POS[pe2.value],patch={name:name,role:role,cities:cities,active:active};var ca=document.querySelector('.sa-canap[data-id="'+id+'"]');if(ca)patch.can_approve=ca.checked;if(role!=='supervisor')patch.can_approve=false;if(pp){patch.department=pp.d;patch.report_scope=pp.sc;patch.position=pe2.value}
     api('/rest/v1/staff?id=eq.'+encodeURIComponent(id),{m:'PATCH',auth:true,body:JSON.stringify(patch)})
       .then(function(){msg.textContent='تم الحفظ.';return loadMe()}).then(function(){return loadList()})
       .catch(function(x){msg.textContent=fe(x)}).then(function(){btn.disabled=false})}});
@@ -452,7 +460,7 @@ function actBox(r){var id=esc(r.id),h='';if(isReporter())return '';
   return h}
 function q1(c,id){return document.querySelector('.'+c+'[data-id="'+id+'"]')}
 function staffName(id){var x=staffList.filter(function(z){return z.id===id})[0];return x?x.name:''}
-function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities,must_change_password,department,report_scope,position&active=eq.true',{auth:true}).then(function(a){
+function loadMe(){return api('/rest/v1/staff?select=id,name,role,cities,must_change_password,department,report_scope,position,can_approve&active=eq.true',{auth:true}).then(function(a){
   staffList=a;me=a.filter(function(x){return x.id===uid()})[0]||null;
   if(!me){return rpc('my_request',{},true).catch(function(){return null}).then(function(q){
     var t=q&&q.status==='pending'?'طلب تسجيلك قيد المراجعة لدى مدير الرقابة. ستتمكن من الدخول بعد الموافقة.':q&&q.status==='rejected'?('رُفض طلب التسجيل'+(q.reason?': '+q.reason:'.')):'حسابك غير مفعّل في المنصة. راجع مدير الرقابة.';
@@ -580,9 +588,9 @@ function posKey(d,sc){for(var k in POS)if(POS[k].d===d&&POS[k].sc===sc)return k;
 function posOpts(sel){return '<option value="">— غير محدد —</option>'+Object.keys(POS).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+POS[k].l+'</option>'}).join('')}
 var UNITS=[{n:'وحدة أعمال الدمام',c:['الدمام','الخبر','الظهران','الجبيل','البيظاء','القطيف','رأس تنورة','سيهات','صفوى','عنك']},{n:'الوحدة الشمالية',c:['حفر الباطن','القيصومة','الخفجي','النعيرية','القرية العليا','مليجة']},{n:'الوحدة الجنوبية',c:['الأحساء','بقيق']}];
 var EAST_CITIES=[].concat.apply([],UNITS.map(function(u){return u.c}));
-function cityChecks(id,sel){sel=sel||[];var known=EAST_CITIES.concat(['أخرى']),extra=sel.filter(function(c){return known.indexOf(c)<0});
+function cityChecks(id,sel,allowed){sel=sel||[];var known=EAST_CITIES.concat(['أخرى']),extra=sel.filter(function(c){return known.indexOf(c)<0});
   function one(c){return '<label class="cc"><input type="checkbox" class="rq-city" data-id="'+id+'" value="'+esc(c)+'"'+(sel.indexOf(c)>-1?' checked':'')+'><span></span>'+esc(c)+'</label>'}
-  var groups=UNITS.concat([{n:'أخرى',c:['أخرى'].concat(extra)}]);
+  var groups=UNITS.concat([{n:'أخرى',c:['أخرى'].concat(extra)}]);if(allowed){groups=groups.map(function(u){return {n:u.n,c:u.c.filter(function(c){return allowed.indexOf(c)>-1})}}).filter(function(u){return u.c.length})}
   return '<div class="cp" data-cp="'+id+'">'+groups.map(function(u){return '<div class="cl-unit"><b>'+esc(u.n)+'</b><button type="button" class="cl-all" data-clunit="1">تحديد الوحدة</button></div><div class="cl-grid">'+u.c.map(one).join('')+'</div>'}).join('')+'<button type="button" class="cl-all" data-clall="'+id+'">تحديد الكل / إلغاء التحديد</button></div>'}
 document.addEventListener('click',function(e){var t=e.target;if(!t||!t.getAttribute)return;
   if(t.getAttribute('data-clunit')){var cs=t.parentNode.nextElementSibling.querySelectorAll('input'),all=Array.prototype.every.call(cs,function(x){return x.checked});Array.prototype.forEach.call(cs,function(x){x.checked=!all})}
@@ -592,11 +600,11 @@ function loadReqs(){var bx=$('#reqBox');if(!bx)return;rpc('list_requests',{},tru
   if(!a.length){bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل</p><p class="hint">لا توجد طلبات جديدة.</p>';return}
   bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل ('+a.length+')</p>'+a.map(function(q){var id=esc(q.id);return '<div class="item"><p><b>'+esc(q.name)+'</b> — طلب: <span class="tag">'+esc(RQ[q.requested_role]||q.requested_role)+'</span></p>'+
     '<div class="kv"><span>الإيميل</span><b dir="ltr">'+esc(q.email)+'</b></div><div class="kv"><span>الجوال</span><b dir="ltr">'+esc(q.phone)+'</b></div><div class="kv"><span>المسمى</span><b>'+esc(q.job_title)+'</b></div><div class="kv"><span>المدينة</span><b>'+esc(q.city)+'</b></div><div class="kv"><span>تاريخ الطلب</span><b>'+fmt(q.created_at)+'</b></div>'+
-    (q.confirmed?'':'<p class="err">لم يؤكد بريده بعد، ولا تمكن الموافقة قبل التأكيد.</p>')+
-    '<label>الصلاحية الممنوحة</label><div class="cl-grid">'+Object.keys(RQ).map(function(k){return '<label class="cc"><input type="radio" name="rr'+id+'" class="rq-role" data-id="'+id+'" value="'+k+'"'+(k===q.requested_role?' checked':'')+'><span></span>'+RQ[k]+'</label>'}).join('')+'</div>'+
+    
+    '<label>الصلاحية الممنوحة</label><div class="cl-grid">'+Object.keys(RQ).filter(function(k){return isAdmin()||k!=='supervisor'}).map(function(k){return '<label class="cc"><input type="radio" name="rr'+id+'" class="rq-role" data-id="'+id+'" value="'+k+'"'+(k===q.requested_role?' checked':'')+'><span></span>'+RQ[k]+'</label>'}).join('')+'</div>'+
     '<label>المنصب (للمبلّغ)</label><select class="rq-pos" data-id="'+id+'">'+posOpts(q.position||'')+'</select>'+
-    '<label>نطاق المدن</label><p class="hint" style="margin:0">اختر المدن التابعة له. بدون اختيار = كل المدن.</p>'+cityChecks(id,parseCities(q.city||''))+
-    '<div class="row" style="margin-top:8px"><button class="btn sm" data-rqok="'+id+'" style="flex:1;width:auto;margin:0"'+(q.confirmed?'':' disabled')+'>موافقة</button><button class="btn alt sm" data-rqno="'+id+'" style="flex:1;width:auto;margin:0;color:var(--bad)">رفض</button></div><p class="hint" data-rqm="'+id+'"></p></div>'}).join('');
+    '<label>نطاق المدن</label><p class="hint" style="margin:0">اختر المدن التابعة له. بدون اختيار = كل المدن.</p>'+cityChecks(id,parseCities(q.city||''),isAdmin()?null:(me.cities||[]))+
+    '<div class="row" style="margin-top:8px"><button class="btn sm" data-rqok="'+id+'" style="flex:1;width:auto;margin:0">موافقة</button><button class="btn alt sm" data-rqno="'+id+'" style="flex:1;width:auto;margin:0;color:var(--bad)">رفض</button></div><p class="hint" data-rqm="'+id+'"></p></div>'}).join('');
   document.querySelectorAll('[data-rqok]').forEach(function(b){b.onclick=function(){var id=b.dataset.rqok,m=document.querySelector('[data-rqm="'+id+'"]');b.disabled=true;m.textContent='جارٍ التفعيل…';
     var rl=(document.querySelector('.rq-role[data-id="'+id+'"]:checked')||{}).value||'reporter',ps=POS[q1('rq-pos',id).value];if(rl==='reporter'&&!ps){m.textContent='حدد المنصب.';b.disabled=false;return}
     rpc('approve_request',{p_id:+id,p_role:rl,p_cities:pickedCities(id),p_department:rl==='reporter'?ps.d:null,p_scope:rl==='reporter'?ps.sc:'none',p_position:rl==='reporter'?q1('rq-pos',id).value:null},true).then(function(){return loadMe()}).then(function(){loadList()}).catch(function(x){m.textContent=fe(x);b.disabled=false})}});

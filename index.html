@@ -128,7 +128,9 @@ label.cc input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2p
 <input id="nem" type="email" dir="ltr" style="text-align:right" autocomplete="username">
 <label for="npw">كلمة المرور</label>
 <input id="npw" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
+<label style="display:flex;gap:8px;align-items:center;margin:10px 0 0;font-weight:400"><input type="checkbox" id="nrm" checked style="width:auto;margin:0"> تذكّر الدخول على هذا الجهاز</label>
 <button class="btn" id="nlg">تسجيل الدخول لتقديم بلاغ</button>
+<button class="btn alt biob" type="button" hidden style="margin-top:8px">🔐 الدخول بالبصمة / الوجه</button>
 <p class="err" id="nlerr" hidden></p>
 <div class="row" style="justify-content:space-between;margin-top:12px"><a href="#" class="lnk" data-reg="1">طلب تسجيل جديد</a><a href="#" class="lnk" data-forgot="nem">نسيت كلمة المرور؟</a></div>
 </div>
@@ -207,7 +209,9 @@ label.cc input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2p
 <input id="em" type="email" dir="ltr" style="text-align:right" autocomplete="username">
 <label for="pw">كلمة المرور</label>
 <input id="pw" type="password" dir="ltr" style="text-align:right" autocomplete="current-password">
+<label style="display:flex;gap:8px;align-items:center;margin:10px 0 0;font-weight:400"><input type="checkbox" id="rm" checked style="width:auto;margin:0"> تذكّر الدخول على هذا الجهاز</label>
 <button class="btn" id="lg">تسجيل الدخول</button>
+<button class="btn alt biob" type="button" hidden style="margin-top:8px">🔐 الدخول بالبصمة / الوجه</button>
 <p class="err" id="lerr" hidden></p>
 <div class="row" style="justify-content:space-between;margin-top:12px"><a href="#" class="lnk" data-reg="1">طلب تسجيل جديد</a><a href="#" class="lnk" data-forgot="em">نسيت كلمة المرور؟</a></div>
 </div>
@@ -364,8 +368,8 @@ $('#flt').innerHTML='<option value="">كل الحالات</option>'+SK.map(funct
 $('#flt').onchange=loadList;
 function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.removeItem('tk')}catch(e){}
   $('#login').hidden=!!t;$('#reg').hidden=true;$('#panel').hidden=true;$('#rep-note').hidden=true;$('#new-locked').hidden=!!t;$('#new-body').hidden=!t;
-  if(!t){me=null;$('#name').readOnly=false;return}
-  loadMe().then(function(ok){if(!ok)return;if(me.must_change_password){askPw(true,afterLogin);return}afterLogin()}).catch(function(){})}
+  if(!t){me=null;$('#name').readOnly=false;clearTimeout(refT);return}
+  sched();loadMe().then(function(ok){if(!ok)return;if(me.must_change_password){askPw(true,afterLogin);return}afterLogin()}).catch(function(){})}
 function afterLogin(){
     if(isReporter()){$('#rep-note').hidden=false;fillReporter();document.querySelector('nav button[data-v="new"]').click()}
     else{$('#rep-who').textContent=me.name;$('#rpt-box').hidden=true;$('#rpt-admin').hidden=!isAdmin();$('#panel').hidden=false;loadList()}}
@@ -376,10 +380,41 @@ function fillReporter(){if(!me)return;var rb=$('#rpt-box');rb.hidden=!(me.report
   api('/rest/v1/staff?select=phone,job_title&id=eq.'+encodeURIComponent(me.id),{auth:true}).then(function(a){var x=a&&a[0];if(!x)return;if(x.phone)$('#phone').value=x.phone;if(x.job_title)$('#rep-who').textContent='مقدّم البلاغ: '+me.name+' — '+x.job_title}).catch(function(){})}
 function doLogin(emEl,pwEl,erEl){erEl.hidden=true;
   api('/auth/v1/token?grant_type=password',{m:'POST',body:JSON.stringify({email:emEl.value.trim(),password:pwEl.value})})
-  .then(function(r){pwEl.value='';setSess(r.access_token)}).catch(function(x){erEl.hidden=false;erEl.textContent=fe(x)})}
+  .then(function(r){pwEl.value='';var rmE=$(emEl.id==='em'?'#rm':'#nrm'),rem=!!(rmE&&rmE.checked);lsSet(RT_K,rem?r.refresh_token:null);setSess(r.access_token);if(rem)offerBio(emEl.value.trim())}).catch(function(x){erEl.hidden=false;erEl.textContent=fe(x)})}
+
+/* تذكّر الدخول والبصمة: الرمز يُحفظ على الجهاز، والبصمة (WebAuthn) تُطلب قبل استخدامه */
+var RT_K='rt',BIO_K='bio',refT=null;
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}
+function b64(b){return btoa(String.fromCharCode.apply(null,new Uint8Array(b)))}
+function unb64(x){return Uint8Array.from(atob(x),function(c){return c.charCodeAt(0)})}
+function bioOK(){return !!(window.PublicKeyCredential&&navigator.credentials&&navigator.credentials.create)}
+function jwtExp(t){try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp*1000}catch(e){return 0}}
+function refreshSess(){var rt=lsGet(RT_K);if(!rt)return Promise.reject(new Error('no_rt'));
+  return api('/auth/v1/token?grant_type=refresh_token',{m:'POST',body:JSON.stringify({refresh_token:rt})}).then(function(r){lsSet(RT_K,r.refresh_token);return r.access_token})}
+function sched(){clearTimeout(refT);if(!lsGet(RT_K))return;
+  refT=setTimeout(function(){refreshSess().then(function(t2){tok=t2;try{sessionStorage.setItem('tk',t2)}catch(e){}sched()}).catch(function(){})},50*60*1000)}
+function showBio(){var on=!!(lsGet(RT_K)&&lsGet(BIO_K)&&bioOK());document.querySelectorAll('.biob').forEach(function(b){b.hidden=!on})}
+function enableBio(email){var ch=crypto.getRandomValues(new Uint8Array(32)),uid8=crypto.getRandomValues(new Uint8Array(16));
+  return navigator.credentials.create({publicKey:{challenge:ch,rp:{name:'منصة البلاغات'},user:{id:uid8,name:email||'user',displayName:email||'user'},
+    pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000}})
+  .then(function(c){lsSet(BIO_K,b64(c.rawId));lsSet('bio_no',null);alert('تم تفعيل الدخول بالبصمة على هذا الجهاز.')}).catch(function(){lsSet('bio_no','1')})}
+function offerBio(email){if(!bioOK()||lsGet(BIO_K)||lsGet('bio_no'))return;
+  setTimeout(function(){if(confirm('هل تريد تفعيل الدخول بالبصمة أو الوجه على هذا الجهاز؟'))enableBio(email);else lsSet('bio_no','1')},1500)}
+function bioLogin(){var er=!$('#login').hidden?$('#lerr'):$('#nlerr');er.hidden=true;
+  navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:unb64(lsGet(BIO_K))}],userVerification:'required',timeout:60000}})
+  .then(function(){return refreshSess()}).then(function(t){setSess(t)})
+  .catch(function(x){if(x&&x.message&&!/NotAllowed|cancel|abort|timed out/i.test(x.name+x.message)){lsSet(RT_K,null);showBio()}
+    er.hidden=false;er.textContent='تعذّر التحقق. استخدم البريد وكلمة المرور.'})}
+document.querySelectorAll('.biob').forEach(function(b){b.onclick=bioLogin});
+function startSess(){var st=null;try{st=sessionStorage.getItem('tk')}catch(e){}
+  if(st&&jwtExp(st)>Date.now()+60000){setSess(st);return}
+  if(!lsGet(RT_K)){showBio();return}
+  if(lsGet(BIO_K)&&bioOK()){showBio();return}
+  refreshSess().then(setSess).catch(function(){lsSet(RT_K,null)})}
 $('#lg').onclick=function(){doLogin($('#em'),$('#pw'),$('#lerr'))};
 $('#nlg').onclick=function(){doLogin($('#nem'),$('#npw'),$('#nlerr'))};
-$('#out').onclick=$('#rep-out').onclick=$('#rep-out2').onclick=function(){setSess(null)};
+$('#out').onclick=$('#rep-out').onclick=$('#rep-out2').onclick=function(){lsSet(RT_K,null);setSess(null);showBio()};
 var me=null,staffList=[];
 function uid(){try{return JSON.parse(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub}catch(e){return null}}
 function isSup(){return !!me&&(me.role==='supervisor'||me.role==='admin')}
@@ -688,7 +723,7 @@ $('#reg-go').onclick=function(){var m=$('#reg-msg'),g=function(i){return $('#'+i
     if(q.type==='recovery'){tok=q.access_token;askPw(false,function(){setSess(q.access_token)});$('#pw-title').textContent='تعيين كلمة مرور جديدة';$('#pw-cancel').hidden=true;return}
     document.querySelector('nav button[data-v="insp"]').click();setSess(q.access_token);return}
   if(q.error_description){history.replaceState(null,'',location.pathname+location.search);document.querySelector('nav button[data-v="insp"]').click();var le=$('#lerr');le.hidden=false;le.textContent='انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.';}
-  try{var st=sessionStorage.getItem('tk');if(st)setSess(st)}catch(e){}})();
+  startSess()})();
 
 </script>
 <script>

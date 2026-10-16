@@ -147,7 +147,7 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="acct" placeholder="اختياري" inputmode="numeric">
 <label for="desc">وصف البلاغ <i>*</i></label>
 <textarea id="desc" placeholder="اشرح الحالة باختصار، ومتى تمت ملاحظتها، وأي معلومات تساعد الفريق الميداني."></textarea>
-<label>إرفاق صور أو فيديو (حتى 5 ملفات)</label>
+<label>إرفاق الصور <i>*</i> (من 5 إلى 10 صور) والفيديو (اختياري)</label>
 <div class="row">
 <button type="button" class="btn alt sm" id="pk-cam" style="flex:1;width:auto;margin:0">📷 تصوير صورة</button>
 <button type="button" class="btn alt sm" id="pk-vid" style="flex:1;width:auto;margin:0">🎥 تصوير فيديو</button>
@@ -157,7 +157,7 @@ footer{text-align:center;color:var(--mut);font-size:12.5px;padding:8px 14px 28px
 <input id="in-vid" type="file" accept="video/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0">
 <input id="in-gal" type="file" accept="image/*,video/*" multiple style="position:absolute;width:1px;height:1px;opacity:0">
 <div id="pk-list"></div>
-<p class="hint">يفضل إرفاق صورة واضحة للموقع والمخالفة وما يثبت رقم العداد إن كان ظاهراً. حجم الفيديو حتى 50 ميجابايت.</p>
+<p class="hint">إرفاق <b>5 صور على الأقل</b> إلزامي (والحد الأقصى 10 صور): صور واضحة للموقع والمخالفة وما يثبت رقم العداد إن كان ظاهراً. الفيديو اختياري (فيديو واحد، حتى 50 ميجابايت).</p>
 <div class="note">بإرسال البلاغ، يقر المبلّغ بصحة المعلومات المقدمة حسب علمه، وتستخدم البيانات لغرض دراسة البلاغ واتخاذ الإجراء النظامي. تقديم البلاغ لا يعني ثبوت المخالفة قبل التحقق الميداني والمراجعة.</div>
 <button class="btn" id="sub" type="submit">إرسال البلاغ</button>
 <p class="err" id="ferr" hidden></p>
@@ -244,7 +244,7 @@ var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){r
 var SK=['new','verifying','confirmed','no_violation','closed'];
 var SL={new:'جديد',verifying:'تحت الإجراء',confirmed:'تأكدت المخالفة',no_violation:'لا توجد مخالفة',closed:'مغلق'};
 var UR=['عادي','عاجل','عاجل جداً'];
-var ERR={email_not_confirmed:'لم يؤكد صاحب الطلب بريده بعد.',domain_not_allowed:'التسجيل متاح لإيميلات الشركة فقط.',inspector_only:'إغلاق البلاغ لمأمور الضبط فقط.',not_assigned:'هذا البلاغ ليس مسنداً إليك.',report_closed:'البلاغ مغلق.',use_close:'استخدم «إغلاق البلاغ» لتسجيل النتيجة.',invalid_file:'ملف غير صالح أو أكثر من 10 ملفات.',note_required:'اكتب ملاحظة الإغلاق.',violation_no_required:'أدخل رقم المخالفة.',admin_only:'هذا الإجراء لمدير الرقابة فقط.',invalid_target:'الاختيار غير صالح.',not_closed:'البلاغ غير مغلق.',remind_too_early:'يمكن التذكير بعد مرور 3 أيام على البلاغ.',remind_wait:'أرسلت تذكيراً مؤخراً. يمكنك التذكير مرة كل يوم.',reports_description_check:'وصف البلاغ قصير. اكتب وصفاً أوضح للحالة.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 5 صور.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
+var ERR={email_not_confirmed:'لم يؤكد صاحب الطلب بريده بعد.',domain_not_allowed:'التسجيل متاح لإيميلات الشركة فقط.',inspector_only:'إغلاق البلاغ لمأمور الضبط فقط.',not_assigned:'هذا البلاغ ليس مسنداً إليك.',report_closed:'البلاغ مغلق.',use_close:'استخدم «إغلاق البلاغ» لتسجيل النتيجة.',invalid_file:'ملف غير صالح أو أكثر من 10 ملفات.',note_required:'اكتب ملاحظة الإغلاق.',violation_no_required:'أدخل رقم المخالفة.',admin_only:'هذا الإجراء لمدير الرقابة فقط.',invalid_target:'الاختيار غير صالح.',not_closed:'البلاغ غير مغلق.',remind_too_early:'يمكن التذكير بعد مرور 3 أيام على البلاغ.',remind_wait:'أرسلت تذكيراً مؤخراً. يمكنك التذكير مرة كل يوم.',reports_description_check:'وصف البلاغ قصير. اكتب وصفاً أوضح للحالة.',invalid_phone:'رقم الجوال غير صحيح.',missing_fields:'أكمل الحقول المطلوبة.',rate_limited:'وصلت للحد اليومي من البلاغات لهذا الرقم. حاول غداً.',too_many_attempts:'محاولات كثيرة. انتظر 15 دقيقة ثم حاول.',too_many_photos:'الحد الأقصى 10 صور وفيديو واحد.',forbidden:'لا تملك صلاحية على هذا البلاغ.',supervisor_only:'هذا الإجراء للمشرف فقط.',not_found:'البلاغ غير موجود.',not_confirmed:'يمكن إدخال رقم المخالفة بعد اختيار «تأكدت المخالفة».'};
 var tok=null;
 function fe(e){var m=(e&&e.message)||'';for(var k in ERR)if(m.indexOf(k)>-1)return ERR[k];if(/Failed to fetch|NetworkError/i.test(m))return 'تعذر الاتصال بالخادم. تحقق من الإنترنت.';if(/Invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة.';if(/Email not confirmed/i.test(m))return 'أكّد بريدك أولاً من الرابط المرسل إليك.';return 'حدث خطأ: '+m}
 function api(path,o){o=o||{};var h={apikey:K,'Content-Type':'application/json'};if(o.auth&&tok)h.Authorization='Bearer '+tok;
@@ -273,10 +273,13 @@ function shrink(f){return new Promise(function(res,rej){var im=new Image(),u=URL
   im.onerror=function(){rej(new Error('تعذر قراءة الصورة'))};im.src=u})}
 var picked=[];
 function isVid(f){return /^video\//.test(f.type)||/\.(mp4|mov|m4v|webm)$/i.test(f.name)}
-function renderPicked(){$('#pk-list').innerHTML=picked.map(function(f,i){return '<div class="kv"><span>'+(isVid(f)?'🎥 فيديو':'📷 صورة')+' '+(i+1)+'</span><b><button type="button" class="btn alt sm" data-rm="'+i+'" style="width:auto;margin:0;padding:4px 12px">حذف</button></b></div>'}).join('');
+function nPhotos(){return picked.filter(function(f){return !isVid(f)}).length}
+function nVideos(){return picked.length-nPhotos()}
+function renderPicked(){$('#pk-list').innerHTML=(picked.length?'<p class="hint">الصور: '+nPhotos()+' من 5 على الأقل (الحد الأقصى 10)'+(nVideos()?' — الفيديو: '+nVideos():'')+'</p>':'')+picked.map(function(f,i){return '<div class="kv"><span>'+(isVid(f)?'🎥 فيديو':'📷 صورة')+' '+(i+1)+'</span><b><button type="button" class="btn alt sm" data-rm="'+i+'" style="width:auto;margin:0;padding:4px 12px">حذف</button></b></div>'}).join('');
   document.querySelectorAll('[data-rm]').forEach(function(b){b.onclick=function(){picked.splice(+b.dataset.rm,1);renderPicked()}})}
 function addPicked(inp){var er=$('#ferr');Array.prototype.slice.call(inp.files).forEach(function(f){
-    if(picked.length>=5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
+    if(isVid(f)&&nVideos()>=1){er.hidden=false;er.textContent='يُسمح بفيديو واحد فقط.';return}
+    if(!isVid(f)&&nPhotos()>=10){er.hidden=false;er.textContent=ERR.too_many_photos;return}
     if(isVid(f)&&f.size>50*1024*1024){er.hidden=false;er.textContent='حجم الفيديو أكبر من 50 ميجابايت. صوّر مقطعاً أقصر.';return}
     picked.push(f)});inp.value='';renderPicked()}
 ['cam','vid','gal'].forEach(function(k){$('#pk-'+k).onclick=function(){$('#in-'+k).click()};$('#in-'+k).onchange=function(){addPicked(this)}});
@@ -311,7 +314,8 @@ $('#f').onsubmit=function(e){e.preventDefault();
     if(!v){el.classList.add('bad');bad.push(k);var m=document.createElement('p');m.className='err fe';m.textContent='مطلوب: '+FN[k];el.insertAdjacentElement('afterend',m)}else el.classList.remove('bad')});
   if(bad.length){er.hidden=false;er.textContent='أكمل الحقول التالية: '+bad.map(function(k){return FN[k]}).join('، ');if(bad.indexOf('district')>-1&&!$('#district-sel').hidden&&$('#district').hidden)$('#district-sel').classList.add('bad');var f0=(bad[0]==='district'&&!$('#district-sel').hidden&&$('#district').hidden)?$('#district-sel'):$('#'+bad[0]);f0.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){f0.focus()},400);return}
   var files=picked.slice();
-  if(files.length>5){er.hidden=false;er.textContent=ERR.too_many_photos;return}
+  if(nPhotos()>10||nVideos()>1){er.hidden=false;er.textContent=ERR.too_many_photos;return}
+  if(nPhotos()<5){er.hidden=false;er.textContent='إرفاق 5 صور على الأقل إلزامي (الحد الأقصى 10). المرفق حالياً: '+nPhotos()+' صور.';$('#pk-list').scrollIntoView({behavior:'smooth',block:'center'});return}
   er.hidden=true;var btn=$('#sub');btn.disabled=true;btn.textContent='جارٍ الإرسال…';
   var loc=$('#loc').value.trim(),m=loc.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
   Promise.all(files.map(upload)).then(function(paths){

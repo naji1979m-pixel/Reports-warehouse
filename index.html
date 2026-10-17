@@ -160,7 +160,7 @@ label.cc input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2p
 <label for="loc">موقع البلاغ <i>*</i></label>
 <input id="loc" placeholder="الصق رابط Google Maps أو الإحداثيات" dir="ltr" style="text-align:right">
 <button type="button" class="btn alt sm" id="gps">استخدام موقعي الحالي</button>
-<p class="hint" id="gpsmsg">يمكن إدخال رابط الموقع أو الإحداثية مثل: 28.4302277, 45.9685779</p>
+<p class="hint" id="gpsmsg">يمكن إدخال رابط الموقع من Google Maps، أو الإحداثية بصيغة: خط العرض، خط الطول (أرقام عشرية).</p>
 <label for="meter">رقم العداد إن وجد</label>
 <input id="meter" placeholder="اختياري" inputmode="numeric">
 <label for="subs">رقم الحساب إن وجد</label>
@@ -286,11 +286,24 @@ document.querySelectorAll('nav button').forEach(function(b){b.onclick=function()
 
 ['input','change'].forEach(function(ev){$('#f').addEventListener(ev,function(e){var t=e.target;t.classList.remove('bad');var n=t.nextElementSibling;if(n&&n.classList.contains('fe'))n.remove()})});
 $('#urg').onchange=function(){$('#urg-box').hidden=!(+this.value>0)};
-$('#gps').onclick=function(){var m=$('#gpsmsg');
+/* التحقق من الموقع: دقة GPS + بُعد الإحداثية عن المدينة المختارة */
+var CITY_XY={'الدمام':[26.43,50.10],'الخبر':[26.28,50.21],'الظهران':[26.29,50.15],'الجبيل':[27.01,49.66],'القطيف':[26.56,50.01],'رأس تنورة':[26.64,50.16],'سيهات':[26.48,50.04],'صفوى':[26.65,49.95],'عنك':[26.56,49.99],
+  'حفر الباطن':[28.43,45.97],'القيصومة':[28.31,46.13],'الخفجي':[28.44,48.49],'النعيرية':[27.47,48.49],'القرية العليا':[27.50,47.72],'الأحساء':[25.38,49.59],'بقيق':[25.93,49.67]};
+function distKm(a,b,c,d){var R=6371,r=Math.PI/180,x=(c-a)*r,y=(d-b)*r,h=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)*Math.sin(y/2);return 2*R*Math.asin(Math.sqrt(h))}
+function locXY(t){t=String(t||'');var m=t.match(/@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/)||t.match(/[?&](?:q|ll|query)=(-?\d{1,3}\.\d+)(?:,|%2C)\s*(-?\d{1,3}\.\d+)/i)||t.match(/^\s*(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$/);return m?[+m[1],+m[2]]:null}
+function farFromCity(){var c=CITY_XY[$('#city').value],xy=locXY($('#loc').value);if(!c||!xy)return 0;var d=distKm(c[0],c[1],xy[0],xy[1]);return d>150?Math.round(d):0}
+$('#gps').onclick=function(){var m=$('#gpsmsg'),btn=$('#gps');
   if(!navigator.geolocation){m.textContent='المتصفح لا يدعم تحديد الموقع. الصق الرابط أو الإحداثيات يدوياً.';return}
-  m.textContent='جارٍ تحديد الموقع…';
-  navigator.geolocation.getCurrentPosition(function(p){$('#loc').value=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6);$('#loc').classList.remove('bad');m.textContent='تم تحديد موقعك الحالي.'},
-  function(){m.textContent='تعذّر تحديد الموقع. اسمح بالوصول للموقع أو الصق الرابط يدوياً.'},{enableHighAccuracy:true,timeout:12000})};
+  m.textContent='جارٍ تحديد الموقع بدقة… انتظر حتى 15 ثانية.';btn.disabled=true;var best=null,done=false,wid;
+  function fin(){if(done)return;done=true;navigator.geolocation.clearWatch(wid);btn.disabled=false;
+    if(!best){m.textContent='تعذّر تحديد الموقع. اسمح بالوصول للموقع وفعّل GPS، أو الصق رابط الموقع من Google Maps.';return}
+    var acc=Math.round(best.coords.accuracy);
+    if(acc>2000){m.textContent='الموقع الذي حدده الجهاز تقريبي جداً (دقة نحو '+Math.round(acc/1000)+' كم) ولم يُدخل. فعّل GPS ودقة الموقع العالية ثم أعد المحاولة، أو افتح Google Maps وانسخ رابط الموقع هنا.';return}
+    $('#loc').value=best.coords.latitude.toFixed(6)+', '+best.coords.longitude.toFixed(6);$('#loc').classList.remove('bad');
+    var far=farFromCity();
+    m.textContent='تم تحديد موقعك (الدقة نحو '+acc+' م).'+(acc>300?' الدقة متوسطة، تأكد من الموقع.':'')+(far?' تنبيه: الموقع يبعد نحو '+far+' كم عن المدينة المختارة، تأكد من صحته.':'')}
+  wid=navigator.geolocation.watchPosition(function(p){if(!best||p.coords.accuracy<best.coords.accuracy)best=p;if(p.coords.accuracy<=50)fin()},function(){fin()},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+  setTimeout(fin,15000)};
 
 function shrink(f){return new Promise(function(res,rej){var im=new Image(),u=URL.createObjectURL(f);
   im.onload=function(){var s=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
@@ -332,6 +345,7 @@ $('#f').onsubmit=function(e){e.preventDefault();
   var ok=true,er=$('#ferr');
   var req=['name','phone','city','district','type','loc','desc'];if(+$('#urg').value>0)req.push('urgr');
   var FN={name:'اسم المبلّغ',phone:'رقم الجوال (05XXXXXXXX)',city:'المدينة',district:'الحي',type:'نوع البلاغ',loc:'موقع البلاغ',desc:'وصف البلاغ (10 أحرف على الأقل)',urgr:'سبب الاستعجال'};
+  var far0=farFromCity();if(far0&&!confirm('الموقع المدخل يبعد نحو '+far0+' كم عن المدينة المختارة. هل أنت متأكد من صحة الموقع؟'))return;
   var bad=[];document.querySelectorAll('#f .fe').forEach(function(x){x.remove()});
   req.forEach(function(k){var el=$('#'+k),v=el.value.trim();
     if(k==='phone'&&!/^05\d{8}$/.test(dig(v)))v='';

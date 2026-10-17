@@ -78,6 +78,21 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .bar em{font-style:normal;color:var(--mut);text-align:left}
 .vn .row select{flex:1;min-width:0}
 .sa-chk{width:auto!important}
+.ptabs{display:flex;gap:6px;background:var(--soft);padding:4px;border-radius:12px;margin:10px 0}
+.ptabs button{flex:1;border:0;background:none;color:var(--mut);font:600 14px inherit;font-family:inherit;padding:9px 4px;border-radius:9px;cursor:pointer}
+.ptabs button[aria-selected=true]{background:var(--card);color:var(--pri);box-shadow:0 1px 3px #0002}
+.bdg{display:inline-block;min-width:20px;background:var(--bad);color:#fff;border-radius:99px;padding:0 7px;font-size:12px;line-height:20px;margin-inline-start:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:5px 12px;font:600 13px inherit;font-family:inherit;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--pri);color:#fff;border-color:var(--pri)}
+.sf{border:1px solid var(--line);border-radius:14px;margin-top:8px;background:var(--card)}
+.sfh{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:10px 12px;cursor:pointer;font-family:inherit;font-size:inherit;text-align:right;color:inherit}
+.av{flex:none;width:38px;height:38px;border-radius:50%;background:var(--soft);color:var(--pri);display:grid;place-items:center;font-weight:700}
+.sfi{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.5}
+.sfi small{color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;background:#2a9d5c}.dot.off{background:var(--bad)}
+.sfb{padding:0 12px 12px;border-top:1px solid var(--line)}
+details.item>summary{cursor:pointer;font-weight:700}
 [hidden]{display:none!important}
 a.lnk{color:var(--pri);font-weight:600;font-size:14px;text-decoration:none}
 #print-area{position:fixed;inset:0;z-index:50;overflow:auto;background:#fff;color:#111;padding:18px;font-size:13px}
@@ -238,6 +253,12 @@ label.cc input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2p
 <div id="panel" hidden>
 <div class="row" style="justify-content:space-between"><b id="who">البلاغات</b><span class="row"><button class="btn alt sm" data-chpw="1" style="width:auto;margin:0;padding:6px 14px">تغيير كلمة المرور</button><button class="btn alt sm" id="out" style="width:auto;margin:0;padding:6px 14px">خروج</button></span></div>
 <div id="ntBox"></div>
+<div id="ptabs" class="ptabs" hidden>
+<button type="button" data-pt="rep" aria-selected="true">البلاغات</button>
+<button type="button" data-pt="stf" id="pt-stf-b" aria-selected="false" hidden>الموظفون <span class="bdg" id="stfN" style="background:var(--pri)">0</span></button>
+<button type="button" data-pt="req" id="pt-req-b" aria-selected="false" hidden>الطلبات <span class="bdg" id="reqN" hidden>0</span></button>
+</div>
+<div id="pt-rep">
 <div id="dash"></div>
 <label for="flt">تصفية حسب الحالة</label>
 <select id="flt"></select>
@@ -246,7 +267,9 @@ label.cc input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2p
 <div id="xout"></div>
 <div id="list"></div>
 <p class="err" id="perr" hidden></p>
-<div id="staffAdminBox"></div>
+</div>
+<div id="pt-req" hidden><div id="reqBox"></div></div>
+<div id="pt-stf" hidden><div id="staffAdminBox"></div></div>
 </div>
 </section>
 </main>
@@ -386,7 +409,7 @@ function setSess(t){tok=t;try{t?sessionStorage.setItem('tk',t):sessionStorage.re
   sched();loadMe().then(function(ok){if(!ok)return;if(me.must_change_password){askPw(true,afterLogin);return}afterLogin()}).catch(function(){})}
 function afterLogin(){
     if(isReporter()){$('#rep-note').hidden=false;fillReporter();document.querySelector('nav button[data-v="new"]').click()}
-    else{$('#rep-who').textContent=me.name;$('#rpt-box').hidden=true;$('#rpt-admin').hidden=!isAdmin();$('#panel').hidden=false;loadList()}}
+    else{$('#rep-who').textContent=me.name;$('#rpt-box').hidden=true;$('#rpt-admin').hidden=!isAdmin();$('#panel').hidden=false;setupPT();loadList()}}
 
 function fillReporter(){if(!me)return;var rb=$('#rpt-box');rb.hidden=!(me.report_scope&&me.report_scope!=='none');if(!rb.hidden){var pk=posOf(me);$('#rpt-scope').textContent=(POS[pk]?POS[pk].l:'')+(me.report_scope==='branch'&&me.cities&&me.cities[0]?' — '+me.cities[0]:'')}$('#rep-who').textContent='مقدّم البلاغ: '+me.name;
   $('#name').value=me.name;$('#name').readOnly=true;$('#role').value='موظف شركة المياه';
@@ -443,12 +466,19 @@ function loadNotes(){var bx=$('#ntBox');if(!bx)return;if(!isAdmin()){bx.innerHTM
     bx.innerHTML='<div class="item" style="border-color:var(--pri)"><p class="lbl" style="margin:0 0 6px">🔔 إشعارات ('+a.length+')</p>'+a.map(function(n){return '<div class="kv" style="align-items:flex-start"><span style="flex:1"><b>'+esc(n.title)+'</b><br>'+esc(n.body||'')+'<br><small class="hint">'+fmt(n.created_at)+'</small></span><button class="btn alt sm" data-nt="'+n.id+'" style="width:auto;margin:0">تم الاطلاع</button></div>'}).join('')+'</div>';
     bx.querySelectorAll('[data-nt]').forEach(function(b){b.onclick=function(){b.disabled=true;api('/rest/v1/notifications?id=eq.'+b.dataset.nt,{m:'PATCH',auth:true,body:JSON.stringify({read:true})}).then(loadNotes).catch(function(){b.disabled=false})}})}).catch(function(){bx.innerHTML=''})}
 function loadAllStaff(){loadNotes();if(!isAdmin()){allStaffList=[];renderStaffAdmin();return Promise.resolve()}
-  return api('/rest/v1/staff?select=id,name,role,cities,active,department,report_scope,position,can_approve&order=role',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
+  return api('/rest/v1/staff?select=id,name,role,cities,active,department,report_scope,position,can_approve,phone,job_title&order=name',{auth:true}).then(function(a){allStaffList=a;renderStaffAdmin()}).catch(function(){})}
 function citiesStr(a){return (a||[]).join('، ')}
 function parseCities(s){return s.split(/[،,]/).map(function(x){return x.trim()}).filter(Boolean)}
 function roleOptions(sel){return Object.keys(ROLE_AR).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+ROLE_AR[k]+'</option>'}).join('')}
-function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){if(canApprove()){box.innerHTML='<div id="reqBox"></div>';loadReqs()}else box.innerHTML='';return}
-  var rows=allStaffList.map(function(z){return '<div class="item"><p><b>'+esc(z.name||'(بلا اسم)')+'</b> — <span class="tag">'+ROLE_AR[z.role]+'</span>'+(z.active?'':' <span class="tag u2">معطّل</span>')+'</p>'+
+var sfState={q:'',role:'',unit:'',st:''},sfOpen={},ptCur='rep';
+function norm(t){return String(t||'').toLowerCase().replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي')}
+function unitsOf(c){c=c||[];if(!c.length)return UNITS.map(function(u){return u.n});return UNITS.filter(function(u){return c.some(function(x){return u.c.indexOf(x)>-1})}).map(function(u){return u.n})}
+function citySum(c){c=c||[];if(!c.length)return 'كل المدن';return c.length<=2?c.join('، '):c.slice(0,2).join('، ')+' +'+(c.length-2)}
+var ROLE_ORD={admin:0,supervisor:1,inspector:2,reporter:3};
+function showPT(k){ptCur=k;document.querySelectorAll('[data-pt]').forEach(function(b){b.setAttribute('aria-selected',b.dataset.pt===k)});['rep','req','stf'].forEach(function(v){var e=$('#pt-'+v);if(e)e.hidden=v!==k});window.scrollTo(0,0)}
+function setupPT(){var adm=isAdmin(),ap=canApprove();$('#ptabs').hidden=!ap;$('#pt-stf-b').hidden=!adm;$('#pt-req-b').hidden=!ap;showPT('rep')}
+document.querySelectorAll('[data-pt]').forEach(function(b){b.onclick=function(){showPT(b.dataset.pt)}});
+function sfBody(z){return (z.phone||z.job_title?'<p class="hint" style="margin:10px 0 0">'+(z.job_title?esc(z.job_title):'')+(z.job_title&&z.phone?' — ':'')+(z.phone?'<span dir="ltr">'+esc(z.phone)+'</span>':'')+'</p>':'')+
     '<label>الاسم</label><input class="sa-name" data-id="'+esc(z.id)+'" value="'+esc(z.name||'')+'">'+
     '<label>الدور</label><select class="sa-role" data-id="'+esc(z.id)+'">'+roleOptions(z.role)+'</select>'+
     (z.role==='reporter'?'<label>المنصب ونطاق التقرير</label><select class="sa-pos" data-id="'+esc(z.id)+'">'+posOpts(posOf(z))+'</select>':'')+
@@ -456,15 +486,55 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){if(canApp
     '<label class="row" style="align-items:center;gap:8px;margin-top:10px"><input type="checkbox" class="sa-active sa-chk" data-id="'+esc(z.id)+'"'+(z.active?' checked':'')+'> الحساب مفعّل (يستطيع الدخول)</label>'+
     (z.role==='supervisor'?'<label class="row" style="align-items:center;gap:8px;margin-top:6px"><input type="checkbox" class="sa-canap sa-chk" data-id="'+esc(z.id)+'"'+(z.can_approve?' checked':'')+'> يحق له اعتماد طلبات التسجيل ضمن مدنه</label>':'')+
     (z.id===uid()?'<p class="hint">تنبيه: هذا حسابك. تعطيله سيمنعك من الدخول فوراً.</p>':'')+
-    '<button class="btn sm" data-sasave="'+esc(z.id)+'">حفظ التعديلات</button><p class="hint" id="sa-msg-'+esc(z.id)+'"></p></div>'}).join('');
-  box.innerHTML='<div id="reqBox"></div><p class="lbl" style="margin-top:18px">إدارة حسابات الموظفين</p>'+rows+
-    '<div class="item"><p><b>إضافة حساب موظف جديد</b></p><p class="hint">أنشئ الحساب أولاً من Supabase (Authentication ← Users ← Create new user)، ثم الصق رقم الـ UID هنا لربطه بدور وصلاحية.</p>'+
+    '<button class="btn sm" data-sasave="'+esc(z.id)+'">حفظ التعديلات</button><p class="hint" id="sa-msg-'+esc(z.id)+'"></p>'}
+function sfRow(z){var nm=z.name||'(بلا اسم)',q=norm([nm,z.job_title,z.phone,(z.cities||[]).join(' '),ROLE_AR[z.role]].join(' '));
+  return '<div class="sf" data-id="'+esc(z.id)+'" data-role="'+esc(z.role)+'" data-act="'+(z.active?'1':'0')+'" data-units="'+esc(unitsOf(z.cities).join('|'))+'" data-q="'+esc(q)+'">'+
+    '<button type="button" class="sfh" aria-expanded="false"><span class="av">'+esc(nm.trim().charAt(0))+'</span><span class="sfi"><b>'+esc(nm)+'</b><small>'+esc((z.job_title?z.job_title+' · ':'')+citySum(z.cities))+'</small></span>'+
+    '<span class="tag">'+esc(ROLE_AR[z.role])+'</span><span class="dot'+(z.active?'':' off')+'" title="'+(z.active?'مفعّل':'معطّل')+'"></span><span class="chev">▾</span></button><div class="sfb" hidden></div></div>'}
+function applySF(){var qs=norm(sfState.q).split(/\s+/).filter(Boolean),n=0,all=document.querySelectorAll('#sfList .sf');
+  all.forEach(function(w){var d=w.dataset,ok=(!sfState.role||d.role===sfState.role)&&(!sfState.unit||d.units.split('|').indexOf(sfState.unit)>-1)&&(sfState.st===''||d.act===sfState.st)&&qs.every(function(t){return d.q.indexOf(t)>-1});w.hidden=!ok;if(ok)n++});
+  var c=$('#sfCnt');if(c)c.textContent='يعرض '+n+' من '+all.length;var z=$('#sfNone');if(z)z.hidden=n>0;
+  document.querySelectorAll('#sfRole .chip').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.r===sfState.role)})}
+function sfToggle(id,open){var w=document.querySelector('.sf[data-id="'+id+'"]');if(!w)return;var b=w.querySelector('.sfb'),h=w.querySelector('.sfh'),z=allStaffList.filter(function(x){return x.id===id})[0];if(!z)return;
+  if(open===undefined)open=b.hidden;
+  if(open&&!b.dataset.ready){b.innerHTML=sfBody(z);b.dataset.ready='1';var sb=b.querySelector('[data-sasave]');if(sb)bindSave(sb)}
+  b.hidden=!open;h.setAttribute('aria-expanded',open);h.querySelector('.chev').textContent=open?'▴':'▾';sfOpen[id]=open}
+function bindSave(btn){btn.onclick=function(){var id=btn.dataset.sasave,msg=$('#sa-msg-'+id);
+    var name=document.querySelector('.sa-name[data-id="'+id+'"]').value.trim();
+    var role=document.querySelector('.sa-role[data-id="'+id+'"]').value;
+    var cities=pickedCities('sa'+id);
+    var active=document.querySelector('.sa-active[data-id="'+id+'"]').checked;
+    if(!name){msg.textContent='الاسم مطلوب.';return}
+    btn.disabled=true;msg.textContent='جارٍ الحفظ…';
+    var pe2=document.querySelector('.sa-pos[data-id="'+id+'"]'),pp=pe2&&POS[pe2.value],patch={name:name,role:role,cities:cities,active:active};var ca=document.querySelector('.sa-canap[data-id="'+id+'"]');if(ca)patch.can_approve=ca.checked;if(role!=='supervisor')patch.can_approve=false;if(pp){patch.department=pp.d;patch.report_scope=pp.sc;patch.position=pe2.value}
+    api('/rest/v1/staff?id=eq.'+encodeURIComponent(id),{m:'PATCH',auth:true,body:JSON.stringify(patch)})
+      .then(function(){msg.textContent='تم الحفظ.';return loadMe()}).then(function(){return loadList()})
+      .catch(function(x){msg.textContent=fe(x)}).then(function(){btn.disabled=false})}}
+function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){if(canApprove())loadReqs();box.innerHTML='';return}
+  var list=allStaffList.slice().sort(function(a,b){return (ROLE_ORD[a.role]-ROLE_ORD[b.role])||String(a.name||'').localeCompare(String(b.name||''),'ar')});
+  var cnt={},act=0;list.forEach(function(z){cnt[z.role]=(cnt[z.role]||0)+1;if(z.active)act++});
+  $('#stfN').textContent=list.length;
+  var chips='<button type="button" class="chip" data-r="">الكل ('+list.length+')</button>'+Object.keys(ROLE_AR).filter(function(k){return cnt[k]}).map(function(k){return '<button type="button" class="chip" data-r="'+k+'">'+ROLE_AR[k]+' ('+cnt[k]+')</button>'}).join('');
+  var bar='<div class="item" style="margin-top:0"><input id="sfq" type="search" placeholder="🔍 ابحث بالاسم أو الجوال أو المدينة" value="'+esc(sfState.q)+'" autocomplete="off">'+
+    '<div class="chips" id="sfRole">'+chips+'</div>'+
+    '<div class="row" style="gap:8px;margin-top:8px"><select id="sfu" style="flex:1"><option value="">كل الوحدات</option>'+UNITS.map(function(u){return '<option'+(sfState.unit===u.n?' selected':'')+'>'+u.n+'</option>'}).join('')+'</select>'+
+    '<select id="sfs" style="flex:1"><option value="">كل الحالات</option><option value="1"'+(sfState.st==='1'?' selected':'')+'>مفعّل ('+act+')</option><option value="0"'+(sfState.st==='0'?' selected':'')+'>معطّل ('+(list.length-act)+')</option></select></div>'+
+    '<p class="hint" id="sfCnt" style="margin:8px 0 0"></p></div>';
+  var addH='<details class="item"><summary>➕ إضافة حساب موظف جديد</summary><p class="hint">أنشئ الحساب أولاً من Supabase (Authentication ← Users ← Create new user)، ثم الصق رقم الـ UID هنا لربطه بدور وصلاحية.</p>'+
     '<label>UID</label><input id="sa-new-id" dir="ltr" style="text-align:right">'+
     '<label>الاسم</label><input id="sa-new-name">'+
     '<label>الدور</label><select id="sa-new-role">'+roleOptions('inspector')+'</select>'+
     '<label>المدن (اختياري)</label>'+cityChecks('sanew',[])+
-    '<button class="btn sm" id="sa-new-save">إضافة</button><p class="hint" id="sa-new-msg"></p></div>';
-  box.innerHTML+='<div class="item"><p><b>استيراد دفعة مُبلّغين</b></p><p class="hint">الصق بيانات الموظفين بصيغة CSV، سطر لكل موظف: الإيميل,كلمة المرور,الاسم,الجوال,المسمى الوظيفي,المدينة (المدينة اختيارية؛ اتركها فارغة ليرى صاحبها كل المدن). لا تُحفظ هذه البيانات في كود الموقع.</p><textarea id="imp-rows" style="min-height:140px" placeholder="email,password,الاسم,0500000000,المسمى الوظيفي,المدينة"></textarea><button class="btn sm" id="imp-run">استيراد الآن</button><div id="imp-msg"></div></div>';
+    '<button class="btn sm" id="sa-new-save">إضافة</button><p class="hint" id="sa-new-msg"></p></details>';
+  var impH='<details class="item"><summary>📥 استيراد دفعة مُبلّغين</summary>'+'<p class="hint">الصق بيانات الموظفين بصيغة CSV، سطر لكل موظف: الإيميل,كلمة المرور,الاسم,الجوال,المسمى الوظيفي,المدينة (المدينة اختيارية؛ اتركها فارغة ليرى صاحبها كل المدن). لا تُحفظ هذه البيانات في كود الموقع.</p><textarea id="imp-rows" style="min-height:140px" placeholder="email,password,الاسم,0500000000,المسمى الوظيفي,المدينة"></textarea><button class="btn sm" id="imp-run">استيراد الآن</button><div id="imp-msg"></div>'+'</details>';
+  box.innerHTML=bar+'<div id="sfList">'+list.map(sfRow).join('')+'</div><p class="hint" id="sfNone" hidden>لا توجد نتائج مطابقة.</p>'+addH+impH;
+  $('#sfq').oninput=function(){sfState.q=this.value;applySF()};
+  $('#sfu').onchange=function(){sfState.unit=this.value;applySF()};
+  $('#sfs').onchange=function(){sfState.st=this.value;applySF()};
+  document.querySelectorAll('#sfRole .chip').forEach(function(b){b.onclick=function(){sfState.role=b.dataset.r;applySF()}});
+  document.querySelectorAll('.sfh').forEach(function(h){h.onclick=function(){sfToggle(h.parentNode.dataset.id)}});
+  Object.keys(sfOpen).forEach(function(id){if(sfOpen[id])sfToggle(id,true)});
+  applySF();
   var ib=$('#imp-run');if(ib)ib.onclick=function(){var msg=$('#imp-msg'),raw=$('#imp-rows').value.trim();
     if(!raw){msg.textContent='الصق البيانات أولاً.';return}
     var rows=raw.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean).map(function(l){
@@ -479,17 +549,6 @@ function renderStaffAdmin(){var box=$('#staffAdminBox');if(!isAdmin()){if(canApp
         if(!fail.length)$('#imp-rows').value='';
         return loadMe()}).then(function(){return loadList()})
       .catch(function(x){msg.textContent=fe(x)}).then(function(){ib.disabled=false})}
-  document.querySelectorAll('[data-sasave]').forEach(function(btn){btn.onclick=function(){var id=btn.dataset.sasave,msg=$('#sa-msg-'+id);
-    var name=document.querySelector('.sa-name[data-id="'+id+'"]').value.trim();
-    var role=document.querySelector('.sa-role[data-id="'+id+'"]').value;
-    var cities=pickedCities('sa'+id);
-    var active=document.querySelector('.sa-active[data-id="'+id+'"]').checked;
-    if(!name){msg.textContent='الاسم مطلوب.';return}
-    btn.disabled=true;msg.textContent='جارٍ الحفظ…';
-    var pe2=document.querySelector('.sa-pos[data-id="'+id+'"]'),pp=pe2&&POS[pe2.value],patch={name:name,role:role,cities:cities,active:active};var ca=document.querySelector('.sa-canap[data-id="'+id+'"]');if(ca)patch.can_approve=ca.checked;if(role!=='supervisor')patch.can_approve=false;if(pp){patch.department=pp.d;patch.report_scope=pp.sc;patch.position=pe2.value}
-    api('/rest/v1/staff?id=eq.'+encodeURIComponent(id),{m:'PATCH',auth:true,body:JSON.stringify(patch)})
-      .then(function(){msg.textContent='تم الحفظ.';return loadMe()}).then(function(){return loadList()})
-      .catch(function(x){msg.textContent=fe(x)}).then(function(){btn.disabled=false})}});
   loadReqs();
   var nb=$('#sa-new-save');if(nb)nb.onclick=function(){var msg=$('#sa-new-msg');
     var id=$('#sa-new-id').value.trim(),name=$('#sa-new-name').value.trim(),role=$('#sa-new-role').value,cities=pickedCities('sanew');
@@ -646,6 +705,7 @@ document.addEventListener('click',function(e){var t=e.target;if(!t||!t.getAttrib
   else if(t.getAttribute('data-clall')){var cs2=document.querySelectorAll('.rq-city[data-id="'+t.getAttribute('data-clall')+'"]'),all2=Array.prototype.every.call(cs2,function(x){return x.checked});Array.prototype.forEach.call(cs2,function(x){x.checked=!all2})}});
 function pickedCities(id){return Array.prototype.map.call(document.querySelectorAll('.rq-city[data-id="'+id+'"]:checked'),function(x){return x.value})}
 function loadReqs(){var bx=$('#reqBox');if(!bx)return;rpc('list_requests',{},true).then(function(a){a=a||[];
+  var rn=$('#reqN');if(rn){rn.textContent=a.length;rn.hidden=!a.length}
   if(!a.length){bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل</p><p class="hint">لا توجد طلبات جديدة.</p>';return}
   bx.innerHTML='<p class="lbl" style="margin-top:18px">طلبات التسجيل ('+a.length+')</p>'+a.map(function(q){var id=esc(q.id);return '<div class="item"><p><b>'+esc(q.name)+'</b> — طلب: <span class="tag">'+esc(RQ[q.requested_role]||q.requested_role)+'</span></p>'+
     '<div class="kv"><span>الإيميل</span><b dir="ltr">'+esc(q.email)+'</b></div><div class="kv"><span>الجوال</span><b dir="ltr">'+esc(q.phone)+'</b></div><div class="kv"><span>المسمى</span><b>'+esc(q.job_title)+'</b></div><div class="kv"><span>المدينة</span><b>'+esc(q.city)+'</b></div><div class="kv"><span>تاريخ الطلب</span><b>'+fmt(q.created_at)+'</b></div>'+

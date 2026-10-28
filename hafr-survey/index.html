@@ -1300,29 +1300,82 @@ async function importSiteFile(file, gov, dist){
   $('#importPreview').innerHTML = `<div class="vcard"><b>${esc(file.name)}</b><span class="hint">جاري قراءة الملف…</span></div>`;
   try{
     const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
-    const rows = bestSheetRows(wb);
-    return importSiteRows(rows, file.name, gov, dist);
+    const cands = sheetCandidates(wb);
+    if(!cands.length){ $('#importPreview').innerHTML = `<div class="match p-bad">الملف «${esc(file.name)}» لا يحتوي بيانات.</div>`; return; }
+    /* الافتراضي: الورقة اللي فيها أكثر مواقع (مثل All Accounts) */
+    const def = cands.slice().sort((x,y)=> y.valid-x.valid || y.rows.length-x.rows.length)[0];
+    return importSiteRows(def.rows, file.name, gov, dist, cands, def.name);
   }catch(e){
     $('#importPreview').innerHTML = `<div class="match p-bad">تعذرت قراءة الملف «${esc(file.name)}»: ${esc(e.message||e)}. تأكد أنه ملف Excel (xlsx أو xls أو csv).</div>`;
   }
 }
-/* يبحث في كل الأوراق عن صف العناوين الحقيقي (حتى لو كان فوقه عنوان أو شعار) */
-const HEAD_RX = [/عداد|meter|serial/i, /حساب|account|acct|contract/i, /حصر|premise|survey|inventory/i, /lat|عرض|^y$/i, /lon|lng|طول|^x$/i];
-function bestSheetRows(wb){
-  let best = {score:-1, rows:[]};
+/* لكل ورقة: يبحث عن صف العناوين الحقيقي (حتى لو فوقه عنوان أو شعار) */
+const HEAD_RX = [/عداد|meter|serial|mtr/i, /حساب|account|acct|acc|contract/i, /حصر|premise|prem|survey|inventory/i, /lat|عرض|^y$|y_?coord/i, /lon|lng|طول|^x$|x_?coord/i];
+function sheetCandidates(wb){
+  const out=[];
   for(const name of wb.SheetNames){
     const aoa = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:'', raw:true, blankrows:false});
+    if(!aoa.length) continue;
+    const filled = r => (r||[]).filter(c=>String(c??'').trim()!=='').length;
+    let best={score:-1, i:0};
     for(let i=0;i<Math.min(aoa.length,25);i++){
       const row = aoa[i].map(c=>normalize(String(c??'')).trim());
       const score = HEAD_RX.filter(rx=>row.some(c=>rx.test(c))).length;
-      if(score>best.score){
-        const head = row.map((h,j)=> h || ('عمود'+(j+1)));
-        const rows = aoa.slice(i+1).filter(r=>r.some(c=>String(c).trim()!=='')).map(r=>{ const o={}; head.forEach((h,j)=>o[h]=r[j]??''); return o; });
-        best = {score, rows};
+      if(score>best.score) best={score, i};
+    }
+    /* لو ما فيه عناوين معروفة: أول صف فيه 3 خانات نصية أو أكثر ويليه صف بيانات */
+    if(best.score<=0){
+      for(let i=0;i<Math.min(aoa.length-1,25);i++){
+        const r=aoa[i]; const txt=r.filter(c=>typeof c==='string' && c.trim() && !/^\d+([.,]\d+)?$/.test(c.trim())).length;
+        if(txt>=3 && filled(aoa[i+1])>=3){ best={score:0, i}; break; }
       }
     }
+    const head = aoa[best.i].map((h,j)=> normalize(String(h??'')).trim() || ('عمود'+(j+1)));
+    const rows = aoa.slice(best.i+1).filter(r=>r.some(c=>String(c).trim()!=='')).map(r=>{ const o={}; head.forEach((h,j)=>o[h]=r[j]??''); return o; });
+    out.push({name, score:best.score, rows, valid: mapSiteRows(rows,'','').arr.length});
   }
-  return best.rows;
+  return out;
+}
+/* تحويل الصفوف لمواقع: بالأسماء أولاً، ثم من شكل القيم إذا العنوان غير معروف */
+const cleanNum = x => (typeof x==='number' ? String(x) : normalize(String(x??''))).replace(/[^\d.]/g,'');
+function mapSiteRows(rows, gov, dist){
+  const keys = Object.keys(rows[0]||{});
+  const pick = test => keys.find(k=>test(normalize(k).toLowerCase()));
+  const col = {
+    meter: pick(k=>(/عداد|meter|serial/.test(k)) && !/قراء|read|consum|استهلاك|type|نوع|size|قطر|status|حال/.test(k)),
+    account: pick(k=>/حساب|account|acct|contract/.test(k) && !/name|اسم|type|نوع|status/.test(k)),
+    hesr: pick(k=>/حصر|premise|survey no|inventory/.test(k)),
+    lat: pick(k=>/lat|عرض/.test(k) || k==='y'),
+    lng: pick(k=>/lon|lng|طول/.test(k) || k==='x')
+  };
+  const used = new Set(Object.values(col).filter(Boolean));
+  const share = (k, test) => { const vals = rows.slice(0,80).map(r=>r[k]).filter(v=>String(v).trim()!==''); if(vals.length<2) return 0; return vals.filter(test).length/vals.length; };
+  const tests = {
+    hesr: v => /^13\d{12}$/.test(cleanNum(v)),
+    account: v => /^\d{9,10}$/.test(cleanNum(v)),
+    meter: v => /^\d{7,8}$|^10\d{9}$/.test(cleanNum(v)),
+    lat: v => { const n=+cleanNum(v); return /\./.test(cleanNum(v)) && n>16 && n<33; },
+    lng: v => { const n=+cleanNum(v); return /\./.test(cleanNum(v)) && n>34 && n<56; }
+  };
+  for(const f of ['hesr','lat','lng','account','meter']){
+    if(col[f]) continue;
+    let bestK=null, bestS=0.6;
+    for(const k of keys){ if(used.has(k)) continue; const sc=share(k, tests[f]); if(sc>bestS){ bestS=sc; bestK=k; } }
+    if(bestK){ col[f]=bestK; used.add(bestK); }
+  }
+  let arr = rows.map(r=>({ id:uid(), governorate:gov, district:dist,
+    meter_no: col.meter? cleanNum(r[col.meter]) : '', account_no: col.account? cleanNum(r[col.account]) : '', hesr_no: col.hesr? cleanNum(r[col.hesr]) : '',
+    lat: col.lat && +cleanNum(r[col.lat]) || null, lng: col.lng && +cleanNum(r[col.lng]) || null, created_at:new Date().toISOString() }))
+    .filter(s=>s.meter_no||s.account_no||s.hesr_no||s.lat);
+  /* دمج الصفوف المكررة لنفس رقم الحصر (مثل حسابين لنفس العقار) في موقع واحد */
+  const byH=new Map(), out=[]; let merged=0;
+  for(const s of arr){
+    if(!s.hesr_no){ out.push(s); continue; }
+    const p=byH.get(s.hesr_no);
+    if(p){ merged++; for(const k of ['meter_no','account_no','lat','lng']) if(!p[k] && s[k]) p[k]=s[k]; }
+    else { byH.set(s.hesr_no, s); out.push(s); }
+  }
+  return {arr:out, col, keys, merged};
 }
 /* خلايا منسوخة من Excel (نص مفصول بـ Tab) */
 function rowsFromText(text){
@@ -1332,32 +1385,21 @@ function rowsFromText(text){
   const head = lines[0].split(sep).map(h=>h.trim());
   return lines.slice(1).map(l=>{ const c=l.split(sep); const o={}; head.forEach((h,i)=>o[h||('عمود'+(i+1))]=(c[i]||'').trim()); return o; });
 }
-async function importSiteRows(rows, name, gov, dist){
-  if(!rows.length){ toast('الملف فارغ أو لا يحتوي صف عناوين'); return; }
+async function importSiteRows(rows, name, gov, dist, cands, sheetName){
+  if(!rows.length){ toast('الورقة فارغة أو لا تحتوي صف عناوين'); }
   const file = {name};
-  const keys = Object.keys(rows[0]);
-  const pick = test => keys.find(k=>test(normalize(k).toLowerCase()));
-  const col = {
-    meter: pick(k=>(/عداد|meter|serial/.test(k)) && !/قراء|read|consum|استهلاك|type|نوع|size|قطر|status|حال/.test(k)),
-    account: pick(k=>/حساب|account|acct|contract/.test(k) && !/name|اسم|type|نوع|status/.test(k)),
-    hesr: pick(k=>/حصر|premise|survey no|inventory/.test(k)),
-    lat: pick(k=>/lat|عرض/.test(k) || k==='y'),
-    lng: pick(k=>/lon|lng|طول/.test(k) || k==='x')
-  };
-  const clean = x => (typeof x==='number' ? (Number.isInteger(x)? String(x) : String(x)) : normalize(String(x??''))).replace(/[^\d.]/g,'');
-  const arr = rows.map(r=>({ id:uid(), governorate:gov, district:dist,
-    meter_no: col.meter? clean(r[col.meter]) : '', account_no: col.account? clean(r[col.account]) : '', hesr_no: col.hesr? clean(r[col.hesr]) : '',
-    lat: col.lat && +clean(r[col.lat]) || null, lng: col.lng && +clean(r[col.lng]) || null, created_at:new Date().toISOString() }))
-    .filter(s=>s.meter_no||s.account_no||s.hesr_no||s.lat);
+  const {arr, col, keys, merged} = mapSiteRows(rows, gov, dist);
   const box=$('#importPreview');
   const existing = S.sites.filter(s=>s.district===dist && (s.governorate||CONFIG.DEFAULT_GOV)===gov).length;
   box.innerHTML = `<div class="vcard"><b>${esc(file.name)}</b>
-    <div class="hint">${gov} · حي ${esc(dist)} · ${arr.length} موقع صالح من ${rows.length} صف</div>
-    <div class="hint">الأعمدة المتعرَّف عليها: ${Object.values(col).filter(Boolean).map(esc).join('، ')||'لا شيء'}</div>
+    ${cands && cands.length>1 ? `<label class="f">ورقة العمل<select class="in" data-sheet>${cands.map(c=>`<option value="${esc(c.name)}" ${c.name===sheetName?'selected':''}>${esc(c.name)} (${c.valid} موقع)</option>`).join('')}</select></label>` : ''}
+    <div class="hint">${gov} · حي ${esc(dist)} · <b>${arr.length} موقع</b> من ${rows.length} صف${merged? ` (دُمج ${merged} صف مكرر لنفس رقم الحصر)`:''}</div>
+    <div class="hint">الأعمدة: ${[['hesr','الحصر'],['meter','العداد'],['account','الحساب'],['lat','العرض'],['lng','الطول']].filter(([k])=>col[k]).map(([k,l])=>l+' ← '+esc(col[k])).join(' · ')||'لا شيء'}</div>
     ${arr.length? '' : `<div class="match p-bad">لم أتعرف على أعمدة رقم العداد أو الحساب أو الحصر أو الإحداثيات. أعمدة الملف: ${esc(keys.slice(0,12).join('، '))}. أرسل لي صورة من الملف وأعدّل التعرّف عليه.</div>`}
     ${existing?`<div class="match p-warn">للحي ملف سابق فيه ${existing} موقع، سيُستبدل بالملف الجديد (المعاينات المسجلة لا تتأثر)</div>`:''}
     <div class="row-btns"><button class="btn pri sm" data-imp ${arr.length?'':'disabled'}>اعتماد الملف</button><button class="btn sm" data-cancel>إلغاء</button></div></div>`;
   box.querySelector('[data-cancel]').onclick=()=>box.innerHTML='';
+  const shSel=box.querySelector('[data-sheet]'); if(shSel) shSel.onchange=()=>{ const c=cands.find(x=>x.name===shSel.value); importSiteRows(c.rows, name, gov, dist, cands, c.name); };
   box.querySelector('[data-imp]').onclick=async()=>{
     try{
       if(existing) await DB.deleteDistrictSites(gov, dist);

@@ -1,0 +1,1335 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>المسح الميداني لأحياء حفر الباطن</title>
+<meta name="theme-color" content="#0b4f8a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+/* لوحة تشغيل: شريط علوي بهوية الشركة، تبويبات (سفلية على الجوال)، بطاقات عمل */
+:root{
+  --blue:#0b4f8a; --blue-2:#1673c4; --sky:#e8f1fa; --ink:#14263a; --muted:#5b6f84;
+  --bg:#f3f6fa; --card:#ffffff; --line:#dbe4ee;
+  --ok:#17845a; --ok-bg:#e3f4ec; --bad:#c23a32; --bad-bg:#fbe7e5; --warn:#b26a00; --warn-bg:#fdf1dc;
+  --font:"IBM Plex Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --blue:#5aa6ea; --blue-2:#7cbaf0; --sky:#16283b; --ink:#e6eef7; --muted:#9db0c4;
+  --bg:#0d1823; --card:#132232; --line:#25384c;
+  --ok:#4cc38f; --ok-bg:#123327; --bad:#f07a71; --bad-bg:#3a1a18; --warn:#f0b450; --warn-bg:#3a2a10; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --blue:#5aa6ea; --blue-2:#7cbaf0; --sky:#16283b; --ink:#e6eef7; --muted:#9db0c4;
+  --bg:#0d1823; --card:#132232; --line:#25384c;
+  --ok:#4cc38f; --ok-bg:#123327; --bad:#f07a71; --bad-bg:#3a1a18; --warn:#f0b450; --warn-bg:#3a2a10; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.6;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:#0b4f8a;color:#fff;padding-top:env(safe-area-inset-top,0px)}
+header.top .wrap{display:flex;align-items:center;gap:14px;padding-block:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.drop{width:40px;height:40px;border-radius:10px;background:#fff;display:grid;place-items:center;flex:none}
+.brand small{display:block;opacity:.8;font-size:12px}
+.brand b{display:block;font-size:17px;line-height:1.35}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.top .chip{background:rgba(255,255,255,.16);color:#fff}
+.top button.link{background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:4px 12px;cursor:pointer}
+nav.tabs{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+nav.tabs .wrap{display:flex;gap:4px;overflow-x:auto}
+nav.tabs button{background:none;border:0;padding:12px 14px;cursor:pointer;color:var(--muted);font-weight:600;border-bottom:3px solid transparent;white-space:nowrap;display:flex;gap:6px;align-items:center}
+nav.tabs button.on{color:var(--blue);border-bottom-color:var(--blue)}
+nav.tabs svg{width:18px;height:18px}
+@media (max-width:760px){
+  nav.tabs{position:fixed;top:auto;bottom:0;left:0;right:0;border-top:1px solid var(--line);border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+  nav.tabs .wrap{justify-content:space-around;padding:0}
+  nav.tabs button{flex-direction:column;gap:2px;font-size:11.5px;padding:8px 6px;border-bottom:0;border-top:3px solid transparent;flex:1}
+  nav.tabs button.on{border-top-color:var(--blue)}
+}
+main{padding-block:18px}
+.banner{background:var(--warn-bg);color:var(--warn);border-radius:var(--r);padding:10px 14px;font-size:13.5px;margin-bottom:14px}
+h2{font-size:20px;margin:0 0 4px;text-wrap:balance}
+h3{font-size:16px;margin:0 0 10px}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.grid{display:grid;gap:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.kpi span{color:var(--muted);font-size:12.5px;display:block}
+.kpi b{font-size:26px;font-variant-numeric:tabular-nums;line-height:1.3}
+.kpi i{font-style:normal;font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)} .kpi.ok b{color:var(--ok)} .kpi.main b{color:var(--blue)}
+.two{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+@media (max-width:900px){.two{grid-template-columns:1fr}}
+.bar{height:10px;background:var(--sky);border-radius:99px;overflow:hidden}
+.bar > div{height:100%;background:var(--blue-2);border-radius:99px}
+.dist{display:grid;gap:12px}
+.dist .row{display:grid;gap:4px}
+.dist .row .t{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.dist .row .t span{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
+#map{height:340px;border-radius:10px;z-index:1}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:5px;vertical-align:middle}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--blue-2)}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+:root:not([data-theme="light"]) .btn.pri{color:#fff}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:default}
+.btn svg{width:18px;height:18px}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+:focus-visible{outline:2px solid var(--blue-2);outline-offset:2px}
+label.f{display:grid;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+input.in,select.in,textarea.in{width:100%;border:1px solid var(--line);background:var(--card);border-radius:9px;padding:8px 10px;color:var(--ink);font-size:15px}
+textarea.in{min-height:150px;resize:vertical;line-height:1.7}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.p-ok{background:var(--ok-bg);color:var(--ok)} .p-bad{background:var(--bad-bg);color:var(--bad)} .p-warn{background:var(--warn-bg);color:var(--warn)} .p-n{background:var(--sky);color:var(--blue)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th{background:var(--sky);color:var(--ink);font-weight:600;position:sticky;top:0}
+tbody tr{cursor:pointer} tbody tr:hover{background:var(--sky)}
+.filters{display:grid;grid-template-columns:2fr repeat(5,1fr);gap:10px;margin-bottom:12px}
+@media (max-width:760px){.filters{grid-template-columns:1fr 1fr}.filters .wide{grid-column:1/-1}}
+.vcard{border:1px solid var(--line);border-radius:var(--r);background:var(--card);padding:14px;display:grid;gap:12px}
+.vcard .head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.vcard.saved{opacity:.6}
+.match{font-size:12.5px;padding:6px 10px;border-radius:8px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px}
+.thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--sky);max-width:100%}
+.thumb img,.thumb video{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+.thumb .x{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;line-height:1}
+.thumb .vid{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:1px 6px;border-radius:6px}
+.dropzone{border:1.5px dashed var(--line);border-radius:10px;padding:10px;display:grid;gap:8px}
+.dropzone.over{border-color:var(--blue-2);background:var(--sky)}
+.hint{font-size:12.5px;color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+dialog{border:0;border-radius:16px;padding:0;max-width:min(860px,96vw);width:100%;background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(8,20,35,.55)}
+dialog .dh{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:2}
+dialog .db{padding:16px;display:grid;gap:14px}
+#viewer{max-width:100vw;max-height:100vh;background:#000}
+#viewer .db{padding:0;place-items:center}
+#viewer img,#viewer video{max-width:100%;max-height:88vh}
+#toast{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--card);padding:10px 18px;border-radius:10px;z-index:100;font-weight:600;max-width:90vw}
+.login{max-width:420px;margin:40px auto}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-size:10px;font-family:var(--font)}
+.mini{font-size:12.5px;color:var(--muted)}
+.section-gap{display:grid;gap:14px}
+#printArea{display:none}
+
+/* ===== الطباعة / PDF ===== */
+@media print{
+  @page{size:A4;margin:12mm}
+  body{background:#fff;color:#000;padding:0;font-size:11px}
+  body > *:not(#printArea){display:none!important}
+  #printArea{display:block}
+  .pr h1{font-size:18px;margin:0;color:#0b4f8a}
+  .pr .ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0b4f8a;padding-bottom:8px;margin-bottom:12px}
+  .pr .ph small{display:block;color:#444}
+  .pr h2{font-size:14px;color:#0b4f8a;margin:14px 0 6px;border-right:4px solid #0b4f8a;padding-right:8px}
+  .pr .k{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .pr .k div{border:1px solid #c9d6e3;border-radius:6px;padding:6px 8px}
+  .pr .k b{display:block;font-size:17px;color:#0b4f8a}
+  .pr table{font-size:10px;width:100%;border-collapse:collapse;page-break-inside:auto}
+  .pr th{background:#e8f1fa!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#000;position:static}
+  .pr th,.pr td{border:1px solid #c9d6e3;padding:4px 5px;white-space:normal}
+  .pr tr{page-break-inside:avoid}
+  .pr .viol{border:1px solid #c9d6e3;border-radius:6px;padding:8px;margin-bottom:8px;page-break-inside:avoid}
+  .pr .viol .ims{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+  .pr .viol img{width:100%;height:110px;object-fit:cover;border-radius:4px}
+  .pr .foot{margin-top:18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center}
+  .pr .foot div{border-top:1px solid #999;padding-top:4px;margin-top:30px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="drop" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="26" height="26"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a9be8"/><stop offset="1" stop-color="#0b4f8a"/></linearGradient></defs><path fill="url(#g)" d="M12 2.5c-3.6 4.6-6.5 8.3-6.5 11.6a6.5 6.5 0 0 0 13 0C18.5 10.8 15.6 7.1 12 2.5z"/><path d="M9 14.2l2.1 2.1 4-4.2" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="min-width:0">
+        <small>شركة المياه الوطنية · إدارة المخالفات والتعديات</small>
+        <b>مبادرة المسح الميداني لأحياء حفر الباطن</b>
+      </div>
+    </div>
+    <span class="chip" id="roleChip"></span>
+    <button class="link" id="logoutBtn" hidden>خروج</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs" hidden>
+  <div class="wrap">
+    <button data-tab="dash" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/></svg>لوحة الإنجاز</button>
+    <button data-tab="add" data-role="editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>إضافة معاينة</button>
+    <button data-tab="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>السجل</button>
+    <button data-tab="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>التقارير</button>
+    <button data-tab="settings" data-role="admin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>الإعدادات</button>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="banner" id="localBanner" hidden>وضع تجريبي: البيانات محفوظة في هذا الجهاز فقط. بعد ربط المنصة بـ Supabase تصبح البيانات مشتركة بينك وبين المدير التنفيذي وفريقك.</div>
+
+  <!-- تسجيل الدخول -->
+  <section id="v-login" hidden>
+    <div class="card login section-gap">
+      <h2 id="loginTitle">تسجيل الدخول</h2>
+      <div id="loginForm" class="section-gap">
+        <label class="f">البريد الإلكتروني<input class="in" id="lEmail" type="email" autocomplete="username"></label>
+        <label class="f">كلمة المرور<input class="in" id="lPass" type="password" autocomplete="current-password"></label>
+        <button class="btn pri" id="lBtn">دخول</button>
+        <div class="row-btns"><button class="btn sm" id="toReg">طلب حساب جديد</button><button class="btn sm" id="forgot">نسيت كلمة المرور</button></div>
+      </div>
+      <div id="regForm" class="section-gap" hidden>
+        <label class="f">الاسم الكامل<input class="in" id="rName"></label>
+        <label class="f">البريد الإلكتروني<input class="in" id="rEmail" type="email"></label>
+        <label class="f">كلمة المرور<input class="in" id="rPass" type="password" autocomplete="new-password"></label>
+        <label class="f">الصلاحية المطلوبة
+          <select class="in" id="rRole"><option value="editor">مدخل بيانات</option><option value="viewer">اطلاع ومتابعة</option></select></label>
+        <button class="btn pri" id="rBtn">إرسال الطلب</button>
+        <button class="btn sm" id="toLogin">لدي حساب</button>
+      </div>
+      <p class="hint" id="loginMsg"></p>
+    </div>
+  </section>
+
+  <!-- لوحة الإنجاز -->
+  <section id="v-dash" hidden>
+    <div class="row-btns" style="justify-content:space-between;margin-bottom:12px">
+      <div><h2>لوحة الإنجاز</h2><p class="sub" style="margin:0" id="dashSub"></p></div>
+      <div class="row-btns"><select class="in" id="dashGov" style="width:auto"></select><button class="btn sm" id="refreshBtn">تحديث</button></div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="two">
+      <div class="card"><h3>الإنجاز حسب الحي</h3><div class="dist" id="distBars"></div></div>
+      <div class="card"><h3>المعاينات اليومية (آخر 14 يوم)</h3><div class="chart" id="dailyChart"></div>
+        <div class="legend"><span><i class="dot" style="background:var(--blue-2)"></i>بدون تعدٍ</span><span><i class="dot" style="background:var(--bad)"></i>تعدٍ</span></div></div>
+    </div>
+    <div class="two" style="margin-top:14px">
+      <div class="card"><h3>خريطة المواقع</h3><div id="map"></div>
+        <div class="legend"><span><i class="dot" style="background:#17845a"></i>تم الكشف بدون تعدٍ</span><span><i class="dot" style="background:#c23a32"></i>تعدٍ</span><span><i class="dot" style="background:#8a9bb0"></i>مستهدف لم يُزر</span></div></div>
+      <div class="card"><h3>تقرير المقاول اليومي مقابل المسجّل</h3><div id="dailyCompare"></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><h3>آخر المعاينات</h3><div id="recent"></div></div>
+  </section>
+
+  <!-- إضافة -->
+  <section id="v-add" hidden>
+    <h2>إضافة معاينات من الواتساب</h2>
+    <p class="sub">انسخ رسائل المقاول من القروب (رسالة أو عدة رسائل مع رسالة الموقع) والصقها هنا، والمنصة تستخرج البيانات. بعدها أرفق الصور من الاستديو أو صوّر مباشرة.</p>
+    <div class="card section-gap">
+      <textarea class="in" id="pasteBox" placeholder="الصق رسائل الواتساب هنا…"></textarea>
+      <div class="form">
+        <label class="f">القطاع<select class="in" disabled><option>القطاع الشرقي</option></select></label>
+        <label class="f">المحافظة<select class="in" id="defGov"></select></label>
+        <label class="f">الحي (إذا لم يُذكر في الرسالة)<select class="in" id="defDistrict"></select></label>
+        <label class="f">تاريخ المعاينة (إذا لم يظهر في النسخ)<input class="in" id="defDate" type="date"></label>
+        <label class="f">اسم المقاول / المندوب<input class="in" id="defContractor" placeholder="مثال: ابراهيم فأس الحفر"></label>
+      </div>
+      <div class="row-btns">
+        <button class="btn pri" id="parseBtn">استخراج البيانات</button>
+        <button class="btn" id="manualBtn">معاينة يدوية فارغة</button>
+        <button class="btn sm" id="sampleBtn">جرّب بمثال</button>
+      </div>
+      <p class="hint">لنسخ الصور من الواتساب: حدد الصور ← حفظ في الصور، ثم اخترها من «الاستديو». على الكمبيوتر (واتساب ويب) تقدر تسحب الصور وتفلتها داخل بطاقة المعاينة أو تلصقها.</p>
+    </div>
+    <div id="dailyFound" style="margin-top:14px"></div>
+    <div id="cards" class="grid" style="margin-top:14px"></div>
+    <div class="row-btns" id="saveAllRow" style="margin-top:14px" hidden><button class="btn pri" id="saveAllBtn">حفظ جميع المعاينات</button><span class="hint" id="saveAllHint"></span></div>
+  </section>
+
+  <!-- السجل -->
+  <section id="v-list" hidden>
+    <h2>سجل المعاينات</h2>
+    <p class="sub" id="listSub"></p>
+    <div class="filters">
+      <input class="in wide" id="fQ" placeholder="بحث برقم الحصر أو العداد أو الحساب أو الملاحظات">
+      <select class="in" id="fGov"></select>
+      <select class="in" id="fDist"></select>
+      <select class="in" id="fRes"><option value="">كل النتائج</option><option>لا يوجد تعدي</option><option>يوجد تعدي</option><option>تمت الإزالة</option><option value="leak">بها تسريب</option></select>
+      <input class="in" id="fFrom" type="date" title="من تاريخ">
+      <input class="in" id="fTo" type="date" title="إلى تاريخ">
+    </div>
+    <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>المحافظة</th><th>الحي</th><th>رقم الحصر</th><th>رقم العداد</th><th>القراءة</th><th>النتيجة</th><th>التسريب</th><th>المحبس</th><th>العداد</th><th>المرفقات</th></tr></thead><tbody id="listBody"></tbody></table></div>
+  </section>
+
+  <!-- التقارير -->
+  <section id="v-reports" hidden>
+    <h2>تقارير الإنجاز</h2>
+    <p class="sub">اختر الفترة والحي، ثم اطبع التقرير PDF (من نافذة الطباعة اختر «حفظ PDF») أو صدّره Excel.</p>
+    <div class="card section-gap">
+      <div class="form">
+        <label class="f">من تاريخ<input class="in" id="rFrom" type="date"></label>
+        <label class="f">إلى تاريخ<input class="in" id="rTo" type="date"></label>
+        <label class="f">المحافظة<select class="in" id="rGov"></select></label>
+        <label class="f">الحي<select class="in" id="rDist"></select></label>
+        <label class="f">الصور في تقرير PDF<select class="in" id="rPhotos"><option value="viol">صور التعديات فقط</option><option value="all">صور كل المعاينات</option><option value="none">بدون صور</option></select></label>
+      </div>
+      <div class="row-btns">
+        <button class="btn pri" id="pdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>تقرير PDF</button>
+        <button class="btn" id="xlsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M8 12l4 5M12 12l-4 5"/></svg>تصدير Excel</button>
+      </div>
+    </div>
+    <div id="repPreview" style="margin-top:14px"></div>
+  </section>
+
+  <!-- الإعدادات -->
+  <section id="v-settings" hidden>
+    <h2>الإعدادات</h2>
+    <p class="sub">اختر المحافظة ثم الحي، وارفع ملف المواقع المستهدفة لكل حي ليُحسب الإنجاز على أساسه.</p>
+    <div class="grid">
+      <div class="card section-gap">
+        <h3>الأحياء وملفات المواقع المستهدفة</h3>
+        <div class="form">
+          <label class="f">القطاع<select class="in" disabled><option>القطاع الشرقي</option></select></label>
+          <label class="f">المحافظة<select class="in" id="sGov"></select></label>
+          <label class="f">الحي<select class="in" id="sDist"></select></label>
+        </div>
+        <div class="row-btns">
+          <label class="btn pri" id="sUploadLbl">رفع ملف الحي المختار<input type="file" id="siteFile" accept=".xlsx,.xls,.csv" hidden></label>
+          <input class="in" id="newDist" placeholder="اسم حي جديد" style="width:auto;flex:1;min-width:140px">
+          <button class="btn" id="addDistBtn">إضافة حي</button>
+        </div>
+        <p class="hint" style="margin:0">الأعمدة المتعرَّف عليها في الملف: رقم العداد، رقم الحساب، رقم الحصر، Latitude، Longitude. إذا الحي له ملف سابق يُستبدل بالجديد.</p>
+        <div id="importPreview"></div>
+        <div id="distAdmin"></div>
+      </div>
+      <div class="card section-gap" id="membersCard">
+        <h3>المستخدمون والصلاحيات</h3>
+        <div id="members"></div>
+      </div>
+      <div class="card section-gap" id="localRoleCard" hidden>
+        <h3>تجربة الأدوار (الوضع التجريبي)</h3>
+        <label class="f">اعرض المنصة بصلاحية<select class="in" id="localRole"><option value="admin">مدير المبادرة</option><option value="editor">مدخل بيانات</option><option value="viewer">المدير التنفيذي (اطلاع)</option></select></label>
+        <button class="btn danger sm" id="wipeLocal" style="justify-self:start">مسح كل البيانات التجريبية</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<datalist id="distList"></datalist>
+
+<dialog id="detail"><div class="dh"><b id="dTitle">تفاصيل المعاينة</b><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="dBody"></div></dialog>
+<dialog id="viewer"><div class="dh" style="background:#000;color:#fff;border-color:#222"><span id="vCap"></span><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="vBody"></div></dialog>
+<div id="toast" hidden></div>
+<div id="printArea"></div>
+
+<script>
+/* ================== الإعداد ==================
+   ضع رابط مشروع Supabase والمفتاح العام (anon) هنا.
+   إذا تُركا فارغين تعمل المنصة بوضع تجريبي على هذا الجهاز فقط. */
+const CONFIG = {
+  SUPABASE_URL: '',
+  SUPABASE_ANON_KEY: '',
+  BUCKET: 'survey-media',
+  SECTOR: 'القطاع الشرقي',
+  UNIT: 'الوحدة الشمالية',
+  GOVS: ['حفر الباطن','القيصومة','الخفجي','النعيرية','القرية العليا','مليجة'],
+  DEFAULT_GOV: 'حفر الباطن'
+};
+/* ============================================== */
+
+const MODE = (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY) ? 'cloud' : 'local';
+const ROLE_NAMES = {admin:'مدير المبادرة', editor:'مدخل بيانات', viewer:'اطلاع ومتابعة'};
+const R_OK='لا يوجد تعدي', R_BAD='يوجد تعدي', R_REM='تمت الإزالة';
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+const today = () => { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const fmtD = d => d ? d.replace(/-/g,'/') : '';
+function toast(msg, ms=2600){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(t._h); t._h=setTimeout(()=>t.hidden=true, ms); }
+function lsGet(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch(e){return d;} }
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+const S = { role:null, user:null, userName:'', sites:[], visits:[], daily:[], districts:[], members:[], tab:'dash', drafts:[] };
+
+/* ================== التخزين المحلي (IndexedDB) ================== */
+const IDB = {
+  db:null,
+  open(){ return new Promise((res,rej)=>{ const r=indexedDB.open('hafr-survey',2);
+    r.onupgradeneeded=()=>{ const d=r.result; ['sites','visits','media','daily','districts'].forEach(n=>{ if(!d.objectStoreNames.contains(n)) d.createObjectStore(n,{keyPath:'id'}); }); };
+    r.onsuccess=()=>{ this.db=r.result; res(); }; r.onerror=()=>rej(r.error); }); },
+  tx(store, mode, fn){ return new Promise((res,rej)=>{ const t=this.db.transaction(store,mode); const s=t.objectStore(store); const out=fn(s); t.oncomplete=()=>res(out && out.result!==undefined ? out.result : out); t.onerror=()=>rej(t.error); }); },
+  all(store){ return new Promise((res,rej)=>{ const r=this.db.transaction(store).objectStore(store).getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+  put(store, obj){ return this.tx(store,'readwrite',s=>{ s.put(obj); }); },
+  putMany(store, arr){ return this.tx(store,'readwrite',s=>{ arr.forEach(o=>s.put(o)); }); },
+  del(store, id){ return this.tx(store,'readwrite',s=>{ s.delete(id); }); },
+  clear(store){ return this.tx(store,'readwrite',s=>{ s.clear(); }); }
+};
+
+/* ================== طبقة البيانات ================== */
+let sb = null;
+const urlCache = new Map();
+const DB = {
+  async init(){
+    if(MODE==='cloud'){ sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY); }
+    else { await IDB.open(); }
+  },
+  async fetchAll(table, select='*', order='created_at'){
+    let out=[], from=0, size=1000;
+    while(true){ const {data,error}=await sb.from(table).select(select).order(order,{ascending:true}).range(from,from+size-1);
+      if(error) throw error; out=out.concat(data); if(data.length<size) break; from+=size; }
+    return out;
+  },
+  async loadAll(){
+    if(MODE==='cloud'){
+      const [sites, visits, daily, dists] = await Promise.all([
+        this.fetchAll('survey_sites'),
+        this.fetchAll('survey_visits','*, media:survey_media(*)'),
+        this.fetchAll('survey_daily'),
+        this.fetchAll('survey_districts')
+      ]);
+      S.sites=sites; S.visits=visits; S.daily=daily; S.districts=dists;
+    } else {
+      const [sites, visits, media, daily, dists] = await Promise.all([IDB.all('sites'),IDB.all('visits'),IDB.all('media'),IDB.all('daily'),IDB.all('districts')]);
+      const byV = {}; media.forEach(m=>{ (byV[m.visit_id] ||= []).push(m); });
+      visits.forEach(v=> v.media = (byV[v.id]||[]).sort((a,b)=>a.created_at.localeCompare(b.created_at)));
+      S.sites=sites; S.visits=visits; S.daily=daily; S.districts=dists;
+    }
+    S.visits.forEach(v=>{ v.media ||= []; v.governorate ||= CONFIG.DEFAULT_GOV; });
+    S.sites.forEach(s=>{ s.governorate ||= CONFIG.DEFAULT_GOV; });
+  },
+  async addDistrict(gov, name){
+    const d={id:uid(), governorate:gov, name, created_at:new Date().toISOString()};
+    if(MODE==='cloud'){ const {error}=await sb.from('survey_districts').insert(d); if(error) throw error; }
+    else await IDB.put('districts', d);
+    S.districts.push(d); return d;
+  },
+  async deleteDistrict(d){
+    await this.deleteDistrictSites(d.governorate, d.name);
+    if(MODE==='cloud'){ const {error}=await sb.from('survey_districts').delete().eq('id',d.id); if(error) throw error; }
+    else await IDB.del('districts', d.id);
+    S.districts = S.districts.filter(x=>x.id!==d.id);
+  },
+  clean(v){ const o={...v}; delete o.media; delete o._files; return o; },
+  async saveVisit(v, files=[], onProgress){
+    const isNew = !v.created_at;
+    v.created_at ||= new Date().toISOString();
+    v.created_by ||= S.userName || null;
+    if(MODE==='cloud'){
+      const {error} = await sb.from('survey_visits').upsert(this.clean(v)); if(error) throw error;
+    } else { await IDB.put('visits', this.clean(v)); }
+    v.media ||= [];
+    let i=0;
+    for(const f of files){
+      i++; onProgress && onProgress(i, files.length);
+      const m = await this.addMedia(v.id, f); v.media.push(m);
+    }
+    const idx = S.visits.findIndex(x=>x.id===v.id);
+    if(idx>=0) S.visits[idx]=v; else S.visits.push(v);
+    return isNew;
+  },
+  async addMedia(visitId, file){
+    const isVideo = file.type.startsWith('video/');
+    const ext = (file.name.split('.').pop() || (isVideo?'mp4':'jpg')).toLowerCase().replace(/[^a-z0-9]/g,'') || 'bin';
+    const m = { id:uid(), visit_id:visitId, type: isVideo?'video':'image', name:file.name, created_at:new Date().toISOString() };
+    if(MODE==='cloud'){
+      m.path = `${visitId}/${m.id}.${ext}`;
+      const {error} = await sb.storage.from(CONFIG.BUCKET).upload(m.path, file, {contentType:file.type||undefined, upsert:false});
+      if(error) throw error;
+      const r = await sb.from('survey_media').insert({id:m.id, visit_id:visitId, type:m.type, name:m.name, path:m.path, created_at:m.created_at});
+      if(r.error) throw r.error;
+    } else {
+      await IDB.put('media', {...m, blob:file}); m.blob=file;
+    }
+    return m;
+  },
+  async deleteMedia(m){
+    if(MODE==='cloud'){ await sb.storage.from(CONFIG.BUCKET).remove([m.path]); const {error}=await sb.from('survey_media').delete().eq('id',m.id); if(error) throw error; }
+    else await IDB.del('media', m.id);
+  },
+  async deleteVisit(v){
+    for(const m of (v.media||[])) await this.deleteMedia(m);
+    if(MODE==='cloud'){ const {error}=await sb.from('survey_visits').delete().eq('id',v.id); if(error) throw error; }
+    else await IDB.del('visits', v.id);
+    S.visits = S.visits.filter(x=>x.id!==v.id);
+  },
+  async mediaUrls(list){
+    const need = list.filter(m=>!urlCache.has(m.id));
+    if(MODE==='cloud'){
+      const paths = need.map(m=>m.path);
+      for(let i=0;i<paths.length;i+=100){
+        const chunk = need.slice(i,i+100);
+        const {data} = await sb.storage.from(CONFIG.BUCKET).createSignedUrls(chunk.map(m=>m.path), 3600*6);
+        (data||[]).forEach((d,j)=>{ if(d.signedUrl) urlCache.set(chunk[j].id, d.signedUrl); });
+      }
+    } else need.forEach(m=>{ if(m.blob) urlCache.set(m.id, URL.createObjectURL(m.blob)); });
+    return list.map(m=>urlCache.get(m.id));
+  },
+  async addSites(arr){
+    if(MODE==='cloud'){ for(let i=0;i<arr.length;i+=500){ const {error}=await sb.from('survey_sites').insert(arr.slice(i,i+500)); if(error) throw error; } }
+    else await IDB.putMany('sites', arr);
+    S.sites = S.sites.concat(arr);
+  },
+  async deleteDistrictSites(gov, d){
+    const hit = s => s.district===d && (s.governorate||CONFIG.DEFAULT_GOV)===gov;
+    if(MODE==='cloud'){ const ids=S.sites.filter(hit).map(s=>s.id); for(let i=0;i<ids.length;i+=300){ const {error}=await sb.from('survey_sites').delete().in('id',ids.slice(i,i+300)); if(error) throw error; } }
+    else { for(const s of S.sites.filter(hit)) await IDB.del('sites', s.id); }
+    S.sites = S.sites.filter(s=>!hit(s));
+  },
+  async saveDaily(d){
+    d.id ||= uid(); d.created_at ||= new Date().toISOString();
+    if(MODE==='cloud'){ const {error}=await sb.from('survey_daily').upsert(d); if(error) throw error; }
+    else await IDB.put('daily', d);
+    const i=S.daily.findIndex(x=>x.id===d.id); if(i>=0) S.daily[i]=d; else S.daily.push(d);
+  }
+};
+
+/* ================== تحليل رسائل الواتساب ================== */
+function normalize(t){
+  return String(t||'')
+    .replace(/[‎‏‪-‮⁦-⁩﻿ ]/g, m=> m===' '?' ':'')
+    .replace(/[٠-٩]/g, d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/[۰-۹]/g, d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+    .replace(/٫/g,'.').replace(/\r/g,'');
+}
+const HDR = /^\[?\s*(\d{1,4})[\/.\-](\d{1,2})[\/.\-](\d{1,4})[،,]?\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*([صمAaPp]\.?[Mm]?\.?)?\s*\]?\s*(?:-\s*)?([^:\n]{1,60}?):\s?(.*)$/;
+
+function parseDateParts(a,b,c){
+  let y,m,d; a=+a; b=+b; c=+c;
+  if(a>31){ y=a; m=b; d=c; } else { d=a; m=b; y=c; }
+  if(y<100) y+=2000;
+  if(y<1900 || m<1 || m>12 || d<1 || d>31) return null;
+  return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+}
+function splitMessages(text){
+  const lines = normalize(text).split('\n');
+  const msgs=[]; let cur=null;
+  for(const ln of lines){
+    const m = ln.match(HDR);
+    if(m){ cur={date:parseDateParts(m[1],m[2],m[3]), sender:m[7].trim(), text:m[8]}; msgs.push(cur); }
+    else if(cur) cur.text += '\n'+ln;
+    else { cur={date:null, sender:'', text:ln}; msgs.push(cur); }
+  }
+  return msgs.map(x=>({...x, text:x.text.trim()})).filter(x=>x.text);
+}
+function inKSA(lat,lng){ return lat>16 && lat<33 && lng>34 && lng<56; }
+function extractCoords(t){
+  const pats=[
+    /[?&](?:q|query|ll|center|daddr|destination|sll)=(-?\d{1,2}\.\d+)\s*(?:,|%2C)\s*(-?\d{1,3}\.\d+)/i,
+    /@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/,
+    /\/(?:place|search|dir)\/(-?\d{1,2}\.\d+)\s*(?:,|%2C)\s*\+?(-?\d{1,3}\.\d+)/i,
+    /latitude\s*[:：]?\s*(\d{1,2}\.\d+)[\s\S]{0,60}?longitude\s*[:：]?\s*(\d{1,3}\.\d+)/i,
+    /(\d{1,2}\.\d+)\s*latitude[\s\S]{0,60}?(\d{1,3}\.\d+)\s*longitude/i,
+    /(\d{1,2}\.\d{3,})\s*°?\s*N[\s,،]+(\d{1,3}\.\d{3,})\s*°?\s*E/i,
+    /(?:خط\s*العرض|العرض)\s*[:：]?\s*(\d{1,2}\.\d+)[\s\S]{0,60}?(?:خط\s*الطول|الطول)\s*[:：]?\s*(\d{1,3}\.\d+)/,
+    /(?<![\d.])(\d{2}\.\d{4,})\s*[,،\s]\s*(\d{2}\.\d{4,})(?![\d.])/
+  ];
+  for(const p of pats){ const m=t.match(p); if(m){ const a=+m[1], b=+m[2];
+    if(inKSA(a,b)) return {lat:a,lng:b}; if(inKSA(b,a)) return {lat:b,lng:a}; } }
+  return null;
+}
+function extractUrl(t){ const m=t.match(/https?:\/\/\S*(?:maps|goo\.gl|maps\.app)\S*/i); return m?m[0]:''; }
+const VISIT_RX = /رقم\s*(?:ال)?حصر|رقم\s*(?:ال)?عداد|قراء[ةه]\s*(?:ال)?عداد|رقم\s*(?:ال)?حساب|تعد[يى]|المحبس|التوصيل[ةه]|تسريب/;
+const DAILY_RX = /العمل\s*المنجز|المنجز\s*اليوم|[اإ]جمالي\s*\d|[اإ]جمالي\s*\n?\s*\d/;
+
+function parseDaily(t){
+  const n = rx => { const m=t.match(rx); return m? +m[1] : null; };
+  return {
+    total: n(/(?:[اإ]جمالي)[^\d]{0,15}(\d+)/) ?? n(/(\d+)\s*موقع(?!\s*(?:كشف|تعد))/),
+    inspected: n(/(\d+)\s*(?:موقع|مواقع)?\s*كشف/),
+    violations: n(/(\d+)\s*(?:موقع|مواقع)?\s*تعد/),
+    removed: n(/(\d+)\s*(?:موقع|مواقع)?\s*(?:[اإ]زال)/)
+  };
+}
+function num(t, rx){ const m=t.match(rx); return m? m[1] : ''; }
+function parseVisitText(t){
+  const v = {
+    hesr_no: num(t,/رقم\s*(?:ال)?حصر\D{0,15}(\d{6,})/),
+    meter_no: num(t,/رقم\s*(?:ال)?عداد\D{0,15}(\d{4,})/),
+    meter_reading: num(t,/قراء[ةه]\s*(?:ال)?عداد\D{0,15}(\d+(?:\.\d+)?)/),
+    account_no: num(t,/رقم\s*(?:ال)?حساب\D{0,15}(\d{5,})/),
+    coords_ok:null, valve:'', meter_condition:'', property:'', result:'', leak:null, notes:''
+  };
+  const notes=[];
+  for(let raw of t.split('\n')){
+    let ln = raw.replace(/^[\s\-–•*\d.)]+/, '').trim();
+    if(!ln || /https?:\/\//.test(ln)) continue;
+    if(/رقم\s*(?:ال)?(?:حصر|عداد|حساب)|قراء[ةه]\s*(?:ال)?عداد/.test(ln) || /^\d+$/.test(ln)) continue;
+    if(/^(?:ال)?[اإأ]حداثي/.test(ln)){ v.coords_ok = !/غير|خط[أاء]|خاطئ/.test(ln); continue; }
+    if(/^(?:ال)?محبس/.test(ln)){ v.valve = ln.replace(/^(?:ال)?محبس\s*/,'').trim(); continue; }
+    if(/^(?:ال)?عداد(?:\s|$)/.test(ln)){ v.meter_condition = ln.replace(/^(?:ال)?عداد\s*/,'').trim(); continue; }
+    if(/^(?:ال)?(?:منزل|عقار|مبن[ىي]|محل|[أا]رض|عمار[ةه]|فيلا|استراح[ةه]|مسجد|مدرس[ةه])/.test(ln)){ v.property = ln; continue; }
+    if(/تعد[يى]/.test(ln)){
+      if(/تم\s*(?:ال)?[اإ]زال|[اإ]زال[ةه]\s*(?:ال)?تعد/.test(ln) && !/لم\s*يتم/.test(ln)) v.result=R_REM;
+      else if(/لا\s*يوجد|عدم\s*وجود|بدون|لايوجد/.test(ln)) v.result = v.result||R_OK;
+      else v.result=R_BAD;
+      if(v.result!==R_OK) notes.push(ln);
+      continue;
+    }
+    if(/تسريب|تهريب/.test(ln)){ v.leak = !/لا\s*يوجد|لايوجد|بدون|سليم[ةه]?\s*من/.test(ln); if(v.leak) notes.push(ln); continue; }
+    if(/^حي\s/.test(ln)) continue;
+    notes.push(ln);
+  }
+  v.notes = notes.join(' · ');
+  const d = t.match(/(?:^|[\s،,(])حي\s+([ء-ي]+(?:\s+[ء-ي]+)?)/);
+  if(d) v.district = d[1].replace(/\s+(?:حسن|بحفر|حفر).*$/,'').trim();
+  const c = extractCoords(t); if(c){ v.lat=c.lat; v.lng=c.lng; }
+  const u = extractUrl(t); if(u) v.location_url=u;
+  return v;
+}
+
+function parsePaste(text){
+  const msgs = splitMessages(text);
+  const visits=[], dailies=[]; let cur=null, pendingLoc=null;
+  const hasLoc = t => extractCoords(t) || extractUrl(t);
+  for(const m of msgs){
+    if(DAILY_RX.test(m.text) && !/رقم\s*(?:ال)?(?:حصر|عداد)/.test(m.text)){ dailies.push({report_date:m.date, contractor:m.sender, raw_text:m.text, ...parseDaily(m.text)}); continue; }
+    if(VISIT_RX.test(m.text)){
+      cur = {msgs:[m]}; visits.push(cur);
+      if(pendingLoc){ cur.msgs.push(pendingLoc); pendingLoc=null; }
+      continue;
+    }
+    if(hasLoc(m.text)){
+      if(cur && !cur.msgs.some(x=>hasLoc(x.text))) cur.msgs.push(m);
+      else pendingLoc = m;
+    }
+  }
+  return {
+    dailies,
+    visits: visits.map(g=>{
+      const text = g.msgs.map(x=>x.text).join('\n');
+      const v = parseVisitText(text);
+      v.visit_date = g.msgs[0].date; v.contractor = g.msgs[0].sender; v.raw_text = text;
+      return v;
+    })
+  };
+}
+
+/* ================== المواقع المستهدفة والمطابقة ================== */
+let siteIdx = null;
+function buildSiteIdx(){
+  siteIdx = {meter:new Map(), account:new Map(), hesr:new Map()};
+  S.sites.forEach(s=>{ if(s.meter_no) siteIdx.meter.set(String(s.meter_no), s); if(s.account_no) siteIdx.account.set(String(s.account_no), s); if(s.hesr_no) siteIdx.hesr.set(String(s.hesr_no), s); });
+}
+function matchSite(v){
+  if(!siteIdx) buildSiteIdx();
+  return (v.meter_no && siteIdx.meter.get(String(v.meter_no))) || (v.account_no && siteIdx.account.get(String(v.account_no))) || (v.hesr_no && siteIdx.hesr.get(String(v.hesr_no))) || null;
+}
+const sameSite = (a,b) => (a.hesr_no && a.hesr_no===b.hesr_no) || (a.meter_no && a.meter_no===b.meter_no);
+function findDuplicate(v){ return S.visits.find(x=> x.id!==v.id && sameSite(v,x)); }
+function draftDuplicate(v){ return S.drafts.find(x=> x!==v && sameSite(v,x)); }
+const FIELD_LABELS = {visit_date:'التاريخ',governorate:'المحافظة',district:'الحي',hesr_no:'رقم الحصر',meter_no:'رقم العداد',meter_reading:'قراءة العداد',account_no:'رقم الحساب',result:'نتيجة الكشف',leak:'التسريب',valve:'المحبس',meter_condition:'حالة العداد',property:'العقار',coords_ok:'الإحداثيات',lat:'خط العرض',lng:'خط الطول',contractor:'المقاول',notes:'الملاحظات'};
+function addHistory(v, action, before){
+  const changed = before ? Object.keys(FIELD_LABELS).filter(k=> String(before[k]??'')!==String(v[k]??'')).map(k=>FIELD_LABELS[k]) : [];
+  v.history = [...(Array.isArray(v.history)?v.history:[]), {at:new Date().toISOString(), by:S.userName||'', action, changed, result:v.result||''}];
+}
+function friendlyErr(e){ return (e && (e.code==='23505' || /duplicate key|unique/i.test(e.message||''))) ? 'هذا الموقع مسجّل سابقاً (رقم الحصر أو العداد مكرر)' : (e?.message||String(e)); }
+function districtsOf(gov){
+  const set = new Set();
+  const ok = x => !gov || (x||CONFIG.DEFAULT_GOV)===gov;
+  S.districts.forEach(d=> ok(d.governorate) && set.add(d.name));
+  S.sites.forEach(s=> s.district && ok(s.governorate) && set.add(s.district));
+  S.visits.forEach(v=> v.district && ok(v.governorate) && set.add(v.district));
+  return [...set].sort((a,b)=>a.localeCompare(b,'ar'));
+}
+const districts = () => districtsOf(null);
+function govOpts(cur, allLabel){ return (allLabel?`<option value="">${allLabel}</option>`:'') + CONFIG.GOVS.map(g=>`<option ${g===cur?'selected':''}>${esc(g)}</option>`).join(''); }
+function distOpts(gov, cur, allLabel){
+  const list = districtsOf(gov||null);
+  if(cur && !list.includes(cur)) list.unshift(cur);
+  return `<option value="">${allLabel||'اختر الحي'}</option>` + list.map(d=>`<option ${d===cur?'selected':''}>${esc(d)}</option>`).join('');
+}
+/* ربط قائمتي المحافظة والحي: تغيير المحافظة يعيد تعبئة الأحياء */
+function linkGovDist(govSel, distSel, allLabel, onChange){
+  govSel.addEventListener('change', ()=>{ distSel.innerHTML = distOpts(govSel.value, '', allLabel); onChange && onChange(); });
+  distSel.addEventListener('change', ()=> onChange && onChange());
+}
+
+/* ================== الصور ================== */
+async function compressImage(file){
+  if(!file.type.startsWith('image/') || /gif|svg/.test(file.type)) return file;
+  try{
+    const bmp = await createImageBitmap(file);
+    const max=1800, s=Math.min(1, max/Math.max(bmp.width,bmp.height));
+    const c=document.createElement('canvas'); c.width=Math.round(bmp.width*s); c.height=Math.round(bmp.height*s);
+    c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    const blob = await new Promise(r=>c.toBlob(r,'image/jpeg',0.82));
+    if(!blob || blob.size>file.size) return file;
+    return new File([blob], (file.name||'photo').replace(/\.\w+$/,'')+'.jpg', {type:'image/jpeg'});
+  }catch(e){ return file; }
+}
+function openViewer(url, type, cap=''){
+  $('#vCap').textContent=cap;
+  $('#vBody').innerHTML = type==='video' ? `<video src="${esc(url)}" controls autoplay playsinline></video>` : `<img src="${esc(url)}" alt="">`;
+  $('#viewer').showModal();
+}
+
+/* ================== الصلاحيات والتنقل ================== */
+const can = {
+  edit: () => S.role==='admin' || S.role==='editor',
+  admin: () => S.role==='admin'
+};
+function applyRole(){
+  $('#roleChip').textContent = (S.userName? S.userName+' · ' : '') + (ROLE_NAMES[S.role]||'');
+  $$('#tabs [data-role]').forEach(b=>{
+    const r=b.dataset.role; b.hidden = (r==='admin' && !can.admin()) || (r==='editor' && !can.edit());
+  });
+  if($(`#tabs [data-tab="${S.tab}"]`)?.hidden) S.tab='dash';
+}
+function show(tab){
+  S.tab=tab; lsSet('hs_tab', tab);
+  $$('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
+  ['dash','add','list','reports','settings'].forEach(t=> $('#v-'+t).hidden = t!==tab);
+  render();
+  window.scrollTo({top:0});
+}
+$('#tabs').addEventListener('click', e=>{ const b=e.target.closest('button[data-tab]'); if(b) show(b.dataset.tab); });
+document.addEventListener('click', e=>{ if(e.target.matches('[data-close]')) e.target.closest('dialog').close(); });
+
+function render(){
+  fillDistrictSelects();
+  if(S.tab==='dash') renderDash();
+  if(S.tab==='list') renderList();
+  if(S.tab==='reports') renderReportPreview();
+  if(S.tab==='settings') renderSettings();
+}
+const SEL_PAIRS = [
+  {gov:'#fGov', dist:'#fDist', all:'كل المحافظات', allD:'كل الأحياء'},
+  {gov:'#rGov', dist:'#rDist', all:'كل المحافظات', allD:'كل الأحياء'},
+  {gov:'#defGov', dist:'#defDistrict', all:null, allD:'اختر الحي', def:CONFIG.DEFAULT_GOV},
+  {gov:'#sGov', dist:'#sDist', all:null, allD:'اختر الحي', def:CONFIG.DEFAULT_GOV}
+];
+function fillDistrictSelects(){
+  $('#distList').innerHTML = districts().map(d=>`<option value="${esc(d)}">`).join('');
+  for(const p of SEL_PAIRS){
+    const g=$(p.gov), d=$(p.dist);
+    const keep = g.dataset.init ? g.value : (p.all ? '' : p.def);
+    g.innerHTML = govOpts(keep, p.all); g.dataset.init='1';
+    d.innerHTML = distOpts(g.value, d.value, p.allD);
+  }
+  const dg=$('#dashGov'); const cur=dg.value; dg.innerHTML = govOpts(cur, 'كل المحافظات');
+}
+function bindSelPairs(){
+  for(const p of SEL_PAIRS) linkGovDist($(p.gov), $(p.dist), p.allD);
+}
+
+/* ================== الإحصاءات ================== */
+function stats(list){
+  const st = {total:list.length, ok:0, bad:0, removed:0, leak:0, today:0, matched:new Set()};
+  const t=today();
+  list.forEach(v=>{
+    if(v.result===R_BAD) st.bad++; else if(v.result===R_REM){ st.removed++; } else st.ok++;
+    if(v.leak) st.leak++;
+    if(v.visit_date===t) st.today++;
+    if(v.site_id) st.matched.add(v.site_id);
+  });
+  st.violAll = st.bad + st.removed;
+  return st;
+}
+function districtStats(list, gov, onlyDist){
+  const map = {};
+  const get = (g,d) => map[g+'|'+d] ||= {governorate:g, district:d, planned:0, visited:0, matched:new Set(), bad:0, removed:0, leak:0, outside:0};
+  S.sites.forEach(s=>{ const g=s.governorate||CONFIG.DEFAULT_GOV; if((!gov||g===gov) && (!onlyDist || s.district===onlyDist)) get(g, s.district||'غير محدد').planned++; });
+  S.districts.forEach(d=>{ if((!gov||d.governorate===gov) && (!onlyDist||d.name===onlyDist)) get(d.governorate, d.name); });
+  list.forEach(v=>{ const r=get(v.governorate||CONFIG.DEFAULT_GOV, v.district||'غير محدد'); r.visited++; if(v.site_id) r.matched.add(v.site_id); else r.outside++;
+    if(v.result===R_BAD) r.bad++; if(v.result===R_REM) r.removed++; if(v.leak) r.leak++; });
+  return Object.values(map).map(r=>({...r, done:r.matched.size, pct: r.planned? Math.round(r.matched.size/r.planned*1000)/10 : null}))
+    .sort((a,b)=>(b.planned-a.planned)||(b.visited-a.visited));
+}
+
+/* ================== لوحة الإنجاز ================== */
+let map, mapLayer;
+function renderDash(){
+  const dg = $('#dashGov').value;
+  const VV = dg ? S.visits.filter(v=>v.governorate===dg) : S.visits;
+  const st = stats(VV);
+  const planned = dg ? S.sites.filter(s=>(s.governorate||CONFIG.DEFAULT_GOV)===dg).length : S.sites.length;
+  const pct = planned ? Math.round(st.matched.size/planned*1000)/10 : null;
+  const last = S.visits.reduce((a,v)=> v.created_at>a? v.created_at : a, '');
+  $('#dashSub').textContent = last ? 'آخر تحديث للبيانات: ' + new Date(last).toLocaleString('ar-SA-u-nu-latn',{dateStyle:'medium',timeStyle:'short'}) : 'لا توجد معاينات مسجلة بعد';
+  $('#kpis').innerHTML = `
+    <div class="kpi main"><span>نسبة الإنجاز</span><b>${pct==null?'—':pct+'%'}</b><i>${planned? st.matched.size+' من '+planned+' موقع مستهدف' : 'ارفع ملفات المواقع المستهدفة من الإعدادات'}</i></div>
+    <div class="kpi"><span>إجمالي المعاينات</span><b>${st.total}</b><i>اليوم: ${st.today}</i></div>
+    <div class="kpi ok"><span>تم الكشف بدون تعدٍ</span><b>${st.ok}</b><i>${st.total? Math.round(st.ok/st.total*100):0}% من المعاينات</i></div>
+    <div class="kpi bad"><span>تعديات مرصودة</span><b>${st.violAll}</b><i>أزيل منها: ${st.removed}</i></div>
+    <div class="kpi"><span>توصيلات بها تسريب</span><b>${st.leak}</b><i>من واقع المعاينات</i></div>`;
+  const ds = districtStats(VV, dg||null);
+  $('#distBars').innerHTML = ds.length ? ds.map(r=>`
+    <div class="row"><div class="t"><b>${esc(r.district)}${dg?'':` <small class="mini">· ${esc(r.governorate)}</small>`}</b><span>${r.planned? `${r.done} / ${r.planned} · ${r.pct}%` : `${r.visited} معاينة (لا توجد قائمة مستهدفة)`}${r.bad+r.removed? ` · <b style="color:var(--bad)">${r.bad+r.removed} تعدٍ</b>`:''}</span></div>
+    <div class="bar"><div style="width:${r.planned? Math.min(100,r.pct) : 100}%;${r.planned?'':'opacity:.35'}"></div></div></div>`).join('')
+    : `<div class="empty">لا توجد بيانات بعد. ابدأ بإضافة معاينة من تبويب «إضافة معاينة».</div>`;
+  renderDailyChart();
+  renderDailyCompare();
+  const rec = [...VV].sort((a,b)=>(b.visit_date||'').localeCompare(a.visit_date||'') || b.created_at.localeCompare(a.created_at)).slice(0,8);
+  $('#recent').innerHTML = rec.length ? `<div class="tbl-wrap" style="border:0"><table><thead><tr><th>التاريخ</th><th>الحي</th><th>رقم الحصر</th><th>رقم العداد</th><th>النتيجة</th><th>المرفقات</th></tr></thead><tbody>${rec.map(rowMini).join('')}</tbody></table></div>` : '<div class="empty">لا توجد معاينات بعد.</div>';
+  $('#recent').querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.id));
+  renderMap();
+}
+function resPill(v){
+  if(v.result===R_BAD) return `<span class="pill p-bad">يوجد تعدٍ</span>`;
+  if(v.result===R_REM) return `<span class="pill p-warn">تمت الإزالة</span>`;
+  if(v.result===R_OK) return `<span class="pill p-ok">لا يوجد تعدٍ</span>`;
+  return `<span class="pill p-n">غير محدد</span>`;
+}
+function rowMini(v){ return `<tr data-id="${v.id}"><td>${fmtD(v.visit_date)}</td><td>${esc(v.district)}</td><td>${esc(v.hesr_no)}</td><td>${esc(v.meter_no)}</td><td>${resPill(v)}</td><td>${(v.media||[]).length}</td></tr>`; }
+function lastNDays(n){ const out=[]; const d=new Date(); for(let i=n-1;i>=0;i--){ const x=new Date(d); x.setDate(d.getDate()-i); out.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')); } return out; }
+function renderDailyChart(){
+  const days = lastNDays(14);
+  const data = days.map(d=>{ const l=S.visits.filter(v=>v.visit_date===d); const bad=l.filter(v=>v.result===R_BAD||v.result===R_REM).length; return {d, ok:l.length-bad, bad}; });
+  const max = Math.max(4, ...data.map(x=>x.ok+x.bad));
+  const step = Math.ceil(max/4); const top = step*4;
+  const W=420,H=190,L=30,B=26,T=8, cw=(W-L-6)/days.length;
+  const y = v => T + (H-T-B) * (1 - v/top);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="المعاينات اليومية">`;
+  for(let i=0;i<=4;i++){ const val=step*i; s+=`<line x1="${L}" x2="${W-4}" y1="${y(val)}" y2="${y(val)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(val)+3}" text-anchor="end">${val}</text>`; }
+  data.forEach((x,i)=>{ const bx = W-6-(i+1)*cw+cw*0.18, bw=cw*0.64;
+    if(x.ok) s+=`<rect x="${bx}" y="${y(x.ok)}" width="${bw}" height="${y(0)-y(x.ok)}" fill="var(--blue-2)" rx="2"><title>${x.d}: ${x.ok} بدون تعدٍ</title></rect>`;
+    if(x.bad) s+=`<rect x="${bx}" y="${y(x.ok+x.bad)}" width="${bw}" height="${y(x.ok)-y(x.ok+x.bad)}" fill="var(--bad)" rx="2"><title>${x.d}: ${x.bad} تعدٍ</title></rect>`;
+    if(i%2===0) s+=`<text x="${bx+bw/2}" y="${H-8}" text-anchor="middle">${x.d.slice(8)}/${+x.d.slice(5,7)}</text>`;
+  });
+  s+='</svg>'; $('#dailyChart').innerHTML=s;
+}
+function renderDailyCompare(){
+  const rows = [...S.daily].sort((a,b)=>(b.report_date||'').localeCompare(a.report_date||'')).slice(0,7);
+  if(!rows.length){ $('#dailyCompare').innerHTML = `<div class="empty">عند لصق رسالة «العمل المنجز اليوم» من المقاول تُحفظ هنا وتُقارن بما سُجّل فعلياً في المنصة.</div>`; return; }
+  $('#dailyCompare').innerHTML = `<div class="tbl-wrap" style="border:0"><table><thead><tr><th>التاريخ</th><th>حسب المقاول</th><th>المسجّل بالمنصة</th><th>تعديات (مقاول / منصة)</th></tr></thead><tbody>${rows.map(r=>{
+    const l=S.visits.filter(v=>v.visit_date===r.report_date); const b=l.filter(v=>v.result===R_BAD||v.result===R_REM).length;
+    const diff = (r.total??0) - l.length;
+    return `<tr style="cursor:default"><td>${fmtD(r.report_date)}</td><td>${r.total??'—'}</td><td>${l.length} ${diff>0?`<span class="pill p-warn">ناقص ${diff}</span>`:diff<0?'':'<span class="pill p-ok">مطابق</span>'}</td><td>${r.violations??'—'} / ${b}</td></tr>`; }).join('')}</tbody></table></div>`;
+}
+function renderMap(){
+  if(typeof L==='undefined'){ $('#map').innerHTML='<div class="empty">تعذر تحميل الخريطة</div>'; return; }
+  if(!map){
+    map = L.map('map',{zoomControl:true, attributionControl:true}).setView([28.43,45.97],12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+    mapLayer = L.layerGroup().addTo(map);
+  }
+  setTimeout(()=>map.invalidateSize(),50);
+  mapLayer.clearLayers();
+  const pts=[]; const visitedSites=new Set(S.visits.map(v=>v.site_id).filter(Boolean));
+  S.sites.forEach(s=>{ if(s.lat && s.lng && !visitedSites.has(s.id)){ L.circleMarker([s.lat,s.lng],{radius:4,color:'#8a9bb0',weight:1,fillOpacity:.5}).bindPopup(`مستهدف · ${esc(s.district)}<br>عداد ${esc(s.meter_no)}`).addTo(mapLayer); pts.push([s.lat,s.lng]); } });
+  S.visits.forEach(v=>{ if(v.lat && v.lng){ const bad=v.result===R_BAD||v.result===R_REM;
+    const mk=L.circleMarker([v.lat,v.lng],{radius:7,color:'#fff',weight:2,fillColor:bad?'#c23a32':'#17845a',fillOpacity:.95}).addTo(mapLayer);
+    mk.bindPopup(`<b>${esc(v.district||'')}</b><br>حصر ${esc(v.hesr_no)}<br>${esc(v.result||'')}<br><a href="#" data-open="${v.id}">فتح التفاصيل</a>`); pts.push([v.lat,v.lng]); } });
+  if(pts.length) map.fitBounds(pts,{padding:[20,20],maxZoom:16});
+}
+document.addEventListener('click', e=>{ const a=e.target.closest('[data-open]'); if(a){ e.preventDefault(); openDetail(a.dataset.open); } });
+
+/* ================== إضافة معاينة ================== */
+const SAMPLE = `[28/10/2026, 6:55:10 م] ابراهيم فأس الحفر: 1. رقم الحصر
+13012310155000
+2.رقم العداد
+64341419
+3.قراءة العداد
+2962972
+الاحداثيات صحيحه
+المحبس مقفول
+العداد سليم
+المنزل سكني مأهول
+تم الكشف ولا يوجد تعدي
+التوصيله بها تسريب
+[28/10/2026, 6:55:12 م] ابراهيم فأس الحفر: https://maps.google.com/?q=28.45004799,45.94639229
+[28/10/2026, 7:05:40 م] ابراهيم فأس الحفر: العمل المنجز اليوم
+اجمالي
+56 موقع
+يصنف
+52 موقع كشف
+4 مواقع تعدى على شبكة المياه الوطنيه`;
+
+function blankVisit(){
+  return { id:uid(), visit_date: $('#defDate').value || today(), governorate: $('#defGov').value || CONFIG.DEFAULT_GOV, district: $('#defDistrict').value.trim(), contractor: $('#defContractor').value.trim(),
+    hesr_no:'', meter_no:'', meter_reading:'', account_no:'', lat:null, lng:null, location_url:'', coords_ok:null, valve:'', meter_condition:'', property:'', result:'', leak:null, notes:'', raw_text:'', site_id:null, _files:[] };
+}
+function enrich(v){
+  const s = matchSite(v);
+  if(s){ v.site_id=s.id; v.district ||= s.district; v.governorate = s.governorate || v.governorate; v.account_no ||= s.account_no||''; v.meter_no ||= s.meter_no||''; v.hesr_no ||= s.hesr_no||''; if(!v.lat && s.lat){ v.lat=s.lat; v.lng=s.lng; } }
+  else v.site_id = null;
+  return v;
+}
+$('#sampleBtn').onclick = ()=>{ $('#pasteBox').value = SAMPLE; toast('تم وضع مثال من رسائل القروب، اضغط «استخراج البيانات»'); };
+$('#defDate').value = today();
+$('#defContractor').value = lsGet('hs_contractor','');
+$('#defContractor').onchange = e=> lsSet('hs_contractor', e.target.value);
+$('#parseBtn').onclick = ()=>{
+  const txt = $('#pasteBox').value.trim();
+  if(!txt){ toast('الصق رسائل الواتساب أولاً'); return; }
+  const {visits, dailies} = parsePaste(txt);
+  if(!visits.length && !dailies.length){ toast('لم أجد بيانات معاينة في النص. تأكد أنه يحتوي رقم الحصر أو رقم العداد.'); return; }
+  let merged=0;
+  visits.forEach(p=>{
+    const clean = Object.fromEntries(Object.entries(p).filter(([k,x])=>x!==null && x!=='' && x!==undefined));
+    const prev = draftDuplicate(clean);
+    if(prev){ for(const [k,x] of Object.entries(clean)) if(prev[k]==null || prev[k]==='') prev[k]=x; merged++; return; }
+    const v = Object.assign(blankVisit(), clean);
+    S.drafts.push(enrich(v));
+  });
+  if(merged) setTimeout(()=>toast(`تم دمج ${merged} رسالة مكررة لنفس الموقع`), 2700);
+  renderDailyFound(dailies);
+  renderDrafts();
+  $('#pasteBox').value='';
+  toast(`تم استخراج ${visits.length} معاينة` + (dailies.length? ` و${dailies.length} تقرير يومي` : ''));
+};
+$('#manualBtn').onclick = ()=>{ S.drafts.push(blankVisit()); renderDrafts(); };
+
+function renderDailyFound(list){
+  const box=$('#dailyFound');
+  if(!list.length){ box.innerHTML=''; return; }
+  box.innerHTML = list.map((d,i)=>`<div class="card section-gap" data-di="${i}">
+    <h3 style="margin:0">تقرير المقاول اليومي</h3>
+    <div class="form">
+      <label class="f">التاريخ<input class="in" type="date" data-k="report_date" value="${esc(d.report_date||$('#defDate').value||today())}"></label>
+      <label class="f">الإجمالي<input class="in" type="number" data-k="total" value="${d.total??''}"></label>
+      <label class="f">مواقع كشف<input class="in" type="number" data-k="inspected" value="${d.inspected??''}"></label>
+      <label class="f">مواقع تعدٍ<input class="in" type="number" data-k="violations" value="${d.violations??''}"></label>
+    </div>
+    <div class="row-btns"><button class="btn pri sm" data-save-daily>حفظ التقرير اليومي</button><span class="hint">يُستخدم للمقارنة مع المعاينات المسجّلة فعلياً</span></div></div>`).join('');
+  box.querySelectorAll('[data-save-daily]').forEach((b)=>b.onclick=async()=>{
+    const card=b.closest('[data-di]'); const d=list[+card.dataset.di];
+    card.querySelectorAll('[data-k]').forEach(i=>{ d[i.dataset.k] = i.type==='number' ? (i.value===''?null:+i.value) : i.value; });
+    d.contractor ||= $('#defContractor').value.trim();
+    try{ await DB.saveDaily({report_date:d.report_date,total:d.total,inspected:d.inspected,violations:d.violations,removed:d.removed??null,contractor:d.contractor||null,raw_text:d.raw_text||''}); card.remove(); toast('تم حفظ التقرير اليومي'); }
+    catch(e){ toast('تعذر الحفظ: '+e.message); }
+  });
+}
+
+function visitFormHTML(v, prefix=''){
+  const sel = (k, opts) => `<select class="in" data-k="${k}"><option value=""></option>${opts.map(o=>`<option ${v[k]===o?'selected':''}>${o}</option>`).join('')}${v[k] && !opts.includes(v[k])?`<option selected>${esc(v[k])}</option>`:''}</select>`;
+  const tri = (k, yes, no) => `<select class="in" data-k="${k}" data-bool><option value="" ${v[k]==null?'selected':''}>غير محدد</option><option value="1" ${v[k]===true?'selected':''}>${yes}</option><option value="0" ${v[k]===false?'selected':''}>${no}</option></select>`;
+  const ro = can.edit() ? '' : 'disabled';
+  return `<fieldset ${ro} style="border:0;padding:0;margin:0;min-width:0"><div class="form">
+    <label class="f">تاريخ المعاينة<input class="in" type="date" data-k="visit_date" value="${esc(v.visit_date)}"></label>
+    <label class="f">المحافظة<select class="in" data-k="governorate" data-gov>${govOpts(v.governorate||CONFIG.DEFAULT_GOV)}</select></label>
+    <label class="f">الحي<select class="in" data-k="district" data-dist>${distOpts(v.governorate||CONFIG.DEFAULT_GOV, v.district)}</select></label>
+    <label class="f">رقم الحصر<input class="in" data-k="hesr_no" inputmode="numeric" value="${esc(v.hesr_no)}"></label>
+    <label class="f">رقم العداد<input class="in" data-k="meter_no" inputmode="numeric" value="${esc(v.meter_no)}"></label>
+    <label class="f">قراءة العداد<input class="in" data-k="meter_reading" inputmode="decimal" value="${esc(v.meter_reading)}"></label>
+    <label class="f">رقم الحساب<input class="in" data-k="account_no" inputmode="numeric" value="${esc(v.account_no)}"></label>
+    <label class="f">نتيجة الكشف${sel('result',[R_OK,R_BAD,R_REM])}</label>
+    <label class="f">التوصيلة${tri('leak','بها تسريب','لا يوجد تسريب')}</label>
+    <label class="f">المحبس${sel('valve',['مفتوح','مقفول','تالف','لا يوجد'])}</label>
+    <label class="f">حالة العداد${sel('meter_condition',['سليم','تالف','متوقف','لا يوجد عداد'])}</label>
+    <label class="f">العقار<input class="in" data-k="property" value="${esc(v.property)}" placeholder="المنزل سكني مأهول"></label>
+    <label class="f">الإحداثيات${tri('coords_ok','صحيحة','غير صحيحة')}</label>
+    <label class="f">خط العرض (Latitude)<input class="in" data-k="lat" inputmode="decimal" value="${v.lat??''}"></label>
+    <label class="f">خط الطول (Longitude)<input class="in" data-k="lng" inputmode="decimal" value="${v.lng??''}"></label>
+    <label class="f">المقاول / المندوب<input class="in" data-k="contractor" value="${esc(v.contractor)}"></label>
+  </div>
+  <label class="f" style="margin-top:10px">ملاحظات<textarea class="in" data-k="notes" style="min-height:60px">${esc(v.notes)}</textarea></label></fieldset>`;
+}
+function readForm(root, v){
+  root.querySelectorAll('[data-k]').forEach(el=>{
+    const k=el.dataset.k; let val=el.value.trim();
+    if(el.hasAttribute('data-bool')) val = val===''?null: val==='1';
+    else if(k==='lat'||k==='lng') val = val===''?null: +normalize(val);
+    else if(['hesr_no','meter_no','account_no','meter_reading'].includes(k)) val = normalize(val).replace(/\s/g,'');
+    v[k]=val;
+  });
+  return v;
+}
+function matchInfo(v){
+  const dup = findDuplicate(v);
+  const parts=[];
+  if(v.site_id) parts.push(`<div class="match p-ok">مطابق لموقع مستهدف في حي ${esc(v.district)}</div>`);
+  else if(S.sites.length && (v.meter_no||v.hesr_no)) parts.push(`<div class="match p-warn">غير موجود في قوائم المواقع المستهدفة</div>`);
+  if(dup) parts.push(`<div class="match p-bad section-gap" style="gap:8px"><span>هذا الموقع مسجّل سابقاً بتاريخ ${fmtD(dup.visit_date)} (${esc(dup.result||'بدون نتيجة')})، ولا يمكن حفظه مرة ثانية.</span>
+    <span class="row-btns"><button class="btn sm" type="button" data-open="${dup.id}">فتح المعاينة السابقة</button><button class="btn sm pri" type="button" data-merge="${dup.id}">إضافة المرفقات والتحديث للمعاينة السابقة</button></span></div>`);
+  const dd = draftDuplicate(v);
+  if(dd) parts.push(`<div class="match p-bad">نفس الموقع موجود في بطاقة أخرى في هذه الدفعة. احذف إحداهما.</div>`);
+  if(v.location_url && !v.lat) parts.push(`<div class="match p-n">رابط الموقع مختصر ولا يحتوي إحداثيات، افتحه وانسخ الإحداثيات: <a href="${esc(v.location_url)}" target="_blank" rel="noopener">فتح الموقع</a></div>`);
+  return parts.join('');
+}
+function mediaPickerHTML(){
+  return `<div class="dropzone" data-drop>
+    <div class="row-btns">
+      <label class="btn sm">من الاستديو<input type="file" accept="image/*,video/*" multiple hidden data-pick></label>
+      <label class="btn sm">التقاط صورة<input type="file" accept="image/*" capture="environment" hidden data-pick></label>
+      <label class="btn sm">تصوير فيديو<input type="file" accept="video/*" capture="environment" hidden data-pick></label>
+    </div>
+    <div class="thumbs" data-thumbs></div>
+    <span class="hint">أو اسحب الصور وأفلتها هنا، أو الصقها (Ctrl+V)</span></div>`;
+}
+document.addEventListener('change', e=>{
+  if(e.target.matches('[data-gov]')){ const d=e.target.closest('.form')?.querySelector('[data-dist]'); if(d) d.innerHTML = distOpts(e.target.value, ''); }
+}, true);
+let activeDrop = null;
+function bindPicker(root, files, onChange){
+  const zone = root.querySelector('[data-drop]');
+  const add = async list => {
+    for(const f of list){ if(!/^image|^video/.test(f.type)) continue; files.push(await compressImage(f)); }
+    drawThumbs(); onChange && onChange();
+  };
+  const drawThumbs = () => {
+    const box = zone.querySelector('[data-thumbs]');
+    box.innerHTML='';
+    files.forEach((f,i)=>{
+      const url=URL.createObjectURL(f); const isV=f.type.startsWith('video/');
+      const d=document.createElement('div'); d.className='thumb';
+      d.innerHTML = (isV?`<video src="${url}" muted playsinline></video><span class="vid">فيديو</span>`:`<img src="${url}" alt="">`)+`<button class="x" type="button" aria-label="حذف">×</button>`;
+      d.querySelector('.x').onclick=()=>{ files.splice(i,1); drawThumbs(); onChange&&onChange(); };
+      d.querySelector('img,video').onclick=()=>openViewer(url, isV?'video':'image');
+      box.appendChild(d);
+    });
+  };
+  zone.querySelectorAll('[data-pick]').forEach(inp=>inp.onchange=()=>{ add([...inp.files]); inp.value=''; });
+  zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', ()=>zone.classList.remove('over'));
+  zone.addEventListener('drop', e=>{ e.preventDefault(); zone.classList.remove('over'); add([...e.dataTransfer.files]); });
+  root.addEventListener('focusin', ()=> activeDrop = add);
+  root.addEventListener('pointerdown', ()=> activeDrop = add);
+  drawThumbs();
+}
+document.addEventListener('paste', e=>{
+  const files = [...(e.clipboardData?.files||[])];
+  if(files.length && activeDrop){ e.preventDefault(); activeDrop(files); toast('تمت إضافة '+files.length+' ملف'); }
+});
+
+function renderDrafts(){
+  const box=$('#cards'); box.innerHTML='';
+  S.drafts.forEach((v,i)=>{
+    const c=document.createElement('div'); c.className='vcard';
+    c.innerHTML = `<div class="head"><b>معاينة ${i+1}${v.hesr_no?' · حصر '+esc(v.hesr_no):''}</b><div class="row-btns">${resPill(v)}<button class="btn sm" data-del>إزالة</button></div></div>
+      <div data-match>${matchInfo(v)}</div>
+      ${visitFormHTML(v)}
+      ${mediaPickerHTML()}
+      ${v.raw_text?`<details><summary class="hint">نص الرسالة الأصلي</summary><pre class="hint" style="white-space:pre-wrap;margin:6px 0 0">${esc(v.raw_text)}</pre></details>`:''}
+      <div class="row-btns"><button class="btn pri" data-save>حفظ المعاينة</button><span class="hint" data-st></span></div>`;
+    c.querySelector('[data-del]').onclick=()=>{ S.drafts.splice(S.drafts.indexOf(v),1); renderDrafts(); };
+    const refresh = ()=>{ c.querySelector('[data-match]').innerHTML=matchInfo(v); c.querySelector('.head .row-btns').firstElementChild.outerHTML=resPill(v); c.querySelector('[data-save]').disabled = !!(findDuplicate(v)||draftDuplicate(v)); bindMerge(c,v); };
+    c.addEventListener('change', e=>{ if(e.target.closest('[data-drop]')) return; readForm(c,v); enrich(v); refresh(); });
+    setTimeout(refresh);
+    bindPicker(c, v._files);
+    c.querySelector('[data-save]').onclick=()=>saveDraft(v,c);
+    box.appendChild(c);
+  });
+  $('#saveAllRow').hidden = S.drafts.length<2;
+  $('#saveAllHint').textContent = S.drafts.length? `${S.drafts.length} معاينة بانتظار الحفظ` : '';
+}
+async function saveDraft(v, c){
+  readForm(c, v); enrich(v);
+  if(!v.hesr_no && !v.meter_no && !v.account_no){ toast('أدخل رقم الحصر أو رقم العداد على الأقل'); return false; }
+  if(!v.district){ toast('حدد الحي'); return false; }
+  if(findDuplicate(v)){ toast('هذا الموقع مسجّل سابقاً، افتح المعاينة السابقة وحدّثها'); return false; }
+  if(draftDuplicate(v)){ toast('نفس الموقع مكرر في هذه الدفعة'); return false; }
+  addHistory(v, 'تسجيل');
+  const st=c.querySelector('[data-st]'); const btn=c.querySelector('[data-save]'); btn.disabled=true;
+  try{
+    const files=v._files; const rec={...v}; delete rec._files;
+    await DB.saveVisit(rec, files, (i,n)=> st.textContent=`رفع المرفقات ${i}/${n}…`);
+    S.drafts.splice(S.drafts.indexOf(v),1); buildSiteIdx();
+    toast('تم حفظ المعاينة'); renderDrafts(); fillDistrictSelects();
+    return true;
+  }catch(e){ st.textContent='تعذر الحفظ: '+friendlyErr(e); btn.disabled=false; v.history=(v.history||[]).slice(0,-1); return false; }
+}
+/* زيارة متابعة لموقع مسجّل: تُضاف المرفقات والتحديث للمعاينة السابقة بدل إنشاء سجل مكرر */
+function bindMerge(c, v){
+  const b=c.querySelector('[data-merge]'); if(!b) return;
+  b.onclick = async()=>{
+    const ex=S.visits.find(x=>x.id===b.dataset.merge); if(!ex) return;
+    readForm(c, v);
+    const before={...ex}, up={...ex};
+    for(const k of ['result','leak','valve','meter_condition','meter_reading','property','coords_ok']) if(v[k]!==null && v[k]!=='' && v[k]!==undefined) up[k]=v[k];
+    if(v.notes && v.notes!==ex.notes) up.notes=[ex.notes, `${fmtD(v.visit_date)}: ${v.notes}`].filter(Boolean).join(' | ');
+    if(!up.lat && v.lat){ up.lat=v.lat; up.lng=v.lng; }
+    addHistory(up, `زيارة متابعة ${fmtD(v.visit_date)}` + (v._files.length? ` وإضافة ${v._files.length} مرفق` : ''), before);
+    b.disabled=true;
+    try{ await DB.saveVisit(up, v._files); S.drafts.splice(S.drafts.indexOf(v),1); toast('تم تحديث المعاينة السابقة'); renderDrafts(); }
+    catch(e){ toast(friendlyErr(e)); b.disabled=false; }
+  };
+}
+$('#saveAllBtn').onclick = async ()=>{
+  const cards=[...$('#cards').children]; const list=[...S.drafts]; let ok=0;
+  for(let i=0;i<list.length;i++){ if(await saveDraft(list[i], cards[i])) ok++; }
+  toast(`تم حفظ ${ok} من ${list.length}`);
+};
+
+/* ================== السجل ================== */
+function filtered(){
+  const q=normalize($('#fQ').value.trim()), g=$('#fGov').value, d=$('#fDist').value, r=$('#fRes').value, f=$('#fFrom').value, t=$('#fTo').value;
+  return S.visits.filter(v=>{
+    if(g && v.governorate!==g) return false;
+    if(d && v.district!==d) return false;
+    if(r==='leak' ? !v.leak : (r && v.result!==r)) return false;
+    if(f && (v.visit_date||'')<f) return false;
+    if(t && (v.visit_date||'')>t) return false;
+    if(q && ![v.hesr_no,v.meter_no,v.account_no,v.notes,v.property,v.district].some(x=>String(x||'').includes(q))) return false;
+    return true;
+  }).sort((a,b)=>(b.visit_date||'').localeCompare(a.visit_date||'') || (b.created_at||'').localeCompare(a.created_at||''));
+}
+function renderList(){
+  const l=filtered();
+  $('#listSub').textContent = `${l.length} معاينة` + (l.length!==S.visits.length? ` من أصل ${S.visits.length}`:'');
+  $('#listBody').innerHTML = l.length ? l.map(v=>`<tr data-id="${v.id}"><td>${fmtD(v.visit_date)}</td><td>${esc(v.governorate)}</td><td>${esc(v.district)}</td><td>${esc(v.hesr_no)}</td><td>${esc(v.meter_no)}</td><td>${esc(v.meter_reading)}</td><td>${resPill(v)}</td><td>${v.leak?'<span class="pill p-warn">تسريب</span>':v.leak===false?'لا':'—'}</td><td>${esc(v.valve)}</td><td>${esc(v.meter_condition)}</td><td>${(v.media||[]).length}</td></tr>`).join('')
+    : `<tr style="cursor:default"><td colspan="11" class="empty">لا توجد معاينات مطابقة</td></tr>`;
+  $('#listBody').querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.id));
+}
+['#fQ','#fGov','#fDist','#fRes','#fFrom','#fTo'].forEach(id=>$(id).addEventListener('input', ()=>setTimeout(renderList)));
+
+async function openDetail(id){
+  const v = S.visits.find(x=>x.id===id); if(!v) return;
+  const work = {...v}; const newFiles=[];
+  $('#dTitle').textContent = `معاينة ${v.hesr_no? 'حصر '+v.hesr_no : ''} · ${fmtD(v.visit_date)}`;
+  const body=$('#dBody');
+  body.innerHTML = `<div class="row-btns">${resPill(v)}${v.leak?'<span class="pill p-warn">بها تسريب</span>':''}${v.site_id?'<span class="pill p-ok">ضمن المستهدف</span>':''}
+      ${v.lat?`<a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${v.lat},${v.lng}">فتح في الخرائط</a>`:''}</div>
+    ${visitFormHTML(work)}
+    <div><h3>الصور والفيديو (${(v.media||[]).length})</h3><div class="thumbs" id="dMedia"></div></div>
+    ${can.edit()? `<div><h3>إضافة مرفقات</h3>${mediaPickerHTML()}</div>`:''}
+    ${(v.history||[]).length? `<details><summary><b>سجل التحديثات (${v.history.length})</b></summary><div class="section-gap" style="gap:4px;margin-top:6px">${v.history.slice().reverse().map(h=>`<div class="mini">${new Date(h.at).toLocaleString('ar-SA-u-nu-latn',{dateStyle:'medium',timeStyle:'short'})} · ${esc(h.action)}${h.by?' · '+esc(h.by):''}${h.changed?.length?' · عُدّل: '+esc(h.changed.join('، ')):''}${h.result?' · '+esc(h.result):''}</div>`).join('')}</div></details>`:''}
+    ${v.raw_text?`<details><summary class="hint">نص الرسالة الأصلي</summary><pre class="hint" style="white-space:pre-wrap">${esc(v.raw_text)}</pre></details>`:''}
+    <p class="mini">سُجّلت ${v.created_by? 'بواسطة '+esc(v.created_by)+' · ':''}${v.created_at? new Date(v.created_at).toLocaleString('ar-SA-u-nu-latn'):''}</p>
+    ${can.edit()? `<div class="row-btns"><button class="btn pri" id="dSave">حفظ التعديلات</button>${can.admin()?'<button class="btn danger" id="dDel">حذف المعاينة</button>':''}<span class="hint" id="dSt"></span></div>`:''}`;
+  const mbox = body.querySelector('#dMedia');
+  const urls = await DB.mediaUrls(v.media||[]);
+  (v.media||[]).forEach((m,i)=>{
+    const d=document.createElement('div'); d.className='thumb';
+    d.innerHTML = (m.type==='video'?`<video src="${esc(urls[i])}" muted playsinline preload="metadata"></video><span class="vid">فيديو</span>`:`<img src="${esc(urls[i])}" alt="" loading="lazy">`) + (can.admin()?`<button class="x" type="button" aria-label="حذف">×</button>`:'');
+    d.querySelector('img,video').onclick=()=>openViewer(urls[i], m.type, `${i+1} / ${v.media.length}`);
+    const x=d.querySelector('.x'); if(x) x.onclick=async()=>{ if(!confirm('حذف هذا المرفق؟')) return; try{ await DB.deleteMedia(m); v.media=v.media.filter(z=>z.id!==m.id); openDetail(v.id); render(); }catch(e){ toast(e.message); } };
+    mbox.appendChild(d);
+  });
+  if(!(v.media||[]).length) mbox.innerHTML='<span class="hint">لا توجد مرفقات</span>';
+  if(can.edit()){
+    bindPicker(body, newFiles);
+    body.querySelector('#dSave').onclick=async()=>{
+      readForm(body, work); enrich(work); work.media=v.media;
+      const st=body.querySelector('#dSt');
+      const dup=findDuplicate(work); if(dup){ st.textContent=`رقم الحصر أو العداد مستخدم في معاينة أخرى بتاريخ ${fmtD(dup.visit_date)}`; return; }
+      addHistory(work, newFiles.length? `تحديث وإضافة ${newFiles.length} مرفق` : 'تحديث', v);
+      try{ await DB.saveVisit(work, newFiles, (i,n)=>st.textContent=`رفع ${i}/${n}…`); toast('تم الحفظ'); $('#detail').close(); render(); }
+      catch(e){ st.textContent='تعذر الحفظ: '+friendlyErr(e); }
+    };
+    const del=body.querySelector('#dDel'); if(del) del.onclick=async()=>{ if(!confirm('حذف المعاينة وجميع مرفقاتها نهائياً؟')) return; try{ await DB.deleteVisit(v); toast('تم الحذف'); $('#detail').close(); render(); }catch(e){ toast(e.message); } };
+  }
+  $('#detail').showModal();
+}
+
+/* ================== التقارير ================== */
+function reportSet(){
+  const f=$('#rFrom').value, t=$('#rTo').value, d=$('#rDist').value, g=$('#rGov').value;
+  const list = S.visits.filter(v=> (!g||v.governorate===g) && (!d||v.district===d) && (!f||(v.visit_date||'')>=f) && (!t||(v.visit_date||'')<=t))
+    .sort((a,b)=>(a.visit_date||'').localeCompare(b.visit_date||'') || (a.district||'').localeCompare(b.district||''));
+  return {list, f, t, d, g};
+}
+function scopeText(g,d){ return `القطاع الشرقي · ${g||'جميع محافظات الوحدة الشمالية'}${d?' · حي '+d:''}`; }
+function periodText(f,t){ return f||t ? `من ${f?fmtD(f):'البداية'} إلى ${t?fmtD(t):'تاريخه'}` : 'كامل فترة المبادرة'; }
+function renderReportPreview(){
+  const {list,f,t,d,g}=reportSet(); const st=stats(list); const ds=districtStats(list, g, d);
+  const planned = ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
+  $('#repPreview').innerHTML = `<div class="card section-gap"><h3 style="margin:0">ملخص ${esc(periodText(f,t))} · ${esc(scopeText(g,d))}</h3>
+    <div class="kpis" style="margin:0">
+      <div class="kpi main"><span>نسبة الإنجاز</span><b>${planned? Math.round(done/planned*1000)/10+'%':'—'}</b><i>${planned? done+' من '+planned:''}</i></div>
+      <div class="kpi"><span>المعاينات</span><b>${st.total}</b></div>
+      <div class="kpi bad"><span>التعديات</span><b>${st.violAll}</b><i>أزيل: ${st.removed}</i></div>
+      <div class="kpi"><span>تسريبات</span><b>${st.leak}</b></div></div>
+    <div class="tbl-wrap"><table><thead><tr><th>المحافظة</th><th>الحي</th><th>المستهدف</th><th>المنجز</th><th>النسبة</th><th>معاينات خارج القائمة</th><th>تعديات</th><th>أزيلت</th><th>تسريبات</th></tr></thead><tbody>
+    ${ds.map(r=>`<tr style="cursor:default"><td>${esc(r.governorate)}</td><td>${esc(r.district)}</td><td>${r.planned||'—'}</td><td>${r.done}</td><td>${r.pct==null?'—':r.pct+'%'}</td><td>${r.outside}</td><td>${r.bad}</td><td>${r.removed}</td><td>${r.leak}</td></tr>`).join('') || '<tr><td colspan="9" class="empty">لا توجد بيانات في هذه الفترة</td></tr>'}
+    </tbody></table></div></div>`;
+}
+['#rFrom','#rTo','#rGov','#rDist'].forEach(id=>$(id).addEventListener('input', ()=>setTimeout(renderReportPreview)));
+$('#dashGov').addEventListener('change', renderDash);
+
+const yn = b => b===true?'نعم':b===false?'لا':'';
+$('#pdfBtn').onclick = async ()=>{
+  const {list,f,t,d,g}=reportSet(); const st=stats(list); const ds=districtStats(list, g, d);
+  const planned = ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
+  const mode=$('#rPhotos').value;
+  const withPhotos = mode==='none'?[] : list.filter(v=> (mode==='all' || v.result===R_BAD || v.result===R_REM) && (v.media||[]).some(m=>m.type==='image'));
+  const imgMap = new Map();
+  if(withPhotos.length){ toast('جاري تجهيز الصور…'); for(const v of withPhotos){ const ims=v.media.filter(m=>m.type==='image').slice(0,4); imgMap.set(v.id, await DB.mediaUrls(ims)); } }
+  const days = [...new Set(list.map(v=>v.visit_date))].sort();
+  const viol = list.filter(v=>v.result===R_BAD||v.result===R_REM);
+  const sections = mode==='all' ? withPhotos : viol;
+  $('#printArea').innerHTML = `<div class="pr">
+    <div class="ph"><div><small>شركة المياه الوطنية</small><small>إدارة المخالفات والتعديات · القطاع الشرقي · الوحدة الشمالية</small><h1>تقرير إنجاز مبادرة المسح الميداني لأحياء حفر الباطن</h1>
+      <small>${esc(periodText(f,t))} · ${esc(scopeText(g,d))}</small></div>
+      <div style="text-align:left"><small>تاريخ التقرير</small><b>${fmtD(today())}</b></div></div>
+    <div class="k"><div>نسبة الإنجاز<b>${planned? Math.round(done/planned*1000)/10+'%':'—'}</b>${planned? done+' من '+planned+' موقع':''}</div><div>إجمالي المعاينات<b>${st.total}</b></div><div>التعديات المرصودة<b>${st.violAll}</b>أزيل منها ${st.removed}</div><div>توصيلات بها تسريب<b>${st.leak}</b></div></div>
+    <h2>الإنجاز حسب الحي</h2>
+    <table><thead><tr><th>المحافظة</th><th>الحي</th><th>المستهدف</th><th>المنجز</th><th>النسبة</th><th>خارج القائمة</th><th>تعديات</th><th>أزيلت</th><th>تسريبات</th></tr></thead><tbody>
+    ${ds.map(r=>`<tr><td>${esc(r.governorate)}</td><td>${esc(r.district)}</td><td>${r.planned||'—'}</td><td>${r.done}</td><td>${r.pct==null?'—':r.pct+'%'}</td><td>${r.outside}</td><td>${r.bad}</td><td>${r.removed}</td><td>${r.leak}</td></tr>`).join('')}</tbody></table>
+    <h2>الإنجاز اليومي</h2>
+    <table><thead><tr><th>التاريخ</th><th>المعاينات المسجلة</th><th>بدون تعدٍ</th><th>تعديات</th><th>حسب تقرير المقاول</th></tr></thead><tbody>
+    ${days.map(day=>{ const l=list.filter(v=>v.visit_date===day); const b=l.filter(v=>v.result===R_BAD||v.result===R_REM).length; const c=S.daily.find(x=>x.report_date===day);
+      return `<tr><td>${fmtD(day)}</td><td>${l.length}</td><td>${l.length-b}</td><td>${b}</td><td>${c? (c.total??'')+' موقع / '+(c.violations??0)+' تعدٍ':'—'}</td></tr>`; }).join('')}</tbody></table>
+    <h2>${mode==='all'?'المعاينات مع الصور':'التعديات المرصودة'} (${sections.length})</h2>
+    ${sections.map(v=>`<div class="viol"><b>${fmtD(v.visit_date)} · ${esc(v.governorate)} · حي ${esc(v.district)} · حصر ${esc(v.hesr_no)} · عداد ${esc(v.meter_no)}</b> — ${esc(v.result||'')}${v.leak?' · بها تسريب':''}
+      <div>${esc([v.property, v.valve&&('المحبس '+v.valve), v.meter_condition&&('العداد '+v.meter_condition), v.notes].filter(Boolean).join(' · '))}</div>
+      ${v.lat?`<div>الإحداثيات: ${v.lat}, ${v.lng}</div>`:''}
+      ${(imgMap.get(v.id)||[]).length?`<div class="ims">${imgMap.get(v.id).map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>`:''}</div>`).join('') || '<p>لا توجد تعديات في هذه الفترة.</p>'}
+    <h2>تفاصيل المعاينات (${list.length})</h2>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>المحافظة</th><th>الحي</th><th>رقم الحصر</th><th>رقم العداد</th><th>القراءة</th><th>المحبس</th><th>العداد</th><th>العقار</th><th>النتيجة</th><th>تسريب</th></tr></thead><tbody>
+    ${list.map((v,i)=>`<tr><td>${i+1}</td><td>${fmtD(v.visit_date)}</td><td>${esc(v.governorate)}</td><td>${esc(v.district)}</td><td>${esc(v.hesr_no)}</td><td>${esc(v.meter_no)}</td><td>${esc(v.meter_reading)}</td><td>${esc(v.valve)}</td><td>${esc(v.meter_condition)}</td><td>${esc(v.property)}</td><td>${esc(v.result)}</td><td>${yn(v.leak)}</td></tr>`).join('')}</tbody></table>
+    <div class="foot"><div>أعدّه</div><div>رئيس إدارة المخالفات</div><div>الاعتماد</div></div>
+  </div>`;
+  const imgs=[...$('#printArea').querySelectorAll('img')];
+  await Promise.all(imgs.map(im=> im.complete? 0 : new Promise(r=>{ im.onload=im.onerror=r; setTimeout(r,8000); })));
+  setTimeout(()=>window.print(), 150);
+};
+
+$('#xlsBtn').onclick = ()=>{
+  if(typeof XLSX==='undefined'){ toast('تعذر تحميل مكتبة Excel، تحقق من الاتصال'); return; }
+  const {list,f,t,d,g}=reportSet(); const st=stats(list); const ds=districtStats(list, g, d);
+  const planned = ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
+  const wb=XLSX.utils.book_new(); wb.Workbook={Views:[{RTL:true}]};
+  const add=(name, aoa, cols)=>{ const ws=XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=cols.map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb, ws, name); };
+  add('الملخص', [
+    ['تقرير إنجاز مبادرة المسح الميداني لأحياء حفر الباطن'],['شركة المياه الوطنية - إدارة المخالفات والتعديات'],
+    ['الفترة', periodText(f,t)],['القطاع','القطاع الشرقي'],['المحافظة', g||'جميع المحافظات'],['الحي', d||'جميع الأحياء'],['تاريخ التقرير', today()],[],
+    ['المواقع المستهدفة', planned],['المواقع المنجزة', done],['نسبة الإنجاز %', planned? Math.round(done/planned*1000)/10 : ''],
+    ['إجمالي المعاينات', st.total],['بدون تعدٍ', st.ok],['تعديات قائمة', st.bad],['تمت إزالتها', st.removed],['توصيلات بها تسريب', st.leak]
+  ], [26,40]);
+  add('الأحياء', [['المحافظة','الحي','المستهدف','المنجز','النسبة %','معاينات خارج القائمة','تعديات','أزيلت','تسريبات'], ...ds.map(r=>[r.governorate,r.district,r.planned,r.done,r.pct??'',r.outside,r.bad,r.removed,r.leak])], [14,18,10,10,10,18,10,10,10]);
+  const H=['التاريخ','المحافظة','الحي','رقم الحصر','رقم العداد','قراءة العداد','رقم الحساب','نتيجة الكشف','تسريب','المحبس','حالة العداد','العقار','الإحداثيات صحيحة','Latitude','Longitude','ضمن المستهدف','عدد المرفقات','الملاحظات','المقاول','سُجّل بواسطة'];
+  const row=v=>[v.visit_date,v.governorate,v.district,v.hesr_no,v.meter_no,v.meter_reading,v.account_no,v.result,yn(v.leak),v.valve,v.meter_condition,v.property,yn(v.coords_ok),v.lat??'',v.lng??'',v.site_id?'نعم':'لا',(v.media||[]).length,v.notes,v.contractor,v.created_by];
+  const cols=[11,12,14,18,12,12,14,14,7,10,12,20,10,12,12,10,8,40,18,16];
+  add('المعاينات', [H, ...list.map(row)], cols);
+  add('التعديات', [H, ...list.filter(v=>v.result===R_BAD||v.result===R_REM).map(row)], cols);
+  const days=[...new Set(list.map(v=>v.visit_date))].sort();
+  add('الإنجاز اليومي', [['التاريخ','المسجّل بالمنصة','بدون تعدٍ','تعديات','إجمالي المقاول','كشف (مقاول)','تعديات (مقاول)'], ...days.map(day=>{ const l=list.filter(v=>v.visit_date===day); const b=l.filter(v=>v.result===R_BAD||v.result===R_REM).length; const c=S.daily.find(x=>x.report_date===day)||{}; return [day,l.length,l.length-b,b,c.total??'',c.inspected??'',c.violations??'']; })], [12,14,10,10,14,12,14]);
+  if(S.sites.length){
+    const visited=new Set(S.visits.map(v=>v.site_id)); const rem=S.sites.filter(s=>(!g||(s.governorate||CONFIG.DEFAULT_GOV)===g) && (!d||s.district===d) && !visited.has(s.id));
+    add('المواقع المتبقية', [['المحافظة','الحي','رقم العداد','رقم الحساب','رقم الحصر','Latitude','Longitude'], ...rem.map(s=>[s.governorate||CONFIG.DEFAULT_GOV,s.district,s.meter_no,s.account_no,s.hesr_no,s.lat??'',s.lng??''])], [12,14,12,14,18,12,12]);
+  }
+  XLSX.writeFile(wb, `تقرير_المسح_الميداني_حفر_الباطن_${today()}.xlsx`);
+};
+
+/* ================== الإعدادات: استيراد المواقع ================== */
+async function importSiteFile(file, gov, dist){
+  if(typeof XLSX==='undefined'){ toast('تعذر تحميل مكتبة Excel'); return; }
+  const wb = XLSX.read(await file.arrayBuffer());
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:'', raw:false});
+  if(!rows.length){ toast('الملف فارغ'); return; }
+  const keys = Object.keys(rows[0]);
+  const pick = test => keys.find(k=>test(normalize(k).toLowerCase()));
+  const col = {
+    meter: pick(k=>/عداد/.test(k) && !/قراء/.test(k)),
+    account: pick(k=>/حساب/.test(k)),
+    hesr: pick(k=>/حصر/.test(k)),
+    lat: pick(k=>/lat|عرض/.test(k)),
+    lng: pick(k=>/lon|lng|طول/.test(k))
+  };
+  const clean = x => normalize(String(x??'')).replace(/[^\d.]/g,'');
+  const arr = rows.map(r=>({ id:uid(), governorate:gov, district:dist,
+    meter_no: col.meter? clean(r[col.meter]) : '', account_no: col.account? clean(r[col.account]) : '', hesr_no: col.hesr? clean(r[col.hesr]) : '',
+    lat: col.lat && +clean(r[col.lat]) || null, lng: col.lng && +clean(r[col.lng]) || null, created_at:new Date().toISOString() }))
+    .filter(s=>s.meter_no||s.account_no||s.hesr_no||s.lat);
+  const box=$('#importPreview');
+  const existing = S.sites.filter(s=>s.district===dist && (s.governorate||CONFIG.DEFAULT_GOV)===gov).length;
+  box.innerHTML = `<div class="vcard"><b>${esc(file.name)}</b>
+    <div class="hint">${gov} · حي ${esc(dist)} · ${arr.length} موقع صالح من ${rows.length} صف</div>
+    <div class="hint">الأعمدة المتعرَّف عليها: ${Object.values(col).filter(Boolean).map(esc).join('، ')||'لا شيء'}</div>
+    ${existing?`<div class="match p-warn">للحي ملف سابق فيه ${existing} موقع، سيُستبدل بالملف الجديد (المعاينات المسجلة لا تتأثر)</div>`:''}
+    <div class="row-btns"><button class="btn pri sm" data-imp ${arr.length?'':'disabled'}>اعتماد الملف</button><button class="btn sm" data-cancel>إلغاء</button></div></div>`;
+  box.querySelector('[data-cancel]').onclick=()=>box.innerHTML='';
+  box.querySelector('[data-imp]').onclick=async()=>{
+    try{
+      if(existing) await DB.deleteDistrictSites(gov, dist);
+      if(!S.districts.some(d=>d.governorate===gov && d.name===dist)) await DB.addDistrict(gov, dist);
+      await DB.addSites(arr); buildSiteIdx(); await relinkVisits();
+      box.innerHTML=''; toast(`تم اعتماد ${arr.length} موقع لحي ${dist}`); fillDistrictSelects(); renderSettings();
+    }catch(err){ toast('تعذر الاستيراد: '+err.message); }
+  };
+}
+$('#siteFile').onchange = e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const gov=$('#sGov').value, dist=$('#sDist').value;
+  if(!dist){ toast('اختر الحي أولاً'); return; }
+  importSiteFile(f, gov, dist);
+};
+$('#sUploadLbl').addEventListener('click', e=>{ if(!$('#sDist').value){ e.preventDefault(); toast('اختر المحافظة ثم الحي أولاً'); } });
+$('#addDistBtn').onclick = async()=>{
+  const name=$('#newDist').value.trim().replace(/^حي\s+/,''), gov=$('#sGov').value;
+  if(!name) return toast('اكتب اسم الحي');
+  if(districtsOf(gov).includes(name)) return toast('الحي موجود');
+  try{ await DB.addDistrict(gov, name); $('#newDist').value=''; fillDistrictSelects(); $('#sDist').innerHTML=distOpts(gov,name); renderSettings(); toast('تمت إضافة حي '+name); }catch(err){ toast(err.message); }
+};
+$('#sGov').addEventListener('change', ()=>setTimeout(renderSettings));
+async function relinkVisits(){
+  for(const v of S.visits){ const before=v.site_id; enrich(v); if(v.site_id!==before){ try{ await DB.saveVisit(v,[]); }catch(e){} } }
+}
+async function renderSettings(){
+  const gov=$('#sGov').value || CONFIG.DEFAULT_GOV;
+  const rows = districtsOf(gov).map(name=>{ const n=S.sites.filter(s=>s.district===name && (s.governorate||CONFIG.DEFAULT_GOV)===gov).length; const v=S.visits.filter(x=>x.district===name && x.governorate===gov).length; return {name,n,v}; });
+  $('#distAdmin').innerHTML = rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>أحياء ${esc(gov)}</th><th>المواقع المستهدفة</th><th>المعاينات</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr style="cursor:default"><td>${esc(r.name)}</td><td>${r.n? r.n : '<span class="pill p-warn">لم يُرفع ملف</span>'}</td><td>${r.v}</td><td class="row-btns"><label class="btn sm">${r.n?'استبدال الملف':'رفع ملف'}<input type="file" accept=".xlsx,.xls,.csv" hidden data-up="${esc(r.name)}"></label>${r.n?`<button class="btn sm danger" data-deld="${esc(r.name)}">حذف الملف</button>`:''}</td></tr>`).join('')}</tbody></table></div>` : `<p class="hint">لا توجد أحياء مضافة في ${esc(gov)}. أضف الحي بالاسم ثم ارفع ملفه.</p>`;
+  $$('[data-up]').forEach(inp=>inp.onchange=()=>{ const f=inp.files[0]; inp.value=''; if(f){ $('#sDist').value=inp.dataset.up; importSiteFile(f, gov, inp.dataset.up); } });
+  $$('[data-deld]').forEach(b=>b.onclick=async()=>{ if(!confirm('حذف ملف المواقع المستهدفة لحي '+b.dataset.deld+'؟ (المعاينات لا تُحذف)')) return; await DB.deleteDistrictSites(gov, b.dataset.deld); buildSiteIdx(); renderSettings(); });
+  $('#localRoleCard').hidden = MODE!=='local';
+  if(MODE==='local'){ $('#members').innerHTML='<p class="hint">إدارة المستخدمين تعمل بعد ربط المنصة بـ Supabase: كل شخص يطلب حساباً من شاشة الدخول وأنت توافق وتحدد صلاحيته هنا.</p>'; $('#localRole').value=S.role; return; }
+  const {data,error} = await sb.from('survey_members').select('*').order('created_at');
+  if(error){ $('#members').innerHTML='<p class="hint">'+esc(error.message)+'</p>'; return; }
+  $('#members').innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>الاسم</th><th>البريد</th><th>الصلاحية</th><th>الحالة</th><th></th></tr></thead><tbody>${data.map(m=>`<tr style="cursor:default"><td>${esc(m.full_name)}</td><td>${esc(m.email)}</td>
+    <td><select class="in" data-mrole="${m.id}" style="min-width:130px">${Object.entries(ROLE_NAMES).map(([k,n])=>`<option value="${k}" ${m.role===k?'selected':''}>${n}</option>`).join('')}</select></td>
+    <td>${m.approved?'<span class="pill p-ok">مفعّل</span>':'<span class="pill p-warn">بانتظار الموافقة</span>'}</td>
+    <td>${m.approved?`<button class="btn sm" data-mapp="${m.id}" data-v="0">إيقاف</button>`:`<button class="btn sm pri" data-mapp="${m.id}" data-v="1">موافقة</button>`}</td></tr>`).join('')}</tbody></table></div>`;
+  $$('[data-mrole]').forEach(s=>s.onchange=async()=>{ const {error}=await sb.from('survey_members').update({role:s.value}).eq('id',s.dataset.mrole); toast(error?error.message:'تم تحديث الصلاحية'); });
+  $$('[data-mapp]').forEach(b=>b.onclick=async()=>{ const {error}=await sb.from('survey_members').update({approved:b.dataset.v==='1'}).eq('id',b.dataset.mapp); toast(error?error.message:'تم'); renderSettings(); });
+}
+$('#localRole').onchange = e=>{ S.role=e.target.value; lsSet('hs_role', S.role); applyRole(); show(S.tab); };
+$('#wipeLocal').onclick = async()=>{ if(!confirm('مسح كل البيانات التجريبية من هذا الجهاز؟')) return; for(const s of ['sites','visits','media','daily','districts']) await IDB.clear(s); await DB.loadAll(); buildSiteIdx(); render(); toast('تم المسح'); };
+$('#refreshBtn').onclick = async()=>{ await DB.loadAll(); buildSiteIdx(); render(); toast('تم التحديث'); };
+
+/* ================== الدخول ================== */
+function loginMsg(t){ $('#loginMsg').textContent=t; }
+$('#toReg').onclick=()=>{ $('#loginForm').hidden=true; $('#regForm').hidden=false; $('#loginTitle').textContent='طلب حساب جديد'; loginMsg(''); };
+$('#toLogin').onclick=()=>{ $('#loginForm').hidden=false; $('#regForm').hidden=true; $('#loginTitle').textContent='تسجيل الدخول'; loginMsg(''); };
+$('#lBtn').onclick=async()=>{
+  loginMsg('جاري الدخول…');
+  const {error}=await sb.auth.signInWithPassword({email:$('#lEmail').value.trim(), password:$('#lPass').value});
+  if(error) return loginMsg('تعذر الدخول: تأكد من البريد وكلمة المرور');
+  await afterLogin();
+};
+$('#rBtn').onclick=async()=>{
+  const name=$('#rName').value.trim(), email=$('#rEmail').value.trim(), pass=$('#rPass').value;
+  if(!name||!email||pass.length<6) return loginMsg('أكمل الاسم والبريد وكلمة مرور من 6 أحرف على الأقل');
+  const {error}=await sb.auth.signUp({email, password:pass, options:{data:{full_name:name, requested_role:$('#rRole').value}}});
+  if(error) return loginMsg('تعذر إرسال الطلب: '+error.message);
+  await sb.auth.signOut();
+  loginMsg('تم إرسال طلبك. سيتم تفعيل حسابك بعد موافقة مدير المبادرة.'); $('#toLogin').click(); $('#loginMsg').textContent='تم إرسال طلبك. سيتم تفعيل حسابك بعد موافقة مدير المبادرة.';
+};
+$('#forgot').onclick=async()=>{
+  const email=$('#lEmail').value.trim(); if(!email) return loginMsg('اكتب بريدك أولاً ثم اضغط «نسيت كلمة المرور»');
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.href.split('#')[0]});
+  loginMsg(error? error.message : 'أرسلنا رابط إعادة التعيين إلى بريدك');
+};
+$('#logoutBtn').onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
+
+async function afterLogin(){
+  const {data:{user}} = await sb.auth.getUser();
+  if(!user){ showLogin(); return; }
+  const {data:m} = await sb.from('survey_members').select('*').eq('id',user.id).maybeSingle();
+  if(!m || !m.approved){ await sb.auth.signOut(); showLogin(); loginMsg('حسابك بانتظار موافقة مدير المبادرة.'); return; }
+  S.user=user; S.role=m.role; S.userName=m.full_name||user.email;
+  $('#logoutBtn').hidden=false;
+  await startApp();
+}
+function showLogin(){ $('#v-login').hidden=false; $('#tabs').hidden=true; ['dash','add','list','reports','settings'].forEach(t=>$('#v-'+t).hidden=true); }
+
+async function startApp(){
+  $('#v-login').hidden=true; $('#tabs').hidden=false;
+  try{ await DB.loadAll(); }catch(e){ toast('تعذر تحميل البيانات: '+e.message, 6000); }
+  buildSiteIdx(); applyRole(); fillDistrictSelects(); bindSelPairs();
+  show(lsGet('hs_tab','dash'));
+}
+
+(async function boot(){
+  try{ await DB.init(); }catch(e){ document.querySelector('main').insertAdjacentHTML('afterbegin', `<div class="banner">تعذر تشغيل التخزين: ${esc(e.message)}</div>`); return; }
+  if(MODE==='local'){
+    $('#localBanner').hidden=false;
+    S.role = lsGet('hs_role','admin'); S.userName='';
+    await startApp();
+  } else {
+    const {data:{session}} = await sb.auth.getSession();
+    if(session) await afterLogin(); else showLogin();
+  }
+})();
+</script>
+</body>
+</html>

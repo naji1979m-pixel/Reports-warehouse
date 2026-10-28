@@ -3,8 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>المسح الميداني لأحياء حفر الباطن</title>
-<meta name="theme-color" content="#0b4f8a">
+<title>مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية</title>
+<meta name="theme-color" content="#1f5bb0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="مبادرات المخالفات">
+<link rel="apple-touch-icon" href="nwc-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
@@ -13,37 +17,41 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-/* لوحة تشغيل: شريط علوي بهوية الشركة، تبويبات (سفلية على الجوال)، بطاقات عمل */
+/* هوية شركة المياه الوطنية: أزرق الشعار مع لمسة الفيروزي، شاشة كاملة العرض */
 :root{
-  --blue:#0b4f8a; --blue-2:#1673c4; --sky:#e8f1fa; --ink:#14263a; --muted:#5b6f84;
-  --bg:#f3f6fa; --card:#ffffff; --line:#dbe4ee;
+  --blue:#1f5bb0; --blue-2:#2f7fd0; --teal:#16a39a; --sky:#e3edf9; --ink:#10284a; --muted:#58708f;
+  --bg:#f1f5fb; --card:#ffffff; --line:#cddbee;
   --ok:#17845a; --ok-bg:#e3f4ec; --bad:#c23a32; --bad-bg:#fbe7e5; --warn:#b26a00; --warn-bg:#fdf1dc;
   --font:"IBM Plex Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
   --r:12px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --blue:#5aa6ea; --blue-2:#7cbaf0; --sky:#16283b; --ink:#e6eef7; --muted:#9db0c4;
-  --bg:#0d1823; --card:#132232; --line:#25384c;
-  --ok:#4cc38f; --ok-bg:#123327; --bad:#f07a71; --bad-bg:#3a1a18; --warn:#f0b450; --warn-bg:#3a2a10; color-scheme:dark}}
+  --blue:#4d8fe6; --blue-2:#6fa6ec; --teal:#3cc7bd; --sky:#18304f; --ink:#e6eefb; --muted:#93a8c8;
+  --bg:#0c1626; --card:#13233b; --line:#27406a;
+  --ok:#4cc38f; --ok-bg:#123327; --bad:#ef7373; --bad-bg:#3a1a18; --warn:#f0b450; --warn-bg:#3a2a10; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --blue:#5aa6ea; --blue-2:#7cbaf0; --sky:#16283b; --ink:#e6eef7; --muted:#9db0c4;
-  --bg:#0d1823; --card:#132232; --line:#25384c;
-  --ok:#4cc38f; --ok-bg:#123327; --bad:#f07a71; --bad-bg:#3a1a18; --warn:#f0b450; --warn-bg:#3a2a10; color-scheme:dark}
+  --blue:#4d8fe6; --blue-2:#6fa6ec; --teal:#3cc7bd; --sky:#18304f; --ink:#e6eefb; --muted:#93a8c8;
+  --bg:#0c1626; --card:#13233b; --line:#27406a;
+  --ok:#4cc38f; --ok-bg:#123327; --bad:#ef7373; --bad-bg:#3a1a18; --warn:#f0b450; --warn-bg:#3a2a10; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.6;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 [hidden]{display:none!important}
 button,input,select,textarea{font:inherit;color:inherit}
-.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-header.top{background:#0b4f8a;color:#fff;padding-top:env(safe-area-inset-top,0px)}
-header.top .wrap{display:flex;align-items:center;gap:14px;padding-block:12px;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
-.drop{width:40px;height:40px;border-radius:10px;background:#fff;display:grid;place-items:center;flex:none}
-.brand small{display:block;opacity:.8;font-size:12px}
-.brand b{display:block;font-size:17px;line-height:1.35}
+.wrap{width:100%;margin:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--card);color:var(--ink);padding-top:env(safe-area-inset-top,0px);position:relative}
+header.top::after{content:"";position:absolute;inset:auto 0 0 0;height:4px;background:linear-gradient(90deg,var(--teal),var(--blue))}
+header.top .wrap{display:flex;align-items:center;gap:16px;padding-block:12px 16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:16px;flex:1;min-width:0}
+.logo-tile{background:#fff;border-radius:10px;padding:4px 8px;flex:none;display:flex}
+.logo-tile img{height:46px;width:auto;display:block}
+.brand .sep{width:1px;align-self:stretch;background:var(--line)}
+.brand small{display:block;color:var(--muted);font-size:13px}
+.brand b{display:block;font-size:19px;line-height:1.4;color:var(--blue);text-wrap:balance}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
-.top .chip{background:rgba(255,255,255,.16);color:#fff}
-.top button.link{background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:4px 12px;cursor:pointer}
+.top .chip{background:var(--sky);color:var(--blue)}
+.top button.link{background:none;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:4px 12px;cursor:pointer}
+@media (max-width:640px){ .logo-tile img{height:34px} .brand{gap:10px} .brand .sep{display:none} .brand b{font-size:15.5px} .brand small{font-size:12px} }
 nav.tabs{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
 nav.tabs .wrap{display:flex;gap:4px;overflow-x:auto}
 nav.tabs button{background:none;border:0;padding:12px 14px;cursor:pointer;color:var(--muted);font-weight:600;border-bottom:3px solid transparent;white-space:nowrap;display:flex;gap:6px;align-items:center}
@@ -136,13 +144,15 @@ dialog .db{padding:16px;display:grid;gap:14px}
   body{background:#fff;color:#000;padding:0;font-size:11px}
   body > *:not(#printArea){display:none!important}
   #printArea{display:block}
-  .pr h1{font-size:18px;margin:0;color:#0b4f8a}
-  .pr .ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0b4f8a;padding-bottom:8px;margin-bottom:12px}
+  .pr h1{font-size:18px;margin:4px 0 0;color:#1f5bb0}
+  .pr .plogo{height:52px;width:auto;display:block;margin-bottom:6px}
+  .pr .bandp{height:4px;background:linear-gradient(90deg,#16a39a,#1f5bb0)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;margin:-8px 0 12px}
+  .pr .ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #cddbee;padding-bottom:8px;margin-bottom:12px}
   .pr .ph small{display:block;color:#444}
-  .pr h2{font-size:14px;color:#0b4f8a;margin:14px 0 6px;border-right:4px solid #0b4f8a;padding-right:8px}
+  .pr h2{font-size:14px;color:#1f5bb0;margin:14px 0 6px;border-right:4px solid #16a39a;padding-right:8px}
   .pr .k{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
   .pr .k div{border:1px solid #c9d6e3;border-radius:6px;padding:6px 8px}
-  .pr .k b{display:block;font-size:17px;color:#0b4f8a}
+  .pr .k b{display:block;font-size:17px;color:#1f5bb0}
   .pr table{font-size:10px;width:100%;border-collapse:collapse;page-break-inside:auto}
   .pr th{background:#e8f1fa!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#000;position:static}
   .pr th,.pr td{border:1px solid #c9d6e3;padding:4px 5px;white-space:normal}
@@ -160,12 +170,11 @@ dialog .db{padding:16px;display:grid;gap:14px}
 <header class="top">
   <div class="wrap">
     <div class="brand">
-      <div class="drop" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="26" height="26"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a9be8"/><stop offset="1" stop-color="#0b4f8a"/></linearGradient></defs><path fill="url(#g)" d="M12 2.5c-3.6 4.6-6.5 8.3-6.5 11.6a6.5 6.5 0 0 0 13 0C18.5 10.8 15.6 7.1 12 2.5z"/><path d="M9 14.2l2.1 2.1 4-4.2" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
+      <div class="logo-tile"><img src="nwc-logo.png" alt="شركة المياه الوطنية National Water Company"></div>
+      <span class="sep" aria-hidden="true"></span>
       <div style="min-width:0">
-        <small>شركة المياه الوطنية · إدارة المخالفات والتعديات</small>
-        <b>مبادرة المسح الميداني لأحياء حفر الباطن</b>
+        <b>مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية</b>
+        <small>مبادرة المسح الميداني لأحياء حفر الباطن</small>
       </div>
     </div>
     <span class="chip" id="roleChip"></span>
@@ -1148,9 +1157,9 @@ $('#pdfBtn').onclick = async ()=>{
   const viol = list.filter(v=>v.result===R_BAD||v.result===R_REM);
   const sections = mode==='all' ? withPhotos : viol;
   $('#printArea').innerHTML = `<div class="pr">
-    <div class="ph"><div><small>شركة المياه الوطنية</small><small>إدارة المخالفات والتعديات · القطاع الشرقي · الوحدة الشمالية</small><h1>تقرير إنجاز مبادرة المسح الميداني لأحياء حفر الباطن</h1>
+    <div class="ph"><div><img class="plogo" src="nwc-logo.png" alt="شركة المياه الوطنية"><small>مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية</small><h1>تقرير إنجاز مبادرة المسح الميداني لأحياء حفر الباطن</h1>
       <small>${esc(periodText(f,t))} · ${esc(scopeText(g,d))}</small></div>
-      <div style="text-align:left"><small>تاريخ التقرير</small><b>${fmtD(today())}</b></div></div>
+      <div style="text-align:left"><small>تاريخ التقرير</small><b>${fmtD(today())}</b></div></div><div class="bandp"></div>
     <div class="k"><div>نسبة الإنجاز<b>${planned? Math.round(done/planned*1000)/10+'%':'—'}</b>${planned? done+' من '+planned+' موقع':''}</div><div>إجمالي المعاينات<b>${st.total}</b></div><div>التعديات المرصودة<b>${st.violAll}</b>أزيل منها ${st.removed}</div><div>توصيلات بها تسريب<b>${st.leak}</b></div></div>
     <h2>الإنجاز حسب الحي</h2>
     <table><thead><tr><th>المحافظة</th><th>الحي</th><th>المستهدف</th><th>المنجز</th><th>النسبة</th><th>خارج القائمة</th><th>تعديات</th><th>أزيلت</th><th>تسريبات</th></tr></thead><tbody>
@@ -1181,7 +1190,7 @@ $('#xlsBtn').onclick = ()=>{
   const wb=XLSX.utils.book_new(); wb.Workbook={Views:[{RTL:true}]};
   const add=(name, aoa, cols)=>{ const ws=XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=cols.map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb, ws, name); };
   add('الملخص', [
-    ['تقرير إنجاز مبادرة المسح الميداني لأحياء حفر الباطن'],['شركة المياه الوطنية - إدارة المخالفات والتعديات'],
+    ['شركة المياه الوطنية'],['مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية'],['تقرير إنجاز مبادرة المسح الميداني لأحياء حفر الباطن'],
     ['الفترة', periodText(f,t)],['القطاع','القطاع الشرقي'],['المحافظة', g||'جميع المحافظات'],['الحي', d||'جميع الأحياء'],['تاريخ التقرير', today()],[],
     ['المواقع المستهدفة', planned],['المواقع المنجزة', done],['نسبة الإنجاز %', planned? Math.round(done/planned*1000)/10 : ''],
     ['إجمالي المعاينات', st.total],['بدون تعدٍ', st.ok],['تعديات قائمة', st.bad],['تمت إزالتها', st.removed],['توصيلات بها تسريب', st.leak]

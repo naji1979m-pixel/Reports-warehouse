@@ -255,7 +255,8 @@ dialog .db{padding:16px;display:grid;gap:14px}
         <label class="f">اسم المقاول / المندوب<input class="in" id="defContractor" placeholder="مثال: ابراهيم فأس الحفر"></label>
       </div>
       <div class="row-btns">
-        <button class="btn pri" id="parseBtn">استخراج البيانات</button>
+        <button class="btn pri" id="clipBtn">لصق من الواتساب</button>
+        <button class="btn" id="parseBtn">استخراج البيانات</button>
         <button class="btn" id="manualBtn">معاينة يدوية فارغة</button>
         <button class="btn sm" id="sampleBtn">جرّب بمثال</button>
       </div>
@@ -874,7 +875,14 @@ $('#parseBtn').onclick = ()=>{
   const txt = $('#pasteBox').value.trim();
   if(!txt){ toast('الصق رسائل الواتساب أولاً'); return; }
   const {visits, dailies} = parsePaste(txt);
-  if(!visits.length && !dailies.length){ toast('لم أجد بيانات معاينة في النص. تأكد أنه يحتوي رقم الحصر أو رقم العداد.'); return; }
+  if(!visits.length && !dailies.length){
+    const v = blankVisit(); v.raw_text = normalize(txt); v.notes = normalize(txt).replace(/\s*\n\s*/g,' · ').slice(0,500);
+    const c = extractCoords(v.raw_text); if(c){ v.lat=c.lat; v.lng=c.lng; }
+    S.drafts.push(enrich(v));
+    if(pendingFiles.length){ v._files.push(...pendingFiles); pendingFiles=[]; }
+    renderDrafts(); $('#pasteBox').value='';
+    toast('لم أتعرف على أرقام الحصر أو العداد في النص، فتحت لك بطاقة بالنص لتكمل بياناتها', 5000); return;
+  }
   let merged=0;
   visits.forEach(p=>{
     const clean = Object.fromEntries(Object.entries(p).filter(([k,x])=>x!==null && x!=='' && x!==undefined));
@@ -884,6 +892,7 @@ $('#parseBtn').onclick = ()=>{
     S.drafts.push(enrich(v));
   });
   if(merged) setTimeout(()=>toast(`تم دمج ${merged} رسالة مكررة لنفس الموقع`), 2700);
+  if(pendingFiles.length){ const target = S.drafts[S.drafts.length-1] || null; if(target){ target._files.push(...pendingFiles); pendingFiles=[]; } }
   renderDailyFound(dailies);
   renderDrafts();
   $('#pasteBox').value='';
@@ -998,10 +1007,42 @@ function bindPicker(root, files, onChange){
   root.addEventListener('pointerdown', ()=> activeDrop = add);
   drawThumbs();
 }
+/* اللصق: النص يدخل صندوق الرسائل كالمعتاد، والصور الملصوقة تُحفظ وتُرفق بالمعاينة */
+let pendingFiles = [];
 document.addEventListener('paste', e=>{
-  const files = [...(e.clipboardData?.files||[])];
-  if(files.length && activeDrop){ e.preventDefault(); activeDrop(files); toast('تمت إضافة '+files.length+' ملف'); }
+  const cd = e.clipboardData; if(!cd) return;
+  const files = [...(cd.files||[])].filter(f=>/^image|^video/.test(f.type));
+  const text = cd.getData('text/plain') || cd.getData('text') || '';
+  const inBox = e.target && e.target.id==='pasteBox';
+  if(inBox){
+    if(files.length){ pendingFiles.push(...files); toast(`تم استلام ${files.length} صورة وسيتم إرفاقها بالمعاينة`); }
+    if(!text && files.length) e.preventDefault();
+    return; /* يترك المتصفح يلصق النص */
+  }
+  const isField = e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
+  if(files.length && activeDrop && !(isField && text)){ e.preventDefault(); activeDrop(files); toast('تمت إضافة '+files.length+' ملف'); }
 });
+$('#pasteBox').addEventListener('paste', ()=> setTimeout(()=>{ if($('#pasteBox').value.trim()) $('#parseBtn').click(); }, 60));
+$('#clipBtn').onclick = async ()=>{
+  try{
+    let text='';
+    if(navigator.clipboard?.read){
+      try{
+        const items = await navigator.clipboard.read();
+        for(const it of items){
+          for(const t of it.types){
+            if(t==='text/plain'){ text += await (await it.getType(t)).text(); }
+            else if(/^image\//.test(t)){ const b=await it.getType(t); pendingFiles.push(new File([b], 'whatsapp-'+Date.now()+'.'+(t.split('/')[1]||'png'), {type:t})); }
+          }
+        }
+      }catch(e){ text=''; }
+    }
+    if(!text && navigator.clipboard?.readText) text = await navigator.clipboard.readText();
+    if(!text && !pendingFiles.length){ toast('الحافظة فارغة. انسخ رسالة المقاول من الواتساب أولاً'); return; }
+    $('#pasteBox').value = ($('#pasteBox').value ? $('#pasteBox').value+'\n' : '') + text;
+    if(text.trim()) $('#parseBtn').click(); else toast(`تم استلام ${pendingFiles.length} صورة`);
+  }catch(e){ toast('المتصفح لم يسمح بقراءة الحافظة. اضغط مطولاً داخل المربع واختر «لصق»', 5000); $('#pasteBox').focus(); }
+};
 
 function renderDrafts(){
   const box=$('#cards'); box.innerHTML='';

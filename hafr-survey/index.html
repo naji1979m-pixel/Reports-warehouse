@@ -311,7 +311,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
         <label class="f">إلى تاريخ<input class="in" id="rTo" type="date"></label>
         <label class="f">المحافظة<select class="in" id="rGov"></select></label>
         <label class="f">الحي<select class="in" id="rDist"></select></label>
-        <label class="f">الصور في التقرير (PDF و Excel)<select class="in" id="rPhotos"><option value="viol">صور التعديات فقط</option><option value="all">صور كل المعاينات</option><option value="none">بدون صور</option></select></label>
+        <label class="f">الصور في التقرير (PDF و Excel)<select class="in" id="rPhotos"><option value="all" selected>صور كل المعاينات</option><option value="viol">صور التعديات فقط</option><option value="none">بدون صور</option></select></label>
       </div>
       <div class="row-btns">
         <button class="btn pri" id="pdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>تقرير PDF</button>
@@ -1372,6 +1372,7 @@ async function exportExcelWithPhotos(){
       s6.columns=[['المحافظة',12],['الحي',14],['رقم الحصر',18],['رقم العداد',13],['رقم الحساب',14],['Latitude',12],['Longitude',12]].map(([h,w])=>({header:h,width:w}));
       rem.forEach(x=>s6.addRow([x.governorate||CONFIG.DEFAULT_GOV,x.district,x.hesr_no,x.meter_no,x.account_no,x.lat??'',x.lng??''])); styleHeader(s6.getRow(1)); styleBody(s6,2);
     }
+    if(photoCols && totalImgs===0) toast(mode==='viol' ? 'لا توجد صور لمعاينات فيها تعدٍ في هذه الفترة. اختر «صور كل المعاينات»' : 'لا توجد صور مرفقة بالمعاينات في هذه الفترة', 6000);
     btn.textContent='جاري إنشاء الملف…';
     const buf=await wb.xlsx.writeBuffer();
     const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));

@@ -171,7 +171,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
 .pr, .pr *{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}
 .pr{font-family:"IBM Plex Sans Arabic",Arial,sans-serif;font-size:10.5px;line-height:1.55;color:#10284a;direction:rtl}
 .pr .ph{display:flex;justify-content:space-between;align-items:center;gap:16px}
-.pr .ph .eb{font-size:10px;color:#5e738c;font-weight:600;letter-spacing:.2px}
+.pr .ph .eb{font-size:10px;color:#5e738c;font-weight:600}
 .pr .ph h1{font-size:19px;line-height:1.35;margin:2px 0;color:#1f5bb0;font-weight:700}
 .pr .ph .un{font-size:11px;font-weight:600;color:#10284a}
 .pr .ph img{height:54px;width:auto}
@@ -181,8 +181,8 @@ dialog .db{padding:16px;display:grid;gap:14px}
 .pr .meta div:last-child{border-left:0}
 .pr .meta span{display:block;font-size:9px;color:#5e738c}
 .pr .meta b{font-size:10.5px}
-.pr h2{font-size:13px;color:#1f5bb0;margin:16px 0 8px;padding-bottom:4px;border-bottom:2px solid #16a39a;display:flex;justify-content:space-between;align-items:baseline;break-after:avoid}
-.pr h2 small{font-size:9.5px;color:#5e738c;font-weight:500}
+.pr h2{font-size:13px;color:#1f5bb0;margin:16px 0 8px;padding-bottom:4px;border-bottom:2px solid #16a39a;display:block;break-after:avoid;overflow:hidden}
+.pr h2 small{float:left;font-size:9.5px;color:#5e738c;font-weight:500;margin-top:3px}
 .pr .kp{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
 .pr .kp div{background:#f2f6fb;border-radius:7px;border-top:3px solid var(--c,#1f5bb0);padding:7px 9px 8px;break-inside:avoid}
 .pr .kp span{display:block;font-size:9px;color:#5e738c;font-weight:600}
@@ -345,7 +345,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
   <!-- التقارير -->
   <section id="v-reports" hidden>
     <h2>تقارير الإنجاز</h2>
-    <p class="sub">اختر الفترة والحي، ثم اطبع التقرير PDF (من نافذة الطباعة اختر «حفظ PDF») أو صدّره Excel.</p>
+    <p class="sub">اختر الفترة والحي، ثم حمّل التقرير PDF أو Excel مباشرة.</p>
     <div class="card section-gap">
       <div class="form">
         <label class="f">من تاريخ<input class="in" id="rFrom" type="date"></label>
@@ -355,7 +355,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
         <label class="f">الصور في التقرير (PDF و Excel)<select class="in" id="rPhotos"><option value="all" selected>صور كل المعاينات</option><option value="viol">صور التعديات فقط</option><option value="links">روابط الصور فقط (سريع لأي حجم)</option><option value="none">بدون صور</option></select></label>
       </div>
       <div class="row-btns">
-        <button class="btn pri" id="pdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>تقرير PDF</button>
+        <button class="btn pri" id="pdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>تحميل PDF</button>
         <button class="btn" id="xlsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M8 12l4 5M12 12l-4 5"/></svg>تصدير Excel</button>
       </div>
     </div>
@@ -1325,6 +1325,85 @@ function renderReportPreview(){
 $('#dashGov').addEventListener('change', renderDash);
 
 const yn = b => b===true?'نعم':b===false?'لا':'';
+/* ===== تحميل PDF مباشر (بدون نافذة الطباعة) ===== */
+function loadScript(src){ return new Promise((res,rej)=>{ if([...document.scripts].some(s=>s.src===src)) return res(); const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('تعذر تحميل مكتبة PDF، تحقق من الإنترنت')); document.head.appendChild(s); }); }
+/* يقسم التقرير لصفحات A4 مستقلة: الجداول تنقسم مع تكرار العناوين، وبطاقات الصور تنقسم، والعناوين لا تبقى وحيدة آخر الصفحة */
+function paginateReport(root, PAGE_W=718, PAGE_H=1035, FOOT=26){
+  const stage=document.createElement('div'); stage.id='pdfStage';
+  stage.style.cssText=`position:fixed;left:-20000px;top:0;width:${PAGE_W}px;background:#fff;z-index:-1`;
+  document.body.appendChild(stage);
+  const CONTENT_H = PAGE_H - FOOT;
+  const pages=[]; let body;
+  const newPage=()=>{ const pg=document.createElement('div'); pg.className='pr pdfpage'; pg.style.cssText=`width:${PAGE_W}px;height:${PAGE_H}px;position:relative;overflow:hidden;background:#fff`;
+    body=document.createElement('div'); body.style.cssText=`width:${PAGE_W}px;`; pg.appendChild(body); stage.appendChild(pg); pages.push(pg); };
+  const fits=()=> body.scrollHeight <= CONTENT_H;
+  const empty=()=> !body.children.length;
+  newPage();
+  const queue=[...root.children];
+  while(queue.length){
+    const el=queue.shift();
+    if(el.classList.contains('pb') && !empty()) newPage();
+    body.appendChild(el);
+    if(fits()) continue;
+    body.removeChild(el);
+    /* تقسيم جدول */
+    if(el.tagName==='TABLE' && el.tBodies[0] && el.tBodies[0].rows.length>1){
+      const head=el.tHead; const rows=[...el.tBodies[0].rows];
+      const part=el.cloneNode(false); if(head) part.appendChild(head.cloneNode(true)); const tb=document.createElement('tbody'); part.appendChild(tb); body.appendChild(part);
+      let k=0; while(k<rows.length){ tb.appendChild(rows[k]); if(!fits()){ tb.removeChild(rows[k]); break; } k++; }
+      if(k===0){ body.removeChild(part); if(empty()){ body.appendChild(el); newPage(); continue; } newPage(); queue.unshift(el); continue; }
+      const rest=el.cloneNode(false); if(head) rest.appendChild(head.cloneNode(true)); const tb2=document.createElement('tbody'); rows.slice(k).forEach(r=>tb2.appendChild(r)); rest.appendChild(tb2);
+      newPage(); queue.unshift(rest); continue;
+    }
+    /* تقسيم بطاقة صور */
+    const ims = el.classList.contains('vc') ? el.querySelector('.ims') : null;
+    if(ims && ims.children.length>4){
+      const tiles=[...ims.children]; const part=el.cloneNode(true); const pims=part.querySelector('.ims'); pims.innerHTML=''; body.appendChild(part);
+      let k=0; while(k<tiles.length){ const row=tiles.slice(k,k+4); row.forEach(t=>pims.appendChild(t)); if(!fits()){ row.forEach(t=>pims.removeChild(t)); break; } k+=4; }
+      if(k===0){ body.removeChild(part); newPage(); queue.unshift(el); continue; }
+      const rest=el.cloneNode(true); const rims=rest.querySelector('.ims'); rims.innerHTML=''; tiles.slice(k).forEach(t=>rims.appendChild(t));
+      rest.querySelectorAll('.vi,.vn').forEach(n=>n.remove()); const vh=rest.querySelector('.vh'); if(vh) vh.insertAdjacentHTML('beforeend','<span>(تابع)</span>');
+      newPage(); queue.unshift(rest); continue;
+    }
+    /* عنوان قسم بقي آخر الصفحة: ننقله مع ما بعده */
+    const last=body.lastElementChild;
+    if(last && last.tagName==='H2'){ body.removeChild(last); newPage(); body.appendChild(last); queue.unshift(el); continue; }
+    if(empty()){ body.appendChild(el); newPage(); continue; }   /* عنصر أطول من صفحة كاملة */
+    newPage(); queue.unshift(el);
+  }
+  if(empty() && pages.length>1){ pages.pop().remove(); }
+  pages.forEach((pg,i)=> pg.insertAdjacentHTML('beforeend', `<div style="position:absolute;left:0;right:0;bottom:0;height:${FOOT}px;display:flex;justify-content:space-between;align-items:flex-end;font-size:8.5px;color:#8a9bb0;border-top:1px solid #e3ebf5;padding-top:4px"><span>مبادرات إدارة المخالفات والتعديات – الوحدة الشمالية</span><span>صفحة ${i+1} من ${pages.length}</span></div>`));
+  return {stage, pages};
+}
+async function downloadReportPDF(root, filename, onProgress){
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+  try{ await document.fonts.ready; }catch(e){}
+  /* المخطط SVG يتحول لصورة (أدق في التحويل) */
+  root.querySelectorAll('svg').forEach(svg=>{ const vb=svg.viewBox.baseVal; const img=new Image(); img.style.cssText='width:100%;display:block';
+    if(!svg.getAttribute('xmlns')) svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    if(vb&&vb.width){ svg.setAttribute('width', vb.width); svg.setAttribute('height', vb.height); }
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg.outerHTML); if(vb&&vb.width) img.style.aspectRatio=vb.width+'/'+vb.height; svg.replaceWith(img); });
+  const {stage, pages} = paginateReport(root);
+  /* تصحيح المسافات بين الكلمات العربية عند الرسم على الصورة */
+  const CP=CanvasRenderingContext2D.prototype, origFill=CP.fillText;
+  CP.fillText=function(t,x,y,...rest){
+    if(typeof t!=='string') return origFill.call(this,t,x,y,...rest);
+    const m=t.match(/\s+$/); if(m){ x+=this.measureText(m[0]).width; t=t.slice(0,-m[0].length); }
+    if(/[\u0600-\u06FF]/.test(t)){ const d=this.direction, a=this.textAlign; this.direction='rtl'; this.textAlign='left'; const r=origFill.call(this,t,x,y,...rest); this.direction=d; this.textAlign=a; return r; }
+    return origFill.call(this,t,x,y,...rest); };
+  try{
+    const opt={ margin:[11,10,11,10], filename, image:{type:'jpeg',quality:0.92},
+      html2canvas:{ scale:2, useCORS:true, backgroundColor:'#ffffff', logging:false, scrollX:0, scrollY:0 },
+      jsPDF:{ unit:'mm', format:'a4', orientation:'portrait', compress:true }, pagebreak:{ mode:[] } };
+    let w = html2pdf().set(opt).from(pages[0]).toPdf();
+    onProgress && onProgress(1, pages.length);
+    for(let i=1;i<pages.length;i++){
+      w = w.get('pdf').then(pdf=>{ pdf.addPage(); onProgress && onProgress(i+1, pages.length); }).from(pages[i]).toContainer().toCanvas().toPdf();
+    }
+    await w.save();
+  } finally { stage.remove(); CP.fillText=origFill; }
+}
+
 $('#pdfBtn').onclick = async ()=>{
   const btn=$('#pdfBtn'); const html0=btn.innerHTML; btn.disabled=true;
   try{
@@ -1389,33 +1468,37 @@ $('#pdfBtn').onclick = async ()=>{
       <div style="--c:#b26a00"><span>توصيلات بها تسريب</span><b>${N(st.leak)}</b></div>
       <div style="--c:#b26a00"><span>أخطاء رصد المقاول</span><b>${N(st.err)}</b></div>
     </div>
-    ${chartImg?`<h2>المنجز والمتبقي <small>المنجز بالأخضر · المتبقي بالأحمر</small></h2><div class="chart"><img src="${chartImg.data}" alt="" style="width:100%;display:block"></div>`:''}
-    <h2>الإنجاز حسب الحي <small>${ds.length} حي</small></h2>
+    ${chartImg?`<h2>المنجز والمتبقي<small>المنجز بالأخضر · المتبقي بالأحمر</small></h2><div class="chart"><img src="${chartImg.data}" alt="" style="width:100%;display:block"></div>`:''}
+    <h2>الإنجاز حسب الحي<small>${ds.length} حي</small></h2>
     <table><thead><tr><th>المحافظة</th><th>الحي</th><th>المستهدف</th><th>المنجز</th><th>المتبقي</th><th style="width:24%">نسبة الإنجاز</th><th>المعاينات</th><th>تعديات</th><th>أُزيلت</th><th>تسريبات</th></tr></thead><tbody>
     ${ds.map(r=>`<tr><td>${esc(r.governorate)}</td><td><b>${esc(r.district)}</b></td><td>${N(r.planned||null)}</td><td>${N(r.done)}</td><td>${r.planned?N(Math.max(0,r.planned-r.done)):'—'}</td>
       <td>${r.planned?`<div class="mb"><div class="bar"><i style="width:${Math.max(1,Math.min(100,r.pct))}%"></i></div><em>${r.pct}%</em></div>`:'—'}</td><td>${N(r.visited)}</td><td>${r.bad?`<b style="color:#c23a32">${r.bad}</b>`:0}</td><td>${r.removed}</td><td>${r.leak}</td></tr>`).join('')}
     ${ds.length?`<tr class="tot"><td colspan="2">الإجمالي</td><td>${N(planned)}</td><td>${N(done)}</td><td>${N(Math.max(0,planned-done))}</td><td>${P(pct)}</td><td>${N(st.total)}</td><td>${st.bad+st.removed}</td><td>${st.removed}</td><td>${st.leak}</td></tr>`:'<tr><td colspan="10">لا توجد بيانات</td></tr>'}
     </tbody></table>
-    <h2>الإنجاز اليومي <small>${days.length} يوم عمل</small></h2>
+    <h2>الإنجاز اليومي<small>${days.length} يوم عمل</small></h2>
     ${chart?`<div class="chart">${chart}<div class="lg"><span><i style="background:#1f5bb0"></i>بدون تعدٍ</span><span><i style="background:#c23a32"></i>تعديات</span><span><i style="background:#fff;border:2px solid #16a39a;border-radius:50%"></i>حسب تقرير المقاول</span></div></div>`:''}
     <table><thead><tr><th>التاريخ</th><th>المسجّل بالمنصة</th><th>بدون تعدٍ</th><th>تعديات</th><th>تسريبات</th><th>أخطاء رصد</th><th>حسب المقاول</th><th>الفرق</th></tr></thead><tbody>
     ${dayRows.map(x=>{ const df=x.ct==null?null:x.ct-x.n; return `<tr><td>${fmtD(x.day)}</td><td><b>${x.n}</b></td><td>${x.ok}</td><td>${x.b}</td><td>${x.leak}</td><td>${x.err}</td><td>${N(x.ct)}</td><td>${df==null?'—':df>0?`<b style="color:#c23a32">${df}</b>`:df}</td></tr>`; }).join('') || '<tr><td colspan="8">لا توجد معاينات في هذه الفترة</td></tr>'}
     </tbody></table>
-    ${mode!=='none' && photoSection.length ? `<h2 class="pb">${mode==='all'?'المعاينات مع الصور':'التعديات المرصودة'} <small>${photoSection.length} معاينة</small></h2>
+    ${mode!=='none' && photoSection.length ? `<h2>${mode==='all'?'المعاينات مع الصور':'التعديات المرصودة'}<small>${photoSection.length} معاينة</small></h2>
       ${totalWanted>PDF_MAX?`<div class="note">عدد الصور ${N(totalWanted)}، وعُرض أول ${PDF_MAX} صورة فقط. لعرض الكل حدد فترة أقصر أو حياً واحداً.</div>`:''}
-      ${photoSection.map(card).join('')}` : (viol.length? `<h2 class="pb">التعديات المرصودة <small>${viol.length}</small></h2>${viol.map(card).join('')}` : '')}
-    ${errs.length?`<h2>أخطاء رصد المقاول <small>${errs.length} معاينة</small></h2>
+      ${photoSection.map(card).join('')}` : (viol.length? `<h2>التعديات المرصودة<small>${viol.length}</small></h2>${viol.map(card).join('')}` : '')}
+    ${errs.length?`<h2>أخطاء رصد المقاول<small>${errs.length} معاينة</small></h2>
       <table><thead><tr><th>#</th><th>التاريخ</th><th>الحي</th><th>رقم الحصر</th><th>رقم العداد</th><th>الخطأ</th></tr></thead><tbody>
       ${errs.map((v,i)=>`<tr><td>${i+1}</td><td>${fmtD(v.visit_date)}</td><td>${esc(v.district)}</td><td>${esc(v.hesr_no)}</td><td>${esc(v.meter_no)}</td><td class="r" style="color:#7a4a00"><b>${esc(v.contractor_error)}</b></td></tr>`).join('')}</tbody></table>`:''}
-    <h2 class="pb">سجل المعاينات <small>${list.length} معاينة</small></h2>
+    <h2 class="pb">سجل المعاينات<small>${list.length} معاينة</small></h2>
     <table><thead><tr><th>#</th><th>التاريخ</th><th>الحي</th><th>رقم الحصر</th><th>رقم العداد</th><th>القراءة</th><th>النتيجة</th><th>التسريب</th><th>المحبس</th><th>العداد</th><th>العقار</th><th>خطأ رصد</th></tr></thead><tbody>
     ${list.map((v,i)=>`<tr><td>${i+1}</td><td>${fmtD(v.visit_date)}</td><td>${esc(v.district)}</td><td>${esc(v.hesr_no)}</td><td>${esc(v.meter_no)}</td><td>${esc(v.meter_reading)}</td><td>${pill(v)}</td><td>${v.leak?'<b style="color:#b26a00">نعم</b>':v.leak===false?'لا':'—'}</td><td>${esc(v.valve)}</td><td>${esc(v.meter_condition)}</td><td class="r">${esc(v.property)}</td><td class="r" style="color:#7a4a00">${esc(v.contractor_error||'')}</td></tr>`).join('') || '<tr><td colspan="12">لا توجد معاينات</td></tr>'}
     </tbody></table>
     <div class="sig"><div>أعدّه</div><div>رئيس إدارة المخالفات</div><div>الاعتماد</div></div>
   </div>`;
   const imgs=[...$('#printArea').querySelectorAll('img')]; let n=0;
-  await Promise.all(imgs.map(im=> im.complete? 0 : new Promise(r=>{ const done=()=>{ n++; if(n%10===0) btn.textContent=`جاري تحميل الصور ${n}/${imgs.length}…`; r(); }; im.onload=im.onerror=done; setTimeout(done,15000); })));
-  setTimeout(()=>window.print(), 200);
+  await Promise.all(imgs.map(im=> im.complete? 0 : new Promise(r=>{ let ok=false; const done=()=>{ if(ok) return; ok=true; n++; if(n%10===0) btn.textContent=`جاري تحميل الصور ${n}/${imgs.length}…`; r(); }; im.onload=im.onerror=done; setTimeout(done,15000); })));
+  btn.textContent='جاري إنشاء ملف PDF…';
+  const prRoot = $('#printArea').firstElementChild;
+  await downloadReportPDF(prRoot, `تقرير_المسح_الميداني_حفر_الباطن_${today()}.pdf`, (i,n)=> btn.textContent=`جاري إنشاء PDF: صفحة ${i} من ${n}…`);
+  $('#printArea').innerHTML='';
+  toast('تم تحميل تقرير PDF');
   }catch(e){ toast('تعذر تجهيز التقرير: '+(e.message||e), 6000); }
   finally{ btn.disabled=false; btn.innerHTML=html0; }
 };

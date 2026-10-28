@@ -100,6 +100,10 @@ html,body{overflow-x:hidden}
 .dist .row .t{display:flex;justify-content:space-between;gap:8px;font-size:14px}
 .dist .row .t span{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
 #map{height:340px;border-radius:10px;z-index:1}
+.leaflet-tooltip.pt-lbl{background:rgba(255,255,255,.92);border:1px solid #cddbee;border-radius:6px;padding:1px 5px;font:600 10.5px/1.35 var(--font);color:#10284a;box-shadow:none;direction:ltr;text-align:center;white-space:nowrap}
+.leaflet-tooltip.pt-lbl.done{border-color:#17845a} .leaflet-tooltip.pt-lbl.todo{border-color:#d93025}
+.leaflet-tooltip.pt-lbl::before{display:none}
+#map.far .pt-lbl{display:none}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:5px;vertical-align:middle}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:600}
@@ -247,7 +251,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
     </div>
     <div class="two" style="margin-top:14px">
       <div class="card"><h3>خريطة المواقع</h3><div id="map"></div>
-        <div class="legend"><span><i class="dot" style="background:#17845a"></i>منجز</span><span><i class="dot" style="background:#d93025"></i>غير منجز</span></div></div>
+        <div class="legend"><span><i class="dot" style="background:#17845a"></i>منجز</span><span><i class="dot" style="background:#d93025"></i>غير منجز</span><span>قرّب الخريطة لتظهر أرقام الحصر (ح) والعداد (ع)</span></div></div>
       <div class="card"><h3>تقرير المقاول اليومي مقابل المسجّل</h3><div id="dailyCompare"></div></div>
     </div>
     <div class="card" style="margin-top:14px"><h3>آخر المعاينات</h3><div id="recent"></div></div>
@@ -836,19 +840,24 @@ function renderDailyCompare(){
     const diff = (r.total??0) - l.length;
     return `<tr style="cursor:default"><td>${fmtD(r.report_date)}</td><td>${r.total??'—'}</td><td>${l.length} ${diff>0?`<span class="pill p-warn">ناقص ${diff}</span>`:diff<0?'':'<span class="pill p-ok">مطابق</span>'}</td><td>${r.violations??'—'} / ${b}</td></tr>`; }).join('')}</tbody></table></div>`;
 }
+/* رقم الحصر والعداد على كل نقطة (تظهر عند التقريب حتى لا تتزاحم) */
+function ptLabel(x){ return [x.hesr_no&&('ح '+esc(x.hesr_no)), x.meter_no&&('ع '+esc(x.meter_no))].filter(Boolean).join('<br>') || '—'; }
+const LABEL_ZOOM = 16;
 function renderMap(){
   if(typeof L==='undefined'){ $('#map').innerHTML='<div class="empty">تعذر تحميل الخريطة</div>'; return; }
   if(!map){
     map = L.map('map',{zoomControl:true, attributionControl:true}).setView([28.43,45.97],12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
     mapLayer = L.layerGroup().addTo(map);
+    const upd=()=>document.getElementById('map').classList.toggle('far', map.getZoom()<LABEL_ZOOM);
+    map.on('zoomend', upd); upd();
   }
   setTimeout(()=>map.invalidateSize(),50);
   mapLayer.clearLayers();
   const pts=[]; const visitedSites=new Set(S.visits.map(v=>v.site_id).filter(Boolean));
-  S.sites.forEach(s=>{ if(s.lat && s.lng && !visitedSites.has(s.id)){ L.circleMarker([s.lat,s.lng],{radius:6,color:'#fff',weight:1.5,fillColor:'#d93025',fillOpacity:.9}).bindPopup(`<b>غير منجز</b> · ${esc(s.district)}<br>عداد ${esc(s.meter_no)}${s.account_no?'<br>حساب '+esc(s.account_no):''}`).addTo(mapLayer); pts.push([s.lat,s.lng]); } });
+  S.sites.forEach(s=>{ if(s.lat && s.lng && !visitedSites.has(s.id)){ L.circleMarker([s.lat,s.lng],{radius:6,color:'#fff',weight:1.5,fillColor:'#d93025',fillOpacity:.9}).bindTooltip(ptLabel(s),{permanent:true,direction:'top',offset:[0,-6],className:'pt-lbl todo'}).bindPopup(`<b>غير منجز</b> · ${esc(s.district)}<br>عداد ${esc(s.meter_no)}${s.account_no?'<br>حساب '+esc(s.account_no):''}`).addTo(mapLayer); pts.push([s.lat,s.lng]); } });
   S.visits.forEach(v=>{ if(v.lat && v.lng){ const bad=v.result===R_BAD||v.result===R_REM;
-    const mk=L.circleMarker([v.lat,v.lng],{radius:7,color:'#fff',weight:2,fillColor:'#17845a',fillOpacity:.95}).addTo(mapLayer);
+    const mk=L.circleMarker([v.lat,v.lng],{radius:7,color:'#fff',weight:2,fillColor:'#17845a',fillOpacity:.95}).bindTooltip(ptLabel(v),{permanent:true,direction:'top',offset:[0,-7],className:'pt-lbl done'}).addTo(mapLayer);
     mk.bindPopup(`<b>منجز</b> · ${esc(v.district||'')}<br>حصر ${esc(v.hesr_no)}<br>${bad?'<b style="color:#c23a32">'+esc(v.result)+'</b>':esc(v.result||'')}<br><a href="#" data-open="${v.id}">فتح التفاصيل</a>`); pts.push([v.lat,v.lng]); } });
   if(pts.length) map.fitBounds(pts,{padding:[20,20],maxZoom:16});
 }

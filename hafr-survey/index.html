@@ -99,8 +99,9 @@ html,body{overflow-x:hidden}
 .dist .row{display:grid;gap:4px}
 .dist .row .t{display:flex;justify-content:space-between;gap:8px;font-size:14px}
 .dist .row .t span{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
-#map{height:340px;border-radius:10px;z-index:1}
-.leaflet-tooltip.pt-lbl{background:rgba(255,255,255,.92);border:1px solid #cddbee;border-radius:6px;padding:1px 5px;font:600 10.5px/1.35 var(--font);color:#10284a;box-shadow:none;direction:ltr;text-align:center;white-space:nowrap}
+#map{height:340px;border-radius:10px;z-index:1;direction:ltr}
+#map .leaflet-popup-content{direction:rtl;text-align:right}
+.leaflet-tooltip.pt-lbl{background:rgba(255,255,255,.92);border:1px solid #cddbee;border-radius:6px;padding:1px 5px;font:600 10.5px/1.35 var(--font);color:#10284a;box-shadow:none;direction:rtl;text-align:right;white-space:nowrap}
 .leaflet-tooltip.pt-lbl.done{border-color:#17845a} .leaflet-tooltip.pt-lbl.todo{border-color:#d93025}
 .leaflet-tooltip.pt-lbl::before{display:none}
 #map.far .pt-lbl{display:none}
@@ -841,7 +842,7 @@ function renderDailyCompare(){
     return `<tr style="cursor:default"><td>${fmtD(r.report_date)}</td><td>${r.total??'—'}</td><td>${l.length} ${diff>0?`<span class="pill p-warn">ناقص ${diff}</span>`:diff<0?'':'<span class="pill p-ok">مطابق</span>'}</td><td>${r.violations??'—'} / ${b}</td></tr>`; }).join('')}</tbody></table></div>`;
 }
 /* رقم الحصر والعداد على كل نقطة (تظهر عند التقريب حتى لا تتزاحم) */
-function ptLabel(x){ return [x.hesr_no&&('ح '+esc(x.hesr_no)), x.meter_no&&('ع '+esc(x.meter_no))].filter(Boolean).join('<br>') || '—'; }
+function ptLabel(x){ return [x.hesr_no&&('ح: <bdi>'+esc(x.hesr_no)+'</bdi>'), x.meter_no&&('ع: <bdi>'+esc(x.meter_no)+'</bdi>')].filter(Boolean).join('<br>') || '—'; }
 const LABEL_ZOOM = 16;
 function renderMap(){
   if(typeof L==='undefined'){ $('#map').innerHTML='<div class="empty">تعذر تحميل الخريطة</div>'; return; }

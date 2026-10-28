@@ -247,7 +247,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
     </div>
     <div class="two" style="margin-top:14px">
       <div class="card"><h3>خريطة المواقع</h3><div id="map"></div>
-        <div class="legend"><span><i class="dot" style="background:#17845a"></i>تم الكشف بدون تعدٍ</span><span><i class="dot" style="background:#c23a32"></i>تعدٍ</span><span><i class="dot" style="background:#8a9bb0"></i>مستهدف لم يُزر</span></div></div>
+        <div class="legend"><span><i class="dot" style="background:#17845a"></i>منجز</span><span><i class="dot" style="background:#d93025"></i>غير منجز</span></div></div>
       <div class="card"><h3>تقرير المقاول اليومي مقابل المسجّل</h3><div id="dailyCompare"></div></div>
     </div>
     <div class="card" style="margin-top:14px"><h3>آخر المعاينات</h3><div id="recent"></div></div>
@@ -846,10 +846,10 @@ function renderMap(){
   setTimeout(()=>map.invalidateSize(),50);
   mapLayer.clearLayers();
   const pts=[]; const visitedSites=new Set(S.visits.map(v=>v.site_id).filter(Boolean));
-  S.sites.forEach(s=>{ if(s.lat && s.lng && !visitedSites.has(s.id)){ L.circleMarker([s.lat,s.lng],{radius:4,color:'#8a9bb0',weight:1,fillOpacity:.5}).bindPopup(`مستهدف · ${esc(s.district)}<br>عداد ${esc(s.meter_no)}`).addTo(mapLayer); pts.push([s.lat,s.lng]); } });
+  S.sites.forEach(s=>{ if(s.lat && s.lng && !visitedSites.has(s.id)){ L.circleMarker([s.lat,s.lng],{radius:6,color:'#fff',weight:1.5,fillColor:'#d93025',fillOpacity:.9}).bindPopup(`<b>غير منجز</b> · ${esc(s.district)}<br>عداد ${esc(s.meter_no)}${s.account_no?'<br>حساب '+esc(s.account_no):''}`).addTo(mapLayer); pts.push([s.lat,s.lng]); } });
   S.visits.forEach(v=>{ if(v.lat && v.lng){ const bad=v.result===R_BAD||v.result===R_REM;
-    const mk=L.circleMarker([v.lat,v.lng],{radius:7,color:'#fff',weight:2,fillColor:bad?'#c23a32':'#17845a',fillOpacity:.95}).addTo(mapLayer);
-    mk.bindPopup(`<b>${esc(v.district||'')}</b><br>حصر ${esc(v.hesr_no)}<br>${esc(v.result||'')}<br><a href="#" data-open="${v.id}">فتح التفاصيل</a>`); pts.push([v.lat,v.lng]); } });
+    const mk=L.circleMarker([v.lat,v.lng],{radius:7,color:'#fff',weight:2,fillColor:'#17845a',fillOpacity:.95}).addTo(mapLayer);
+    mk.bindPopup(`<b>منجز</b> · ${esc(v.district||'')}<br>حصر ${esc(v.hesr_no)}<br>${bad?'<b style="color:#c23a32">'+esc(v.result)+'</b>':esc(v.result||'')}<br><a href="#" data-open="${v.id}">فتح التفاصيل</a>`); pts.push([v.lat,v.lng]); } });
   if(pts.length) map.fitBounds(pts,{padding:[20,20],maxZoom:16});
 }
 document.addEventListener('click', e=>{ const a=e.target.closest('[data-open]'); if(a){ e.preventDefault(); openDetail(a.dataset.open); } });

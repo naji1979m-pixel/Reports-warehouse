@@ -1467,12 +1467,14 @@ function buildWorkbook(ExcelJS, D){
   /* ترويسة موحدة: عنوان + اسم الإدارة + النطاق والفترة + شريط الهوية + الشعار */
   function sheet(name, widths, title, sub, opts={}){
     const ws = wb.addWorksheet(name, {
-      views:[{ rightToLeft:true, showGridLines:false, state: opts.freeze? 'frozen':'normal', ySplit: opts.freeze||0 }],
+      views:[{ rightToLeft:true, showGridLines:false, state:'normal', topLeftCell:'A1', activeCell:'A1' }],
       pageSetup:{ paperSize:9, orientation: opts.portrait? 'portrait':'landscape', fitToPage:true, fitToWidth:1, fitToHeight: opts.onePage?1:0,
                   margins:{ left:0.35, right:0.35, top:0.45, bottom:0.5, header:0.2, footer:0.25 }, horizontalCentered:true },
       headerFooter:{ oddFooter:'&C&8صفحة &P من &N' }
     });
     ws.columns = widths.map(w=>({ width:w }));
+    /* بدل تجميد الأجزاء (يسبب تداخل العرض): صف العناوين يتكرر في كل صفحة عند الطباعة */
+    if(opts.freeze) ws.pageSetup.printTitlesRow = `${opts.freeze}:${opts.freeze}`;
     const n = widths.length, mTo = Math.max(1, n-2);
     [34,20,18,5,8].forEach((h,i)=> ws.getRow(i+1).height = h);
     for(const [r,txt,font] of [[1,title,{size:17,bold:true,color:{argb:C.blue}}],[2,D.unitName,{size:11,bold:true,color:{argb:C.navy}}],[3,sub,{size:9.5,color:{argb:C.mute}}]]){

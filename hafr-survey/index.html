@@ -1296,10 +1296,33 @@ $('#xlsBtn').onclick = ()=>{
 
 /* ================== الإعدادات: استيراد المواقع ================== */
 async function importSiteFile(file, gov, dist){
-  if(typeof XLSX==='undefined'){ toast('تعذر تحميل مكتبة Excel'); return; }
-  const wb = XLSX.read(await file.arrayBuffer());
-  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:'', raw:false});
-  return importSiteRows(rows, file.name, gov, dist);
+  if(typeof XLSX==='undefined'){ toast('مكتبة Excel لم تُحمّل. تأكد من الإنترنت وحدّث الصفحة', 5000); return; }
+  $('#importPreview').innerHTML = `<div class="vcard"><b>${esc(file.name)}</b><span class="hint">جاري قراءة الملف…</span></div>`;
+  try{
+    const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+    const rows = bestSheetRows(wb);
+    return importSiteRows(rows, file.name, gov, dist);
+  }catch(e){
+    $('#importPreview').innerHTML = `<div class="match p-bad">تعذرت قراءة الملف «${esc(file.name)}»: ${esc(e.message||e)}. تأكد أنه ملف Excel (xlsx أو xls أو csv).</div>`;
+  }
+}
+/* يبحث في كل الأوراق عن صف العناوين الحقيقي (حتى لو كان فوقه عنوان أو شعار) */
+const HEAD_RX = [/عداد/, /حساب/, /حصر/, /lat|عرض/i, /lon|lng|طول/i];
+function bestSheetRows(wb){
+  let best = {score:-1, rows:[]};
+  for(const name of wb.SheetNames){
+    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:'', raw:true, blankrows:false});
+    for(let i=0;i<Math.min(aoa.length,25);i++){
+      const row = aoa[i].map(c=>normalize(String(c??'')).trim());
+      const score = HEAD_RX.filter(rx=>row.some(c=>rx.test(c))).length;
+      if(score>best.score){
+        const head = row.map((h,j)=> h || ('عمود'+(j+1)));
+        const rows = aoa.slice(i+1).filter(r=>r.some(c=>String(c).trim()!=='')).map(r=>{ const o={}; head.forEach((h,j)=>o[h]=r[j]??''); return o; });
+        best = {score, rows};
+      }
+    }
+  }
+  return best.rows;
 }
 /* خلايا منسوخة من Excel (نص مفصول بـ Tab) */
 function rowsFromText(text){
@@ -1321,7 +1344,7 @@ async function importSiteRows(rows, name, gov, dist){
     lat: pick(k=>/lat|عرض/.test(k)),
     lng: pick(k=>/lon|lng|طول/.test(k))
   };
-  const clean = x => normalize(String(x??'')).replace(/[^\d.]/g,'');
+  const clean = x => (typeof x==='number' ? (Number.isInteger(x)? String(x) : String(x)) : normalize(String(x??''))).replace(/[^\d.]/g,'');
   const arr = rows.map(r=>({ id:uid(), governorate:gov, district:dist,
     meter_no: col.meter? clean(r[col.meter]) : '', account_no: col.account? clean(r[col.account]) : '', hesr_no: col.hesr? clean(r[col.hesr]) : '',
     lat: col.lat && +clean(r[col.lat]) || null, lng: col.lng && +clean(r[col.lng]) || null, created_at:new Date().toISOString() }))
@@ -1331,6 +1354,7 @@ async function importSiteRows(rows, name, gov, dist){
   box.innerHTML = `<div class="vcard"><b>${esc(file.name)}</b>
     <div class="hint">${gov} · حي ${esc(dist)} · ${arr.length} موقع صالح من ${rows.length} صف</div>
     <div class="hint">الأعمدة المتعرَّف عليها: ${Object.values(col).filter(Boolean).map(esc).join('، ')||'لا شيء'}</div>
+    ${arr.length? '' : `<div class="match p-bad">لم أتعرف على أعمدة رقم العداد أو الحساب أو الحصر أو الإحداثيات. أعمدة الملف: ${esc(keys.slice(0,12).join('، '))}. أرسل لي صورة من الملف وأعدّل التعرّف عليه.</div>`}
     ${existing?`<div class="match p-warn">للحي ملف سابق فيه ${existing} موقع، سيُستبدل بالملف الجديد (المعاينات المسجلة لا تتأثر)</div>`:''}
     <div class="row-btns"><button class="btn pri sm" data-imp ${arr.length?'':'disabled'}>اعتماد الملف</button><button class="btn sm" data-cancel>إلغاء</button></div></div>`;
   box.querySelector('[data-cancel]').onclick=()=>box.innerHTML='';
@@ -1340,7 +1364,7 @@ async function importSiteRows(rows, name, gov, dist){
       if(!S.districts.some(d=>d.governorate===gov && d.name===dist)) await DB.addDistrict(gov, dist);
       await DB.addSites(arr); buildSiteIdx(); await relinkVisits();
       box.innerHTML=''; toast(`تم اعتماد ${arr.length} موقع لحي ${dist}`); fillDistrictSelects(); renderSettings();
-    }catch(err){ toast('تعذر الاستيراد: '+err.message); }
+    }catch(err){ toast('تعذر الاستيراد: '+friendlyErr(err), 6000); box.insertAdjacentHTML('beforeend', `<div class="match p-bad">تعذر الحفظ: ${esc(friendlyErr(err))}</div>`); }
   };
 }
 /* عند اختيار حي من القائمة تظهر خانة تحميل ملف مبادرة الحي */

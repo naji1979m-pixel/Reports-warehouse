@@ -54,7 +54,15 @@ header.top .wrap{display:flex;align-items:center;gap:16px;padding-block:12px 16p
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
 .top .chip{background:var(--sky);color:var(--blue)}
 .top button.link{background:none;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:4px 12px;cursor:pointer}
-@media (max-width:640px){ .logo-tile img{height:34px} .brand{gap:10px} .brand .sep{display:none} .brand b{font-size:15.5px} .brand small{font-size:12px} }
+@media (max-width:760px){
+  header.top .wrap{gap:10px;padding-block:10px 14px}
+  .brand{flex:1 1 100%;gap:10px}
+  .logo-tile img{height:34px}
+  .brand .sep{display:none}
+  .brand b{font-size:15px;line-height:1.45}
+  .brand small{font-size:12px}
+  #roleChip{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;justify-content:flex-start}
+}
 nav.tabs{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
 nav.tabs .wrap{display:flex;gap:4px;overflow-x:auto}
 nav.tabs button{background:none;border:0;padding:12px 14px;cursor:pointer;color:var(--muted);font-weight:600;border-bottom:3px solid transparent;white-space:nowrap;display:flex;gap:6px;align-items:center}

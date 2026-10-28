@@ -1343,6 +1343,7 @@ $('#pdfBtn').onclick = async ()=>{
   const totalWanted = photoVisits.reduce((a,v)=>a+(v.media||[]).filter(m=>m.type==='image').length,0);
   const src = new Map();
   if(allIms.length){ btn.textContent='جاري تجهيز الصور…'; const u=await DB.tileUrls(allIms); allIms.forEach((m,i)=>{ if(u[i]) src.set(m.id,u[i].url); }); }
+  const chartImg = await drawDoneChart(ds, planned, done);
   const pill = v => v.result===R_BAD?`<span class="pill bad">يوجد تعدٍ</span>`: v.result===R_REM?`<span class="pill rem">تمت الإزالة</span>`: v.result===R_OK?`<span class="pill ok">لا يوجد تعدٍ</span>`:`<span class="pill na">—</span>`;
   const days = [...new Set(list.map(v=>v.visit_date))].sort();
   const dayRows = days.map(day=>{ const l=list.filter(v=>v.visit_date===day); const b=l.filter(v=>v.result===R_BAD||v.result===R_REM).length; const c=S.daily.find(x=>x.report_date===day)||{};
@@ -1377,18 +1378,18 @@ $('#pdfBtn').onclick = async ()=>{
     <div class="meta"><div><span>الفترة</span><b>${esc(periodText(f,t))}</b></div><div><span>النطاق</span><b>${esc(g||'جميع المحافظات')}${d?' · حي '+esc(d):''}</b></div><div><span>تاريخ التقرير</span><b>${fmtD(today())}</b></div><div><span>أعدّه</span><b>${esc(S.userName||'—')}</b></div></div>
     <h2>المؤشرات الرئيسية</h2>
     <div class="kp">
-      <div style="--c:#10284a"><span>المواقع المستهدفة</span><b>${N(planned)}</b></div>
-      <div style="--c:#17845a"><span>المواقع المنجزة</span><b>${N(done)}</b></div>
+      <div style="--c:#10284a"><span>المستهدف</span><b>${N(planned)}</b></div>
+      <div style="--c:#17845a"><span>المنجز</span><b>${N(done)}</b></div>
       <div style="--c:#1f5bb0"><span>نسبة الإنجاز</span><b>${P(pct)}</b></div>
       <div style="--c:#10284a"><span>إجمالي المعاينات</span><b>${N(st.total)}</b></div>
-      <div style="--c:#5e738c"><span>خارج القائمة</span><b>${N(list.filter(v=>!v.site_id).length)}</b></div>
+      <div style="--c:#d93025"><span>في انتظار المعاينة</span><b>${planned?N(Math.max(0,planned-done)):'—'}</b></div>
       <div style="--c:#17845a"><span>بدون تعدٍ</span><b>${N(st.ok)}</b></div>
       <div style="--c:#c23a32"><span>تعديات قائمة</span><b>${N(st.bad)}</b></div>
       <div style="--c:#b26a00"><span>تعديات أُزيلت</span><b>${N(st.removed)}</b></div>
       <div style="--c:#b26a00"><span>توصيلات بها تسريب</span><b>${N(st.leak)}</b></div>
       <div style="--c:#b26a00"><span>أخطاء رصد المقاول</span><b>${N(st.err)}</b></div>
     </div>
-    ${planned?`<div class="prog"><div class="t"><b>نسبة الإنجاز الكلية</b><span>أُنجز ${N(done)} من ${N(planned)} موقع مستهدف · ${P(pct)}</span></div><div class="bar"><i style="width:${Math.max(.6,Math.min(100,pct*100))}%"></i></div></div>`:''}
+    ${chartImg?`<h2>المنجز والمتبقي <small>المنجز بالأخضر · المتبقي بالأحمر</small></h2><div class="chart"><img src="${chartImg.data}" alt="" style="width:100%;display:block"></div>`:''}
     <h2>الإنجاز حسب الحي <small>${ds.length} حي</small></h2>
     <table><thead><tr><th>المحافظة</th><th>الحي</th><th>المستهدف</th><th>المنجز</th><th>المتبقي</th><th style="width:24%">نسبة الإنجاز</th><th>المعاينات</th><th>تعديات</th><th>أُزيلت</th><th>تسريبات</th></tr></thead><tbody>
     ${ds.map(r=>`<tr><td>${esc(r.governorate)}</td><td><b>${esc(r.district)}</b></td><td>${N(r.planned||null)}</td><td>${N(r.done)}</td><td>${r.planned?N(Math.max(0,r.planned-r.done)):'—'}</td>
@@ -1526,7 +1527,7 @@ function buildWorkbook(ExcelJS, D){
     const ws = sheet('الملخص التنفيذي', W, D.title, D.sub, { portrait:true, onePage:true });
     section(ws, 6, 10, 'المؤشرات الرئيسية');
     const cards = [
-      ['المواقع المستهدفة', K.planned, C.navy], ['المواقع المنجزة', K.done, C.green], ['نسبة الإنجاز', K.pct, C.blue, '0.0%'], ['إجمالي المعاينات', K.total, C.navy], ['معاينات خارج القائمة', K.outside, C.mute],
+      ['المستهدف', K.planned, C.navy], ['المنجز', K.done, C.green], ['نسبة الإنجاز', K.pct, C.blue, '0.0%'], ['إجمالي المعاينات', K.total, C.navy], ['في انتظار المعاينة', K.pending, C.red],
       ['تم الكشف بدون تعدٍ', K.ok, C.green], ['تعديات قائمة', K.bad, C.red], ['تعديات أُزيلت', K.removed, C.amber], ['توصيلات بها تسريب', K.leak, C.amber], ['أخطاء رصد المقاول', K.err, C.amber]
     ];
     cards.forEach((cd,i)=>{
@@ -1543,8 +1544,19 @@ function buildWorkbook(ExcelJS, D){
     });
     [7,11].forEach(r=>{ ws.getRow(r).height=20; ws.getRow(r+1).height=22; ws.getRow(r+2).height=22; ws.getRow(r+3).height=10; });
 
-    /* الإنجاز حسب الحي */
+    /* الرسم البياني: المنجز بالأخضر والمتبقي بالأحمر */
     let r = 16;
+    if(D.chart){
+      section(ws, r, 10, 'المنجز والمتبقي'); r++;
+      const totalW = W.reduce((a,w)=>a+colPx(w),0) - 12;
+      const ih = Math.round(totalW * D.chart.h / D.chart.w);
+      const rowsN = Math.ceil((ih+12)/20);
+      for(let k=0;k<rowsN;k++) ws.getRow(r+k).height = 15;
+      const id = wb.addImage({ base64:D.chart.data, extension:'png' });
+      ws.addImage(id, { tl:{ nativeCol:0, nativeColOff:6*EMU, nativeRow:r-1, nativeRowOff:6*EMU }, ext:{ width:totalW, height:ih }, editAs:'oneCell' });
+      r += rowsN + 1;
+    }
+    /* الإنجاز حسب الحي */
     section(ws, r, 10, 'الإنجاز حسب الحي'); r++;
     const dh = ['المحافظة','الحي','المستهدف','المنجز','المتبقي','نسبة الإنجاز','المعاينات','تعديات','أُزيلت','تسريبات'];
     const ds = [{a:'center'},{bold:true},{fmt:'#,##0'},{fmt:'#,##0'},{fmt:'#,##0'},{fmt:'0.0%'},{fmt:'#,##0'},{},{},{}];
@@ -1654,6 +1666,44 @@ function buildWorkbook(ExcelJS, D){
 }
 /* @@XL_BUILDER_END@@ */
 
+/* رسم «المنجز بالأخضر والمتبقي بالأحمر»: دائرة للإجمالي + أشرطة لكل حي (صورة PNG تُستخدم في Excel و PDF) */
+async function drawDoneChart(ds, planned, done){
+  if(!planned) return null;
+  try{ await document.fonts.ready; }catch(e){}
+  const rows = ds.filter(r=>r.planned>0).sort((a,b)=>b.planned-a.planned).slice(0,12);
+  const W=1600, H=Math.max(440, 110 + rows.length*58);
+  const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d');
+  const GREEN='#17845a', RED='#d93025', INK='#10284a', MUTE='#5e738c', FONT='"IBM Plex Sans Arabic", Arial, sans-serif';
+  x.fillStyle='#ffffff'; x.fillRect(0,0,W,H); x.direction='rtl';
+  /* الدائرة */
+  const cx=W-215, cy=H/2-10, R=150, T=48, frac=Math.min(1,done/planned);
+  x.lineWidth=T; x.lineCap='butt';
+  x.strokeStyle=RED; x.beginPath(); x.arc(cx,cy,R,0,Math.PI*2); x.stroke();
+  if(frac>0){ x.strokeStyle=GREEN; x.beginPath(); x.arc(cx,cy,R,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.max(frac,0.004)); x.stroke(); }
+  x.textAlign='center'; x.fillStyle=INK; x.font=`700 54px ${FONT}`; x.fillText((Math.round(frac*1000)/10)+'%', cx, cy+14);
+  x.fillStyle=MUTE; x.font=`600 24px ${FONT}`; x.fillText('نسبة الإنجاز', cx, cy+50);
+  /* وسيلة الإيضاح */
+  const ly=cy+R+T/2+44;
+  const leg=(lx,color,label)=>{ x.fillStyle=color; x.fillRect(lx-18,ly-18,20,20); x.fillStyle=INK; x.textAlign='right'; x.font=`600 24px ${FONT}`; x.fillText(label, lx-28, ly); };
+  leg(cx+175, GREEN, `المنجز ${done.toLocaleString('en-US')}`);
+  leg(cx-5, RED, `المتبقي ${Math.max(0,planned-done).toLocaleString('en-US')}`);
+  /* أشرطة الأحياء */
+  const xR=W-470, xL=40, labW=190, bR=xR-labW, bL=xL+150;
+  x.textAlign='right'; x.fillStyle=INK; x.font=`700 30px ${FONT}`; x.fillText('الإنجاز حسب الحي', xR, 52);
+  x.strokeStyle='#e3ebf5'; x.lineWidth=2; x.beginPath(); x.moveTo(xL,72); x.lineTo(xR,72); x.stroke();
+  if(!rows.length){ x.fillStyle=MUTE; x.font=`500 24px ${FONT}`; x.fillText('لا توجد أحياء لها مواقع مستهدفة', xR, 130); }
+  rows.forEach((r,i)=>{
+    const y=110+i*58, bw=bR-bL, dn=Math.min(r.done,r.planned), g=bw*dn/r.planned;
+    x.textAlign='right'; x.fillStyle=INK; x.font=`700 25px ${FONT}`; x.fillText(r.district, xR, y+9);
+    x.fillStyle=RED; x.beginPath(); x.roundRect(bL,y-14,bw,30,6); x.fill();
+    if(g>0){ x.fillStyle=GREEN; x.beginPath(); x.roundRect(bR-Math.max(g,6),y-14,Math.max(g,6),30,6); x.fill(); }
+    x.textAlign='left'; x.fillStyle=INK; x.font=`600 22px ${FONT}`; x.fillText(`${dn.toLocaleString('en-US')} / ${r.planned.toLocaleString('en-US')}`, xL, y+8);
+    x.textAlign='center'; x.fillStyle='#ffffff'; x.font=`700 20px ${FONT}`; const p=Math.round(dn/r.planned*1000)/10+'%';
+    x.fillText(p, g>90 ? bR-g/2 : bL+ (bw-g)/2, y+8);
+  });
+  return { data:c.toDataURL('image/png'), w:W, h:H };
+}
+
 /* يجمع البيانات والصور ثم يبني الملف بـ buildWorkbook */
 async function exportExcelWithPhotos(){
   const {list,f,t,d,g}=reportSet(); const st=stats(list); const ds=districtStats(list, g, d);
@@ -1696,7 +1746,8 @@ async function exportExcelWithPhotos(){
       unitName:'مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية',
       sub:`${periodText(f,t)} · ${scopeText(g,d)} · تاريخ التقرير ${fmtD(today())}`, date:fmtD(today()),
       logo: await logoData(), R:{OK:R_OK, BAD:R_BAD, REM:R_REM},
-      kpi:{ planned, done, pct: planned? done/planned : null, total:st.total, outside:list.filter(v=>!v.site_id).length, ok:st.ok, bad:st.bad, removed:st.removed, leak:st.leak, err:st.err },
+      chart: await drawDoneChart(ds, planned, done),
+      kpi:{ planned, done, pct: planned? done/planned : null, total:st.total, pending: planned? Math.max(0,planned-done) : null, outside:list.filter(v=>!v.site_id).length, ok:st.ok, bad:st.bad, removed:st.removed, leak:st.leak, err:st.err },
       districts: ds.map(r=>({governorate:r.governorate, district:r.district, planned:r.planned, done:r.done, visited:r.visited, bad:r.bad, removed:r.removed, leak:r.leak})),
       daily, visits, album, remaining,
       platformLinks: mode!=='none', platformLink: id => location.origin + location.pathname + '#v-' + id

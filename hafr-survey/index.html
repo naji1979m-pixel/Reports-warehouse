@@ -244,9 +244,9 @@ dialog .db{padding:16px;display:grid;gap:14px}
   <!-- إضافة -->
   <section id="v-add" hidden>
     <h2>إضافة معاينات من الواتساب</h2>
-    <p class="sub">انسخ رسائل المقاول من القروب (رسالة أو عدة رسائل مع رسالة الموقع) والصقها هنا، والمنصة تستخرج البيانات. بعدها أرفق الصور من الاستديو أو صوّر مباشرة.</p>
+    <p class="sub">انسخ من القروب والصق مباشرة، رسالة رسالة: رسالة المعاينة تفتح بطاقة جديدة، ورسالة الموقع والصور تنضاف تلقائياً لآخر بطاقة. وتقدر ترفق صور من الاستديو أو تصوّر مباشرة.</p>
     <div class="card section-gap">
-      <textarea class="in" id="pasteBox" placeholder="الصق رسائل الواتساب هنا…"></textarea>
+      <textarea class="in" id="pasteBox" placeholder="الصق هنا مباشرة: رسالة المقاول، ثم رسالة الموقع، ثم الصور… كل لصقة تدخل فوراً"></textarea>
       <div class="form">
         <label class="f">القطاع<select class="in" disabled><option>القطاع الشرقي</option></select></label>
         <label class="f">المحافظة<select class="in" id="defGov"></select></label>
@@ -871,33 +871,62 @@ $('#sampleBtn').onclick = ()=>{ $('#pasteBox').value = SAMPLE; toast('تم وض�
 $('#defDate').value = today();
 $('#defContractor').value = lsGet('hs_contractor','');
 $('#defContractor').onchange = e=> lsSet('hs_contractor', e.target.value);
-$('#parseBtn').onclick = ()=>{
-  const txt = $('#pasteBox').value.trim();
-  if(!txt){ toast('الصق رسائل الواتساب أولاً'); return; }
-  const {visits, dailies} = parsePaste(txt);
-  if(!visits.length && !dailies.length){
-    const v = blankVisit(); v.raw_text = normalize(txt); v.notes = normalize(txt).replace(/\s*\n\s*/g,' · ').slice(0,500);
-    const c = extractCoords(v.raw_text); if(c){ v.lat=c.lat; v.lng=c.lng; }
-    S.drafts.push(enrich(v));
-    if(pendingFiles.length){ v._files.push(...pendingFiles); pendingFiles=[]; }
-    renderDrafts(); $('#pasteBox').value='';
-    toast('لم أتعرف على أرقام الحصر أو العداد في النص، فتحت لك بطاقة بالنص لتكمل بياناتها', 5000); return;
+/* ===== الاستيعاب الفوري لكل لصقة =====
+   كل ما تلصقه يدخل المنصة مباشرة:
+   - نص فيه رقم حصر/عداد ← بطاقة معاينة جديدة
+   - رسالة موقع ← تُضاف لآخر معاينة (أو تُحفظ للمعاينة التالية)
+   - صور/فيديو ← تُرفق بآخر معاينة
+   - «العمل المنجز اليوم» ← تقرير يومي
+   - نص آخر ← يُضاف لملاحظات آخر معاينة */
+S.dailyDrafts = [];
+let heldLoc = null;
+function lastDraft(){ return S.drafts[S.drafts.length-1] || null; }
+async function ingest(text, files=[]){
+  text = (text||'').trim();
+  const msgs=[];
+  if(text){
+    const {visits, dailies} = parsePaste(text);
+    let added=0, merged=0;
+    visits.forEach(p=>{
+      const clean = Object.fromEntries(Object.entries(p).filter(([k,x])=>x!==null && x!=='' && x!==undefined));
+      const prev = draftDuplicate(clean);
+      if(prev){ for(const [k,x] of Object.entries(clean)) if(prev[k]==null || prev[k]==='') prev[k]=x; merged++; return; }
+      const v = Object.assign(blankVisit(), clean);
+      if(heldLoc && v.lat==null){ Object.assign(v, heldLoc); heldLoc=null; }
+      S.drafts.push(enrich(v)); added++;
+    });
+    if(added) msgs.push(`معاينة جديدة (${added})`);
+    if(merged) msgs.push(`دمج ${merged} مكررة`);
+    if(dailies.length){ S.dailyDrafts.push(...dailies); renderDailyFound(S.dailyDrafts); msgs.push('تقرير يومي'); }
+    if(!visits.length && !dailies.length){
+      const t = normalize(text); const c = extractCoords(t); const u = extractUrl(t);
+      const ld = lastDraft();
+      if(c || u){
+        const loc = {}; if(c){ loc.lat=c.lat; loc.lng=c.lng; } if(u) loc.location_url=u;
+        if(ld && ld.lat==null){ Object.assign(ld, loc); ld.raw_text=[ld.raw_text,t].filter(Boolean).join('\n'); enrich(ld); msgs.push('الموقع أُضيف لآخر معاينة'); }
+        else { heldLoc = loc; msgs.push('تم حفظ الموقع للمعاينة التالية'); }
+      } else if(ld){
+        ld.notes=[ld.notes, t.replace(/\s*\n\s*/g,' · ')].filter(Boolean).join(' · '); ld.raw_text=[ld.raw_text,t].filter(Boolean).join('\n');
+        msgs.push('أُضيف النص لملاحظات آخر معاينة');
+      } else {
+        const v=blankVisit(); v.raw_text=t; v.notes=t.replace(/\s*\n\s*/g,' · ').slice(0,500); S.drafts.push(v);
+        msgs.push('بطاقة جديدة بالنص، أكمل بياناتها');
+      }
+    }
   }
-  let merged=0;
-  visits.forEach(p=>{
-    const clean = Object.fromEntries(Object.entries(p).filter(([k,x])=>x!==null && x!=='' && x!==undefined));
-    const prev = draftDuplicate(clean);
-    if(prev){ for(const [k,x] of Object.entries(clean)) if(prev[k]==null || prev[k]==='') prev[k]=x; merged++; return; }
-    const v = Object.assign(blankVisit(), clean);
-    S.drafts.push(enrich(v));
-  });
-  if(merged) setTimeout(()=>toast(`تم دمج ${merged} رسالة مكررة لنفس الموقع`), 2700);
-  if(pendingFiles.length){ const target = S.drafts[S.drafts.length-1] || null; if(target){ target._files.push(...pendingFiles); pendingFiles=[]; } }
-  renderDailyFound(dailies);
+  const media = files.filter(f=>/^image|^video/.test(f.type));
+  if(media.length){
+    let ld = lastDraft(); if(!ld){ ld = blankVisit(); S.drafts.push(ld); }
+    for(const f of media) ld._files.push(await compressImage(f));
+    msgs.push(`${media.length} مرفق أُضيف لآخر معاينة`);
+  }
+  if(!msgs.length){ toast('لا يوجد شيء في الحافظة. انسخ من الواتساب ثم الصق'); return; }
   renderDrafts();
   $('#pasteBox').value='';
-  toast(`تم استخراج ${visits.length} معاينة` + (dailies.length? ` و${dailies.length} تقرير يومي` : ''));
-};
+  toast('✓ ' + msgs.join(' · '));
+  const cards=$('#cards').children; if(cards.length) cards[cards.length-1].scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+$('#parseBtn').onclick = ()=>{ const t=$('#pasteBox').value.trim(); if(!t){ toast('الصق رسائل الواتساب أولاً'); return; } ingest(t); };
 $('#manualBtn').onclick = ()=>{ S.drafts.push(blankVisit()); renderDrafts(); };
 
 function renderDailyFound(list){
@@ -916,7 +945,7 @@ function renderDailyFound(list){
     const card=b.closest('[data-di]'); const d=list[+card.dataset.di];
     card.querySelectorAll('[data-k]').forEach(i=>{ d[i.dataset.k] = i.type==='number' ? (i.value===''?null:+i.value) : i.value; });
     d.contractor ||= $('#defContractor').value.trim();
-    try{ await DB.saveDaily({report_date:d.report_date,total:d.total,inspected:d.inspected,violations:d.violations,removed:d.removed??null,contractor:d.contractor||null,raw_text:d.raw_text||''}); card.remove(); toast('تم حفظ التقرير اليومي'); }
+    try{ await DB.saveDaily({report_date:d.report_date,total:d.total,inspected:d.inspected,violations:d.violations,removed:d.removed??null,contractor:d.contractor||null,raw_text:d.raw_text||''}); list.splice(list.indexOf(d),1); renderDailyFound(list); toast('تم حفظ التقرير اليومي'); }
     catch(e){ toast('تعذر الحفظ: '+e.message); }
   });
 }
@@ -1007,40 +1036,32 @@ function bindPicker(root, files, onChange){
   root.addEventListener('pointerdown', ()=> activeDrop = add);
   drawThumbs();
 }
-/* اللصق: النص يدخل صندوق الرسائل كالمعتاد، والصور الملصوقة تُحفظ وتُرفق بالمعاينة */
-let pendingFiles = [];
+/* اللصق المباشر: في المربع أو في أي مكان بصفحة الإضافة */
 document.addEventListener('paste', e=>{
   const cd = e.clipboardData; if(!cd) return;
   const files = [...(cd.files||[])].filter(f=>/^image|^video/.test(f.type));
   const text = cd.getData('text/plain') || cd.getData('text') || '';
-  const inBox = e.target && e.target.id==='pasteBox';
-  if(inBox){
-    if(files.length){ pendingFiles.push(...files); toast(`تم استلام ${files.length} صورة وسيتم إرفاقها بالمعاينة`); }
-    if(!text && files.length) e.preventDefault();
-    return; /* يترك المتصفح يلصق النص */
-  }
-  const isField = e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
+  const t = e.target;
+  const inBox = t && t.id==='pasteBox';
+  const isField = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && !inBox;
+  if(inBox || (S.tab==='add' && !isField)){ e.preventDefault(); ingest(text, files); return; }
   if(files.length && activeDrop && !(isField && text)){ e.preventDefault(); activeDrop(files); toast('تمت إضافة '+files.length+' ملف'); }
 });
-$('#pasteBox').addEventListener('paste', ()=> setTimeout(()=>{ if($('#pasteBox').value.trim()) $('#parseBtn').click(); }, 60));
+let pendingFiles = [];
 $('#clipBtn').onclick = async ()=>{
   try{
-    let text='';
+    let text='', files=[];
     if(navigator.clipboard?.read){
       try{
         const items = await navigator.clipboard.read();
-        for(const it of items){
-          for(const t of it.types){
-            if(t==='text/plain'){ text += await (await it.getType(t)).text(); }
-            else if(/^image\//.test(t)){ const b=await it.getType(t); pendingFiles.push(new File([b], 'whatsapp-'+Date.now()+'.'+(t.split('/')[1]||'png'), {type:t})); }
-          }
+        for(const it of items) for(const ty of it.types){
+          if(ty==='text/plain') text += await (await it.getType(ty)).text();
+          else if(/^image\//.test(ty)){ const bl=await it.getType(ty); files.push(new File([bl], 'whatsapp-'+Date.now()+'.'+(ty.split('/')[1]||'png'), {type:ty})); }
         }
-      }catch(e){ text=''; }
+      }catch(e){}
     }
-    if(!text && navigator.clipboard?.readText) text = await navigator.clipboard.readText();
-    if(!text && !pendingFiles.length){ toast('الحافظة فارغة. انسخ رسالة المقاول من الواتساب أولاً'); return; }
-    $('#pasteBox').value = ($('#pasteBox').value ? $('#pasteBox').value+'\n' : '') + text;
-    if(text.trim()) $('#parseBtn').click(); else toast(`تم استلام ${pendingFiles.length} صورة`);
+    if(!text && !files.length && navigator.clipboard?.readText) text = await navigator.clipboard.readText();
+    await ingest(text, files);
   }catch(e){ toast('المتصفح لم يسمح بقراءة الحافظة. اضغط مطولاً داخل المربع واختر «لصق»', 5000); $('#pasteBox').focus(); }
 };
 

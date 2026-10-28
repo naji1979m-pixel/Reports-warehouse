@@ -135,6 +135,7 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--sky)}
 .vcard .head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .vcard.saved{opacity:.6}
 .match{font-size:12.5px;padding:6px 10px;border-radius:8px}
+.err-f{color:var(--warn)} .err-f input{border-color:var(--warn)}
 .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px}
 .thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--sky);max-width:100%}
 .thumb img,.thumb video{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
@@ -294,7 +295,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
       <input class="in wide" id="fQ" placeholder="بحث برقم الحصر أو العداد أو الحساب أو الملاحظات">
       <select class="in" id="fGov"></select>
       <select class="in" id="fDist"></select>
-      <select class="in" id="fRes"><option value="">كل النتائج</option><option>لا يوجد تعدي</option><option>يوجد تعدي</option><option>تمت الإزالة</option><option value="leak">بها تسريب</option></select>
+      <select class="in" id="fRes"><option value="">كل النتائج</option><option>لا يوجد تعدي</option><option>يوجد تعدي</option><option>تمت الإزالة</option><option value="leak">بها تسريب</option><option value="err">فيها خطأ رصد من المقاول</option></select>
       <input class="in" id="fFrom" type="date" title="من تاريخ">
       <input class="in" id="fTo" type="date" title="إلى تاريخ">
     </div>
@@ -357,6 +358,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
 </main>
 
 <datalist id="distList"></datalist>
+<datalist id="errList"><option value="العقار تجاري وليس سكني"><option value="العقار سكني وليس تجاري"><option value="العقار غير مأهول وليس مأهول"><option value="رقم العداد غير صحيح"><option value="رقم الحصر غير صحيح"><option value="قراءة العداد غير صحيحة"><option value="الإحداثيات غير صحيحة"><option value="يوجد تعدٍ ولم يُرصد"><option value="رُصد تعدٍ وهو غير موجود"><option value="الصور لا تخص الموقع"></datalist>
 
 <dialog id="detail"><div class="dh"><b id="dTitle">تفاصيل المعاينة</b><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="dBody"></div></dialog>
 <dialog id="viewer"><div class="dh" style="background:#000;color:#fff;border-color:#222"><span id="vCap"></span><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="vBody"></div></dialog>
@@ -479,7 +481,10 @@ const DB = {
     v.created_at ||= new Date().toISOString();
     v.created_by ||= S.userName || null;
     if(MODE==='cloud'){
-      const {error} = await sb.from('survey_visits').upsert(this.clean(v)); if(error) throw error;
+      let {error} = await sb.from('survey_visits').upsert(this.clean(v));
+      /* إذا عمود «خطأ الرصد» لم يُضف بعد في قاعدة البيانات: نحفظ بدونه وننبه */
+      if(error && /contractor_error/.test(error.message||'')){ const o=this.clean(v); delete o.contractor_error; ({error} = await sb.from('survey_visits').upsert(o)); if(!error) toast('حُفظت المعاينة بدون «ملاحظة خطأ الرصد». شغّل أمر إضافة العمود في Supabase', 7000); }
+      if(error) throw error;
     } else { await IDB.put('visits', this.clean(v)); }
     v.media ||= [];
     let i=0;
@@ -699,7 +704,7 @@ function matchSite(v){
 const sameSite = (a,b) => (a.hesr_no && a.hesr_no===b.hesr_no) || (a.meter_no && a.meter_no===b.meter_no);
 function findDuplicate(v){ return S.visits.find(x=> x.id!==v.id && sameSite(v,x)); }
 function draftDuplicate(v){ return S.drafts.find(x=> x!==v && sameSite(v,x)); }
-const FIELD_LABELS = {visit_date:'التاريخ',governorate:'المحافظة',district:'الحي',hesr_no:'رقم الحصر',meter_no:'رقم العداد',meter_reading:'قراءة العداد',account_no:'رقم الحساب',result:'نتيجة الكشف',leak:'التسريب',valve:'المحبس',meter_condition:'حالة العداد',property:'العقار',coords_ok:'الإحداثيات',lat:'خط العرض',lng:'خط الطول',contractor:'المقاول',notes:'الملاحظات'};
+const FIELD_LABELS = {visit_date:'التاريخ',governorate:'المحافظة',district:'الحي',hesr_no:'رقم الحصر',meter_no:'رقم العداد',meter_reading:'قراءة العداد',account_no:'رقم الحساب',result:'نتيجة الكشف',leak:'التسريب',valve:'المحبس',meter_condition:'حالة العداد',property:'العقار',coords_ok:'الإحداثيات',lat:'خط العرض',lng:'خط الطول',contractor:'المقاول',notes:'الملاحظات',contractor_error:'خطأ رصد المقاول'};
 function addHistory(v, action, before){
   const changed = before ? Object.keys(FIELD_LABELS).filter(k=> String(before[k]??'')!==String(v[k]??'')).map(k=>FIELD_LABELS[k]) : [];
   v.history = [...(Array.isArray(v.history)?v.history:[]), {at:new Date().toISOString(), by:S.userName||'', action, changed, result:v.result||''}];
@@ -797,11 +802,12 @@ function bindSelPairs(){
 
 /* ================== الإحصاءات ================== */
 function stats(list){
-  const st = {total:list.length, ok:0, bad:0, removed:0, leak:0, today:0, matched:new Set()};
+  const st = {total:list.length, ok:0, bad:0, removed:0, leak:0, err:0, today:0, matched:new Set()};
   const t=today();
   list.forEach(v=>{
     if(v.result===R_BAD) st.bad++; else if(v.result===R_REM){ st.removed++; } else st.ok++;
     if(v.leak) st.leak++;
+    if(v.contractor_error) st.err++;
     if(v.visit_date===t) st.today++;
     if(v.site_id) st.matched.add(v.site_id);
   });
@@ -833,7 +839,8 @@ function renderDash(){
     <div class="kpi"><span>إجمالي المعاينات</span><b>${st.total}</b><i>اليوم: ${st.today}</i></div>
     <div class="kpi ok"><span>تم الكشف بدون تعدٍ</span><b>${st.ok}</b><i>${st.total? Math.round(st.ok/st.total*100):0}% من المعاينات</i></div>
     <div class="kpi bad"><span>تعديات مرصودة</span><b>${st.violAll}</b><i>أزيل منها: ${st.removed}</i></div>
-    <div class="kpi"><span>توصيلات بها تسريب</span><b>${st.leak}</b><i>من واقع المعاينات</i></div>`;
+    <div class="kpi"><span>توصيلات بها تسريب</span><b>${st.leak}</b><i>من واقع المعاينات</i></div>
+    <div class="kpi"><span>أخطاء رصد المقاول</span><b style="color:var(--warn)">${st.err}</b><i>${st.total? Math.round(st.err/st.total*100):0}% من المعاينات</i></div>`;
   const ds = districtStats(VV, dg||null);
   $('#distBars').innerHTML = ds.length ? ds.map(r=>`
     <div class="row"><div class="t"><b>${esc(r.district)}${dg?'':` <small class="mini">· ${esc(r.governorate)}</small>`}</b><span>${r.planned? `${r.done} / ${r.planned} · ${r.pct}%` : `${r.visited} معاينة (لا توجد قائمة مستهدفة)`}${r.bad+r.removed? ` · <b style="color:var(--bad)">${r.bad+r.removed} تعدٍ</b>`:''}</span></div>
@@ -924,7 +931,7 @@ const SAMPLE = `[28/10/2026, 6:55:10 م] ابراهيم فأس الحفر: 1. ر
 
 function blankVisit(){
   return { id:uid(), visit_date: $('#defDate').value || today(), governorate: $('#defGov').value || CONFIG.DEFAULT_GOV, district: $('#defDistrict').value.trim(), contractor: $('#defContractor').value.trim(),
-    hesr_no:'', meter_no:'', meter_reading:'', account_no:'', lat:null, lng:null, location_url:'', coords_ok:null, valve:'', meter_condition:'', property:'', result:'', leak:null, notes:'', raw_text:'', site_id:null, _files:[] };
+    hesr_no:'', meter_no:'', meter_reading:'', account_no:'', lat:null, lng:null, location_url:'', coords_ok:null, valve:'', meter_condition:'', property:'', result:'', leak:null, notes:'', contractor_error:'', raw_text:'', site_id:null, _files:[] };
 }
 function enrich(v){
   const s = matchSite(v);
@@ -1037,7 +1044,8 @@ function visitFormHTML(v, prefix=''){
     <label class="f">خط الطول (Longitude)<input class="in" data-k="lng" inputmode="decimal" value="${v.lng??''}"></label>
     <label class="f">المقاول / المندوب<input class="in" data-k="contractor" value="${esc(v.contractor)}"></label>
   </div>
-  <label class="f" style="margin-top:10px">ملاحظات<textarea class="in" data-k="notes" style="min-height:60px">${esc(v.notes)}</textarea></label></fieldset>`;
+  <label class="f" style="margin-top:10px">ملاحظات<textarea class="in" data-k="notes" style="min-height:60px">${esc(v.notes)}</textarea></label>
+  <label class="f err-f" style="margin-top:10px">ملاحظة خطأ بالرصد من المقاول<input class="in" data-k="contractor_error" list="errList" value="${esc(v.contractor_error||'')}" placeholder="مثال: العقار تجاري وليس سكني"></label></fieldset>`;
 }
 function readForm(root, v){
   root.querySelectorAll('[data-k]').forEach(el=>{
@@ -1196,7 +1204,7 @@ function filtered(){
   return S.visits.filter(v=>{
     if(g && v.governorate!==g) return false;
     if(d && v.district!==d) return false;
-    if(r==='leak' ? !v.leak : (r && v.result!==r)) return false;
+    if(r==='leak' ? !v.leak : r==='err' ? !v.contractor_error : (r && v.result!==r)) return false;
     if(f && (v.visit_date||'')<f) return false;
     if(t && (v.visit_date||'')>t) return false;
     if(q && ![v.hesr_no,v.meter_no,v.account_no,v.notes,v.property,v.district].some(x=>String(x||'').includes(q))) return false;
@@ -1206,7 +1214,7 @@ function filtered(){
 function renderList(){
   const l=filtered();
   $('#listSub').textContent = `${l.length} معاينة` + (l.length!==S.visits.length? ` من أصل ${S.visits.length}`:'');
-  $('#listBody').innerHTML = l.length ? l.map(v=>`<tr data-id="${v.id}"><td>${fmtD(v.visit_date)}</td><td>${esc(v.governorate)}</td><td>${esc(v.district)}</td><td>${esc(v.hesr_no)}</td><td>${esc(v.meter_no)}</td><td>${esc(v.meter_reading)}</td><td>${resPill(v)}</td><td>${v.leak?'<span class="pill p-warn">تسريب</span>':v.leak===false?'لا':'—'}</td><td>${esc(v.valve)}</td><td>${esc(v.meter_condition)}</td><td>${(v.media||[]).length}</td></tr>`).join('')
+  $('#listBody').innerHTML = l.length ? l.map(v=>`<tr data-id="${v.id}"><td>${fmtD(v.visit_date)}</td><td>${esc(v.governorate)}</td><td>${esc(v.district)}</td><td>${esc(v.hesr_no)}</td><td>${esc(v.meter_no)}</td><td>${esc(v.meter_reading)}</td><td>${resPill(v)}${v.contractor_error?' <span class="pill p-warn" title="'+esc(v.contractor_error)+'">خطأ رصد</span>':''}</td><td>${v.leak?'<span class="pill p-warn">تسريب</span>':v.leak===false?'لا':'—'}</td><td>${esc(v.valve)}</td><td>${esc(v.meter_condition)}</td><td>${(v.media||[]).length}</td></tr>`).join('')
     : `<tr style="cursor:default"><td colspan="11" class="empty">لا توجد معاينات مطابقة</td></tr>`;
   $('#listBody').querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.id));
 }
@@ -1305,8 +1313,8 @@ $('#pdfBtn').onclick = async ()=>{
       ${v.lat?`<div>الإحداثيات: ${v.lat}, ${v.lng}</div>`:''}
       ${(imgMap.get(v.id)||[]).length?`<div class="ims">${imgMap.get(v.id).map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>`:''}</div>`).join('') || '<p>لا توجد تعديات في هذه الفترة.</p>'}
     <h2>تفاصيل المعاينات (${list.length})</h2>
-    <table><thead><tr><th>#</th><th>التاريخ</th><th>المحافظة</th><th>الحي</th><th>رقم الحصر</th><th>رقم العداد</th><th>القراءة</th><th>المحبس</th><th>العداد</th><th>العقار</th><th>النتيجة</th><th>تسريب</th></tr></thead><tbody>
-    ${list.map((v,i)=>`<tr><td>${i+1}</td><td>${fmtD(v.visit_date)}</td><td>${esc(v.governorate)}</td><td>${esc(v.district)}</td><td>${esc(v.hesr_no)}</td><td>${esc(v.meter_no)}</td><td>${esc(v.meter_reading)}</td><td>${esc(v.valve)}</td><td>${esc(v.meter_condition)}</td><td>${esc(v.property)}</td><td>${esc(v.result)}</td><td>${yn(v.leak)}</td></tr>`).join('')}</tbody></table>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>المحافظة</th><th>الحي</th><th>رقم الحصر</th><th>رقم العداد</th><th>القراءة</th><th>المحبس</th><th>العداد</th><th>العقار</th><th>النتيجة</th><th>تسريب</th><th>خطأ رصد المقاول</th></tr></thead><tbody>
+    ${list.map((v,i)=>`<tr><td>${i+1}</td><td>${fmtD(v.visit_date)}</td><td>${esc(v.governorate)}</td><td>${esc(v.district)}</td><td>${esc(v.hesr_no)}</td><td>${esc(v.meter_no)}</td><td>${esc(v.meter_reading)}</td><td>${esc(v.valve)}</td><td>${esc(v.meter_condition)}</td><td>${esc(v.property)}</td><td>${esc(v.result)}</td><td>${yn(v.leak)}</td><td>${esc(v.contractor_error||'')}</td></tr>`).join('')}</tbody></table>
     <div class="foot"><div>أعدّه</div><div>رئيس إدارة المخالفات</div><div>الاعتماد</div></div>
   </div>`;
   const imgs=[...$('#printArea').querySelectorAll('img')];
@@ -1391,7 +1399,7 @@ async function exportExcelWithPhotos(){
     const s1=xlSheet(wb,'الملخص',sc,'تقرير إنجاز مبادرة المسح الميداني لأحياء حفر الباطن',sub,logoId);
     const pct = planned? Math.round(done/planned*1000)/10 : null;
     [['المواقع المستهدفة',planned],['المواقع المنجزة',done],['نسبة الإنجاز',pct==null?'—':pct+'%'],['إجمالي المعاينات',st.total],
-     ['تم الكشف بدون تعدٍ',st.ok],['تعديات قائمة',st.bad],['تعديات تمت إزالتها',st.removed],['توصيلات بها تسريب',st.leak]]
+     ['تم الكشف بدون تعدٍ',st.ok],['تعديات قائمة',st.bad],['تعديات تمت إزالتها',st.removed],['توصيلات بها تسريب',st.leak],['أخطاء رصد المقاول',st.err]]
      .forEach((r,i)=>{ const row=xlRow(s1,sc,[r[0],r[1],'','',''],i,26); row.getCell(1).font={name:XL.font,bold:true,size:11};
        row.getCell(2).font={name:XL.font,bold:true,size:13,color:{argb: /تعدي/.test(r[0])&&!/بدون/.test(r[0])? XL.red : XL.blue}}; [3,4,5].forEach(k=>{ const c=row.getCell(k); c.border={}; c.fill=undefined; }); });
 
@@ -1413,16 +1421,17 @@ async function exportExcelWithPhotos(){
     const albumPos = new Map(); { let cur=7; for(const v of albumList){ const n=v.media.filter(m=>m.type==='image').length; albumPos.set(v.id, cur); cur += 1 + Math.ceil(n/PER_ROW) + 1; } }
     const totalImgs = albumList.reduce((a,v)=>a+v.media.filter(m=>m.type==='image').length,0);
     const vc=[{h:'م',k:'i',w:6},{h:'التاريخ',k:'dt',w:12},{h:'الحي',k:'d',w:14},{h:'رقم الحصر',k:'h',w:18,text:true},{h:'رقم العداد',k:'m',w:13,text:true},{h:'قراءة العداد',k:'rd',w:12,text:true},
-      {h:'نتيجة الكشف',k:'res',w:15},{h:'التسريب',k:'lk',w:11},{h:'المحبس',k:'vl',w:10},{h:'حالة العداد',k:'mc',w:12},{h:'العقار',k:'pr',w:20,wrap:true},{h:'الملاحظات',k:'nt',w:40,a:'right',wrap:true},{h:'الموقع',k:'loc',w:13},{h:'الصور',k:'ph',w:15}];
+      {h:'نتيجة الكشف',k:'res',w:15},{h:'التسريب',k:'lk',w:11},{h:'المحبس',k:'vl',w:10},{h:'حالة العداد',k:'mc',w:12},{h:'العقار',k:'pr',w:20,wrap:true},{h:'الملاحظات',k:'nt',w:40,a:'right',wrap:true},{h:'خطأ رصد المقاول',k:'ce',w:26,a:'right',wrap:true},{h:'الموقع',k:'loc',w:13},{h:'الصور',k:'ph',w:15}];
     function visitsSheet(name, title, rows){
       const ws=xlSheet(wb,name,vc,title,sub+` · ${rows.length} معاينة`,logoId);
       rows.forEach((v,i)=>{
         const nImg=(v.media||[]).filter(m=>m.type==='image').length, nVid=(v.media||[]).filter(m=>m.type==='video').length;
-        const vals=[i+1, fmtD(v.visit_date), v.district, v.hesr_no, v.meter_no, v.meter_reading, v.result||'—', v.leak?'بها تسريب':v.leak===false?'لا':'—', v.valve||'—', v.meter_condition||'—', v.property||'', v.notes||'', v.lat?'فتح الخريطة':'—', nImg? `عرض الصور (${nImg})` : (nVid? `فيديو (${nVid})` : '—')];
+        const vals=[i+1, fmtD(v.visit_date), v.district, v.hesr_no, v.meter_no, v.meter_reading, v.result||'—', v.leak?'بها تسريب':v.leak===false?'لا':'—', v.valve||'—', v.meter_condition||'—', v.property||'', v.notes||'', v.contractor_error||'', v.lat?'فتح الخريطة':'—', nImg? `عرض الصور (${nImg})` : (nVid? `فيديو (${nVid})` : '—')];
         const r=xlRow(ws, vc, vals, i, 34);
-        if(v.lat){ const c=r.getCell(13); c.value={text:'فتح الخريطة', hyperlink:`https://www.google.com/maps?q=${v.lat},${v.lng}`}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; }
-        if(albumPos.has(v.id)){ const c=r.getCell(14); c.value={text:`عرض الصور (${nImg})`, hyperlink:`#'${ALBUM}'!A${albumPos.get(v.id)}`}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; }
-        else if(mode!=='none' && (nImg||nVid)){ const c=r.getCell(14); c.value={text:`في المنصة (${nImg+nVid})`, hyperlink:platformLink(v.id)}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; }
+        if(v.contractor_error){ r.getCell(13).font={name:XL.font,bold:true,color:{argb:'FFB26A00'}}; }
+        if(v.lat){ const c=r.getCell(14); c.value={text:'فتح الخريطة', hyperlink:`https://www.google.com/maps?q=${v.lat},${v.lng}`}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; }
+        if(albumPos.has(v.id)){ const c=r.getCell(15); c.value={text:`عرض الصور (${nImg})`, hyperlink:`#'${ALBUM}'!A${albumPos.get(v.id)}`}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; }
+        else if(mode!=='none' && (nImg||nVid)){ const c=r.getCell(15); c.value={text:`في المنصة (${nImg+nVid})`, hyperlink:platformLink(v.id)}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; }
         const rc=r.getCell(7);
         if(v.result===R_BAD) rc.font={name:XL.font,bold:true,color:{argb:XL.red}};
         else if(v.result===R_REM) rc.font={name:XL.font,bold:true,color:{argb:'FFB26A00'}};
@@ -1432,6 +1441,7 @@ async function exportExcelWithPhotos(){
     }
     visitsSheet('المعاينات','سجل المعاينات الميدانية', list);
     visitsSheet('التعديات','التعديات المرصودة', list.filter(v=>v.result===R_BAD||v.result===R_REM));
+    if(list.some(v=>v.contractor_error)) visitsSheet('أخطاء الرصد','أخطاء رصد المقاول', list.filter(v=>v.contractor_error));
 
     /* 5) ألبوم الصور: كل معاينة في كتلة، عنوانها ثم صورها 4 في كل صف بمقاس موحد بدون قص */
     if(albumList.length){

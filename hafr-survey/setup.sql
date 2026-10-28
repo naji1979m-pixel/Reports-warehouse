@@ -42,6 +42,7 @@ create table if not exists survey_daily (
 alter table survey_sites  add column if not exists governorate text default 'حفر الباطن';
 alter table survey_visits add column if not exists governorate text default 'حفر الباطن';
 alter table survey_visits add column if not exists history jsonb default '[]'::jsonb;
+alter table survey_visits add column if not exists contractor_error text;
 
 -- منع التكرار: رقم الحصر ورقم العداد لا يتكرران في أكثر من معاينة
 create unique index if not exists survey_visits_hesr_uniq  on survey_visits (hesr_no)  where hesr_no  is not null and hesr_no  <> '';

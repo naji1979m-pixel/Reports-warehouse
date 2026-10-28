@@ -225,7 +225,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
   <section id="v-dash" hidden>
     <div class="row-btns" style="justify-content:space-between;margin-bottom:12px">
       <div><h2>لوحة الإنجاز</h2><p class="sub" style="margin:0" id="dashSub"></p></div>
-      <div class="row-btns"><select class="in" id="dashGov" style="width:auto"></select><button class="btn sm" id="refreshBtn">تحديث</button></div>
+      <div class="row-btns"><a class="btn sm" href="https://hafar.momah.gov.sa/ar/node/3777" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.5-2.5V4L9 6.5m0 13.5l6-2.5m-6 2.5V6.5m6 11l5.5 2.5V6.5L15 4m0 13.5V4M9 6.5L15 4"/></svg>مستكشف أحياء حفر الباطن</a><select class="in" id="dashGov" style="width:auto"></select><button class="btn sm" id="refreshBtn">تحديث</button></div>
     </div>
     <div class="kpis" id="kpis"></div>
     <div class="two">
@@ -259,6 +259,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
         <button class="btn" id="parseBtn">استخراج البيانات</button>
         <button class="btn" id="manualBtn">معاينة يدوية فارغة</button>
         <button class="btn sm" id="sampleBtn">جرّب بمثال</button>
+        <a class="btn sm" href="https://hafar.momah.gov.sa/ar/node/3777" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.5-2.5V4L9 6.5m0 13.5l6-2.5m-6 2.5V6.5m6 11l5.5 2.5V6.5L15 4m0 13.5V4M9 6.5L15 4"/></svg>مستكشف أحياء حفر الباطن</a>
       </div>
       <p class="hint">لنسخ الصور من الواتساب: حدد الصور ← حفظ في الصور، ثم اخترها من «الاستديو». على الكمبيوتر (واتساب ويب) تقدر تسحب الصور وتفلتها داخل بطاقة المعاينة أو تلصقها.</p>
     </div>
@@ -318,6 +319,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
           <label class="btn pri" id="sUploadLbl">رفع ملف الحي المختار<input type="file" id="siteFile" accept=".xlsx,.xls,.csv" hidden></label>
           <input class="in" id="newDist" placeholder="اسم حي جديد" style="width:auto;flex:1;min-width:140px">
           <button class="btn" id="addDistBtn">إضافة حي</button>
+          <a class="btn sm" href="https://hafar.momah.gov.sa/ar/node/3777" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.5-2.5V4L9 6.5m0 13.5l6-2.5m-6 2.5V6.5m6 11l5.5 2.5V6.5L15 4m0 13.5V4M9 6.5L15 4"/></svg>مستكشف أحياء حفر الباطن</a>
         </div>
         <p class="hint" style="margin:0">الأعمدة المتعرَّف عليها في الملف: رقم العداد، رقم الحساب، رقم الحصر، Latitude، Longitude. إذا الحي له ملف سابق يُستبدل بالجديد.</p>
         <div id="importPreview"></div>
@@ -1152,7 +1154,7 @@ async function openDetail(id){
   $('#dTitle').textContent = `معاينة ${v.hesr_no? 'حصر '+v.hesr_no : ''} · ${fmtD(v.visit_date)}`;
   const body=$('#dBody');
   body.innerHTML = `<div class="row-btns">${resPill(v)}${v.leak?'<span class="pill p-warn">بها تسريب</span>':''}${v.site_id?'<span class="pill p-ok">ضمن المستهدف</span>':''}
-      ${v.lat?`<a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${v.lat},${v.lng}">فتح في الخرائط</a>`:''}</div>
+      ${v.lat?`<a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${v.lat},${v.lng}">فتح في الخرائط</a>`:''}<a class="btn sm" target="_blank" rel="noopener" href="https://hafar.momah.gov.sa/ar/node/3777">مستكشف الأحياء</a></div>
     ${visitFormHTML(work)}
     <div><h3>الصور والفيديو (${(v.media||[]).length})</h3><div class="thumbs" id="dMedia"></div></div>
     ${can.edit()? `<div><h3>إضافة مرفقات</h3>${mediaPickerHTML()}</div>`:''}

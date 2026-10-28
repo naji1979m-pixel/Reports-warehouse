@@ -95,6 +95,11 @@ create policy d_ins on survey_daily for insert with check (survey_role() in ('ad
 create policy d_upd on survey_daily for update using (survey_role() in ('admin','editor'));
 create policy d_del on survey_daily for delete using (survey_role() = 'admin');
 
+-- صلاحيات الوصول عبر الـ API (الحماية الفعلية بسياسات RLS أعلاه)
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on survey_members, survey_districts, survey_sites, survey_visits, survey_media, survey_daily to authenticated;
+grant execute on function survey_role() to authenticated, anon;
+
 -- مخزن الصور والفيديو (خاص)
 insert into storage.buckets (id, name, public, file_size_limit)
 values ('survey-media','survey-media', false, 104857600) on conflict (id) do nothing;

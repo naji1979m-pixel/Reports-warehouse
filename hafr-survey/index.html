@@ -316,11 +316,11 @@ dialog .db{padding:16px;display:grid;gap:14px}
           <label class="f">الحي<select class="in" id="sDist"></select></label>
         </div>
         <div class="row-btns">
-          <label class="btn pri" id="sUploadLbl">رفع ملف الحي المختار<input type="file" id="siteFile" accept=".xlsx,.xls,.csv" hidden></label>
           <input class="in" id="newDist" placeholder="اسم حي جديد" style="width:auto;flex:1;min-width:140px">
           <button class="btn" id="addDistBtn">إضافة حي</button>
           <a class="btn sm" href="https://hafar.momah.gov.sa/ar/node/3777" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.5-2.5V4L9 6.5m0 13.5l6-2.5m-6 2.5V6.5m6 11l5.5 2.5V6.5L15 4m0 13.5V4M9 6.5L15 4"/></svg>مستكشف أحياء حفر الباطن</a>
         </div>
+        <div id="sDistPanel"></div>
         <p class="hint" style="margin:0">الأعمدة المتعرَّف عليها في الملف: رقم العداد، رقم الحساب، رقم الحصر، Latitude، Longitude. إذا الحي له ملف سابق يُستبدل بالجديد.</p>
         <div id="importPreview"></div>
         <div id="distAdmin"></div>
@@ -356,7 +356,11 @@ const CONFIG = {
   SECTOR: 'القطاع الشرقي',
   UNIT: 'الوحدة الشمالية',
   GOVS: ['حفر الباطن','القيصومة','الخفجي','النعيرية','القرية العليا','مليجة'],
-  DEFAULT_GOV: 'حفر الباطن'
+  DEFAULT_GOV: 'حفر الباطن',
+  /* أحياء حفر الباطن حسب مستكشف الأحياء (أمانة حفر الباطن) */
+  DISTRICTS: {
+    'حفر الباطن': ['الإسكان','الباطن','البلدية','التلال','الخالدية','الرائد','الرابية','الربوة','الربيع','الروضة','السليمانية','الصفاء','الصناعية','العزيزية','الفيحاء','الفيصلية','المحمدية','المروج','المصيف','المنار','النايفية','النخيل','النزهة','النهضة','الوادي','الورود','فليج','قرطبة']
+  }
 };
 /* ============================================== */
 
@@ -650,6 +654,7 @@ function friendlyErr(e){ return (e && (e.code==='23505' || /duplicate key|unique
 function districtsOf(gov){
   const set = new Set();
   const ok = x => !gov || (x||CONFIG.DEFAULT_GOV)===gov;
+  for(const [g,list] of Object.entries(CONFIG.DISTRICTS||{})) if(ok(g)) list.forEach(n=>set.add(n));
   S.districts.forEach(d=> ok(d.governorate) && set.add(d.name));
   S.sites.forEach(s=> s.district && ok(s.governorate) && set.add(s.district));
   S.visits.forEach(v=> v.district && ok(v.governorate) && set.add(v.district));
@@ -753,7 +758,6 @@ function districtStats(list, gov, onlyDist){
   const map = {};
   const get = (g,d) => map[g+'|'+d] ||= {governorate:g, district:d, planned:0, visited:0, matched:new Set(), bad:0, removed:0, leak:0, outside:0};
   S.sites.forEach(s=>{ const g=s.governorate||CONFIG.DEFAULT_GOV; if((!gov||g===gov) && (!onlyDist || s.district===onlyDist)) get(g, s.district||'غير محدد').planned++; });
-  S.districts.forEach(d=>{ if((!gov||d.governorate===gov) && (!onlyDist||d.name===onlyDist)) get(d.governorate, d.name); });
   list.forEach(v=>{ const r=get(v.governorate||CONFIG.DEFAULT_GOV, v.district||'غير محدد'); r.visited++; if(v.site_id) r.matched.add(v.site_id); else r.outside++;
     if(v.result===R_BAD) r.bad++; if(v.result===R_REM) r.removed++; if(v.leak) r.leak++; });
   return Object.values(map).map(r=>({...r, done:r.matched.size, pct: r.planned? Math.round(r.matched.size/r.planned*1000)/10 : null}))
@@ -1314,13 +1318,28 @@ async function importSiteFile(file, gov, dist){
     }catch(err){ toast('تعذر الاستيراد: '+err.message); }
   };
 }
-$('#siteFile').onchange = e=>{
-  const f=e.target.files[0]; e.target.value=''; if(!f) return;
-  const gov=$('#sGov').value, dist=$('#sDist').value;
-  if(!dist){ toast('اختر الحي أولاً'); return; }
-  importSiteFile(f, gov, dist);
-};
-$('#sUploadLbl').addEventListener('click', e=>{ if(!$('#sDist').value){ e.preventDefault(); toast('اختر المحافظة ثم الحي أولاً'); } });
+/* عند اختيار حي من القائمة تظهر خانة تحميل ملف مبادرة الحي */
+function renderDistPanel(openPicker){
+  const gov=$('#sGov').value, dist=$('#sDist').value, box=$('#sDistPanel');
+  if(!dist){ box.innerHTML=''; return; }
+  const n = S.sites.filter(s=>s.district===dist && (s.governorate||CONFIG.DEFAULT_GOV)===gov).length;
+  const v = S.visits.filter(x=>x.district===dist && x.governorate===gov).length;
+  box.innerHTML = `<div class="dropzone" id="distDrop" style="padding:16px;gap:10px">
+    <b style="font-size:16px">ملف مبادرة حي ${esc(dist)} · ${esc(gov)}</b>
+    <span class="hint">${n? `مرفوع: ${n} موقع مستهدف · ${v} معاينة مسجلة` : 'لم يُرفع ملف لهذا الحي بعد'}</span>
+    <div class="row-btns"><label class="btn pri">${n?'استبدال ملف الحي':'تحميل ملف الحي'}<input type="file" id="siteFile" accept=".xlsx,.xls,.csv" hidden></label>
+    ${n?`<button class="btn sm danger" type="button" id="delDistFile">حذف ملف الحي</button>`:''}</div>
+    <span class="hint">أو اسحب ملف Excel وأفلته هنا</span></div>`;
+  const inp=$('#siteFile');
+  inp.onchange=()=>{ const f=inp.files[0]; inp.value=''; if(f) importSiteFile(f, gov, dist); };
+  const dz=$('#distDrop');
+  dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', ()=>dz.classList.remove('over'));
+  dz.addEventListener('drop', e=>{ e.preventDefault(); dz.classList.remove('over'); const f=e.dataTransfer.files[0]; if(f) importSiteFile(f, gov, dist); });
+  const del=$('#delDistFile'); if(del) del.onclick=async()=>{ if(!confirm('حذف ملف المواقع المستهدفة لحي '+dist+'؟ (المعاينات لا تُحذف)')) return; await DB.deleteDistrictSites(gov, dist); buildSiteIdx(); renderSettings(); };
+  if(openPicker && !n){ try{ inp.click(); }catch(e){} }
+}
+$('#sDist').addEventListener('change', ()=>{ $('#importPreview').innerHTML=''; renderDistPanel(true); });
 $('#addDistBtn').onclick = async()=>{
   const name=$('#newDist').value.trim().replace(/^حي\s+/,''), gov=$('#sGov').value;
   if(!name) return toast('اكتب اسم الحي');
@@ -1336,6 +1355,7 @@ async function renderSettings(){
   const rows = districtsOf(gov).map(name=>{ const n=S.sites.filter(s=>s.district===name && (s.governorate||CONFIG.DEFAULT_GOV)===gov).length; const v=S.visits.filter(x=>x.district===name && x.governorate===gov).length; return {name,n,v}; });
   $('#distAdmin').innerHTML = rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>أحياء ${esc(gov)}</th><th>المواقع المستهدفة</th><th>المعاينات</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr style="cursor:default"><td>${esc(r.name)}</td><td>${r.n? r.n : '<span class="pill p-warn">لم يُرفع ملف</span>'}</td><td>${r.v}</td><td class="row-btns"><label class="btn sm">${r.n?'استبدال الملف':'رفع ملف'}<input type="file" accept=".xlsx,.xls,.csv" hidden data-up="${esc(r.name)}"></label>${r.n?`<button class="btn sm danger" data-deld="${esc(r.name)}">حذف الملف</button>`:''}</td></tr>`).join('')}</tbody></table></div>` : `<p class="hint">لا توجد أحياء مضافة في ${esc(gov)}. أضف الحي بالاسم ثم ارفع ملفه.</p>`;
   $$('[data-up]').forEach(inp=>inp.onchange=()=>{ const f=inp.files[0]; inp.value=''; if(f){ $('#sDist').value=inp.dataset.up; importSiteFile(f, gov, inp.dataset.up); } });
+  renderDistPanel(false);
   $$('[data-deld]').forEach(b=>b.onclick=async()=>{ if(!confirm('حذف ملف المواقع المستهدفة لحي '+b.dataset.deld+'؟ (المعاينات لا تُحذف)')) return; await DB.deleteDistrictSites(gov, b.dataset.deld); buildSiteIdx(); renderSettings(); });
   $('#localRoleCard').hidden = MODE!=='local';
   if(MODE==='local'){ $('#members').innerHTML='<p class="hint">إدارة المستخدمين تعمل بعد ربط المنصة بـ Supabase: كل شخص يطلب حساباً من شاشة الدخول وأنت توافق وتحدد صلاحيته هنا.</p>'; $('#localRole').value=S.role; return; }

@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 /* هوية شركة المياه الوطنية: أزرق الشعار مع لمسة الفيروزي، شاشة كاملة العرض */
@@ -310,7 +311,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
         <label class="f">إلى تاريخ<input class="in" id="rTo" type="date"></label>
         <label class="f">المحافظة<select class="in" id="rGov"></select></label>
         <label class="f">الحي<select class="in" id="rDist"></select></label>
-        <label class="f">الصور في تقرير PDF<select class="in" id="rPhotos"><option value="viol">صور التعديات فقط</option><option value="all">صور كل المعاينات</option><option value="none">بدون صور</option></select></label>
+        <label class="f">الصور في التقرير (PDF و Excel)<select class="in" id="rPhotos"><option value="viol">صور التعديات فقط</option><option value="all">صور كل المعاينات</option><option value="none">بدون صور</option></select></label>
       </div>
       <div class="row-btns">
         <button class="btn pri" id="pdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>تقرير PDF</button>
@@ -1277,7 +1278,111 @@ $('#pdfBtn').onclick = async ()=>{
   setTimeout(()=>window.print(), 150);
 };
 
-$('#xlsBtn').onclick = ()=>{
+/* ===== Excel مع الصور (ExcelJS) ===== */
+const thumbCache = new Map();
+async function toThumb(url, max=260){
+  if(thumbCache.has(url)) return thumbCache.get(url);
+  try{
+    const blob = await (await fetch(url)).blob();
+    const bmp = await createImageBitmap(blob);
+    const sc = Math.min(1, max/Math.max(bmp.width,bmp.height));
+    const c=document.createElement('canvas'); c.width=Math.round(bmp.width*sc); c.height=Math.round(bmp.height*sc);
+    c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    const d = {data:c.toDataURL('image/jpeg',0.72), w:c.width, h:c.height};
+    thumbCache.set(url,d); return d;
+  }catch(e){ return null; }
+}
+async function logoData(){
+  try{ const b=await (await fetch('nwc-logo.png')).blob(); return await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b); }); }catch(e){ return null; }
+}
+function styleHeader(row){
+  row.height=24;
+  row.eachCell(c=>{ c.font={bold:true,color:{argb:'FFFFFFFF'},name:'Arial',size:11}; c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F5BB0'}};
+    c.alignment={vertical:'middle',horizontal:'center',wrapText:true}; c.border={top:{style:'thin',color:{argb:'FFCDDBEE'}},bottom:{style:'thin',color:{argb:'FFCDDBEE'}},left:{style:'thin',color:{argb:'FFCDDBEE'}},right:{style:'thin',color:{argb:'FFCDDBEE'}}}; });
+}
+function styleBody(ws, from){
+  for(let i=from;i<=ws.rowCount;i++){ ws.getRow(i).eachCell({includeEmpty:true}, c=>{ c.font={name:'Arial',size:10.5}; c.alignment={vertical:'middle',horizontal:'right',wrapText:true};
+    c.border={top:{style:'thin',color:{argb:'FFE3EDF9'}},bottom:{style:'thin',color:{argb:'FFE3EDF9'}},left:{style:'thin',color:{argb:'FFE3EDF9'}},right:{style:'thin',color:{argb:'FFE3EDF9'}}}; }); }
+}
+async function exportExcelWithPhotos(){
+  const {list,f,t,d,g}=reportSet(); const st=stats(list); const ds=districtStats(list, g, d);
+  const planned = ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
+  const mode=$('#rPhotos').value; const MAXP=4;
+  const btn=$('#xlsBtn'); btn.disabled=true;
+  try{
+    const wb=new ExcelJS.Workbook(); wb.creator='مبادرات إدارة المخالفات والتعديات'; wb.created=new Date();
+    const RTL={views:[{rightToLeft:true}]};
+    /* الملخص مع الشعار */
+    const s1=wb.addWorksheet('الملخص',RTL); s1.columns=[{width:30},{width:42}];
+    const logo=await logoData();
+    if(logo){ const id=wb.addImage({base64:logo, extension:'png'}); s1.addImage(id,{tl:{col:0,row:0},ext:{width:290,height:80}}); }
+    for(let i=0;i<5;i++) s1.addRow([]);
+    const tl=s1.addRow(['مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية']); tl.font={bold:true,size:14,color:{argb:'FF1F5BB0'},name:'Arial'}; s1.mergeCells(tl.number,1,tl.number,2);
+    const t2=s1.addRow(['تقرير إنجاز مبادرة المسح الميداني لأحياء حفر الباطن']); t2.font={bold:true,size:12,name:'Arial'}; s1.mergeCells(t2.number,1,t2.number,2);
+    s1.addRow([]);
+    const kv=[['الفترة',periodText(f,t)],['القطاع','القطاع الشرقي'],['المحافظة',g||'جميع المحافظات'],['الحي',d||'جميع الأحياء'],['تاريخ التقرير',today()],
+      ['المواقع المستهدفة',planned],['المواقع المنجزة',done],['نسبة الإنجاز %',planned? Math.round(done/planned*1000)/10 : ''],
+      ['إجمالي المعاينات',st.total],['بدون تعدٍ',st.ok],['تعديات قائمة',st.bad],['تمت إزالتها',st.removed],['توصيلات بها تسريب',st.leak]];
+    const k0=s1.rowCount+1; kv.forEach(r=>s1.addRow(r)); styleBody(s1,k0);
+    for(let i=k0;i<=s1.rowCount;i++){ s1.getRow(i).getCell(1).font={bold:true,name:'Arial',size:10.5}; s1.getRow(i).getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE3EDF9'}}; }
+    /* الأحياء */
+    const s2=wb.addWorksheet('الأحياء',RTL);
+    s2.columns=[['المحافظة',14],['الحي',18],['المستهدف',11],['المنجز',11],['النسبة %',10],['خارج القائمة',13],['تعديات',10],['أزيلت',10],['تسريبات',10]].map(([h,w])=>({header:h,width:w}));
+    ds.forEach(r=>s2.addRow([r.governorate,r.district,r.planned,r.done,r.pct??'',r.outside,r.bad,r.removed,r.leak])); styleHeader(s2.getRow(1)); styleBody(s2,2);
+    /* المعاينات والتعديات مع الصور */
+    const H=[['التاريخ',12],['المحافظة',12],['الحي',14],['رقم الحصر',18],['رقم العداد',13],['قراءة العداد',12],['رقم الحساب',14],['نتيجة الكشف',14],['تسريب',8],['المحبس',10],['حالة العداد',11],['العقار',20],['Latitude',12],['Longitude',12],['عدد المرفقات',10],['الملاحظات',36]];
+    const photoCols = mode==='none'?0:MAXP;
+    const toRow=v=>[v.visit_date,v.governorate,v.district,v.hesr_no,v.meter_no,v.meter_reading,v.account_no,v.result,yn(v.leak),v.valve,v.meter_condition,v.property,v.lat??'',v.lng??'',(v.media||[]).length,v.notes];
+    const need = v => mode==='all' || ((mode==='viol') && (v.result===R_BAD||v.result===R_REM));
+    let done2=0; const totalImgs = list.filter(need).reduce((a,v)=>a+Math.min(MAXP,(v.media||[]).filter(m=>m.type==='image').length),0);
+    async function sheetWithPhotos(name, rows){
+      const ws=wb.addWorksheet(name,RTL);
+      ws.columns=[...H.map(([h,w])=>({header:h,width:w})), ...Array.from({length:photoCols},(_,i)=>({header:'صورة '+(i+1),width:17}))];
+      styleHeader(ws.getRow(1));
+      for(const v of rows){
+        const r=ws.addRow(toRow(v));
+        const ims = photoCols && need(v) ? (v.media||[]).filter(m=>m.type==='image').slice(0,MAXP) : [];
+        if(ims.length){
+          r.height=96;
+          const urls=await DB.mediaUrls(ims);
+          for(let i=0;i<ims.length;i++){
+            const th=await toThumb(urls[i]); done2++; btn.textContent=`جاري تجهيز الصور ${Math.min(done2,totalImgs)}/${totalImgs}…`;
+            if(!th) continue;
+            const id=wb.addImage({base64:th.data, extension:'jpeg'});
+            const sc=Math.min(118/th.w, 124/th.h);
+            ws.addImage(id,{tl:{col:H.length+i+0.05,row:r.number-1+0.05},ext:{width:Math.round(th.w*sc),height:Math.round(th.h*sc)}});
+          }
+        }
+        if(v.result===R_BAD) r.getCell(8).font={bold:true,color:{argb:'FFC23A32'},name:'Arial'};
+      }
+      styleBody(ws,2); ws.views=[{rightToLeft:true,state:'frozen',ySplit:1}];
+      return ws;
+    }
+    await sheetWithPhotos('المعاينات', list);
+    await sheetWithPhotos('التعديات', list.filter(v=>v.result===R_BAD||v.result===R_REM));
+    /* الإنجاز اليومي */
+    const s5=wb.addWorksheet('الإنجاز اليومي',RTL);
+    s5.columns=[['التاريخ',12],['المسجّل بالمنصة',15],['بدون تعدٍ',11],['تعديات',10],['إجمالي المقاول',14],['كشف (مقاول)',13],['تعديات (مقاول)',14]].map(([h,w])=>({header:h,width:w}));
+    [...new Set(list.map(v=>v.visit_date))].sort().forEach(day=>{ const l=list.filter(v=>v.visit_date===day); const b=l.filter(v=>v.result===R_BAD||v.result===R_REM).length; const c=S.daily.find(x=>x.report_date===day)||{}; s5.addRow([day,l.length,l.length-b,b,c.total??'',c.inspected??'',c.violations??'']); });
+    styleHeader(s5.getRow(1)); styleBody(s5,2);
+    /* المواقع المتبقية */
+    if(S.sites.length){
+      const visited=new Set(S.visits.map(v=>v.site_id)); const rem=S.sites.filter(x=>(!g||(x.governorate||CONFIG.DEFAULT_GOV)===g) && (!d||x.district===d) && !visited.has(x.id));
+      const s6=wb.addWorksheet('المواقع المتبقية',RTL);
+      s6.columns=[['المحافظة',12],['الحي',14],['رقم الحصر',18],['رقم العداد',13],['رقم الحساب',14],['Latitude',12],['Longitude',12]].map(([h,w])=>({header:h,width:w}));
+      rem.forEach(x=>s6.addRow([x.governorate||CONFIG.DEFAULT_GOV,x.district,x.hesr_no,x.meter_no,x.account_no,x.lat??'',x.lng??''])); styleHeader(s6.getRow(1)); styleBody(s6,2);
+    }
+    btn.textContent='جاري إنشاء الملف…';
+    const buf=await wb.xlsx.writeBuffer();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    a.download=`تقرير_المسح_الميداني_حفر_الباطن_${today()}.xlsx`; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+    toast('تم تجهيز ملف Excel'+(photoCols? ' مع الصور':''));
+  }catch(e){ toast('تعذر إنشاء Excel: '+(e.message||e), 6000); }
+  finally{ btn.disabled=false; btn.innerHTML=btn.dataset.html; }
+}
+$('#xlsBtn').dataset.html = $('#xlsBtn').innerHTML;
+$('#xlsBtn').onclick = ()=>{ if(typeof ExcelJS!=='undefined') exportExcelWithPhotos(); else exportExcelBasic(); };
+function exportExcelBasic(){
   if(typeof XLSX==='undefined'){ toast('تعذر تحميل مكتبة Excel، تحقق من الاتصال'); return; }
   const {list,f,t,d,g}=reportSet(); const st=stats(list); const ds=districtStats(list, g, d);
   const planned = ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);

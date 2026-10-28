@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
@@ -321,6 +321,12 @@ dialog .db{padding:16px;display:grid;gap:14px}
           <a class="btn sm" href="https://hafar.momah.gov.sa/ar/node/3777" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.5-2.5V4L9 6.5m0 13.5l6-2.5m-6 2.5V6.5m6 11l5.5 2.5V6.5L15 4m0 13.5V4M9 6.5L15 4"/></svg>مستكشف أحياء حفر الباطن</a>
         </div>
         <div id="sDistPanel"></div>
+        <div class="dropzone" id="bulkDrop" style="padding:14px">
+          <b>رفع ملفات عدة أحياء دفعة واحدة (من اللابتوب)</b>
+          <span class="hint">حدد كل ملفات الأحياء مرة وحدة، أو اسحبها وأفلتها هنا. المنصة تتعرف على الحي من اسم الملف (مثل «حي العزيزية»)، وتقدر تعدّله قبل الاعتماد.</span>
+          <div class="row-btns"><label class="btn pri">اختيار ملفات الأحياء<input type="file" id="bulkFiles" accept=".xlsx,.xls,.csv" multiple hidden></label></div>
+        </div>
+        <div id="bulkPreview"></div>
         <p class="hint" style="margin:0">الأعمدة المتعرَّف عليها في الملف: رقم العداد، رقم الحساب، رقم الحصر، Latitude، Longitude. إذا الحي له ملف سابق يُستبدل بالجديد.</p>
         <div id="importPreview"></div>
         <div id="distAdmin"></div>
@@ -350,8 +356,8 @@ dialog .db{padding:16px;display:grid;gap:14px}
    ضع رابط مشروع Supabase والمفتاح العام (anon) هنا.
    إذا تُركا فارغين تعمل المنصة بوضع تجريبي على هذا الجهاز فقط. */
 const CONFIG = {
-  SUPABASE_URL: '',
-  SUPABASE_ANON_KEY: '',
+  SUPABASE_URL: 'https://hdahvjrtpmkoaqyhccfy.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_E7V0zSPdqH6rlSZCjXdVaQ_Rvbjn-xg',
   BUCKET: 'survey-media',
   SECTOR: 'القطاع الشرقي',
   UNIT: 'الوحدة الشمالية',
@@ -1331,6 +1337,75 @@ async function importSiteRows(rows, name, gov, dist){
     }catch(err){ toast('تعذر الاستيراد: '+err.message); }
   };
 }
+/* رفع جماعي: عدة ملفات، كل ملف لحي */
+function guessDistrict(name, gov){
+  const n = normalize(name).replace(/[_\-.]+/g,' ');
+  const list = districtsOf(gov).sort((a,b)=>b.length-a.length);
+  const strip = x => x.replace(/^ال/,'').replace(/[إأآ]/g,'ا').replace(/ة/g,'ه');
+  const nn = strip(n.split(' ').map(strip).join(' '));
+  for(const d of list){ if(n.includes(d) || nn.includes(strip(d))) return d; }
+  const m = n.match(/حي\s+([\u0621-\u064A]+)/); return m? m[1] : '';
+}
+async function readRows(file){
+  const wb = XLSX.read(await file.arrayBuffer());
+  return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:'', raw:false});
+}
+function mapRows(rows, gov, dist){
+  const keys = Object.keys(rows[0]||{});
+  const pick = test => keys.find(k=>test(normalize(k).toLowerCase()));
+  const col = { meter: pick(k=>/عداد/.test(k) && !/قراء/.test(k)), account: pick(k=>/حساب/.test(k)), hesr: pick(k=>/حصر/.test(k)), lat: pick(k=>/lat|عرض/.test(k)), lng: pick(k=>/lon|lng|طول/.test(k)) };
+  const clean = x => normalize(String(x??'')).replace(/[^\d.]/g,'');
+  return rows.map(r=>({ id:uid(), governorate:gov, district:dist,
+    meter_no: col.meter? clean(r[col.meter]) : '', account_no: col.account? clean(r[col.account]) : '', hesr_no: col.hesr? clean(r[col.hesr]) : '',
+    lat: col.lat && +clean(r[col.lat]) || null, lng: col.lng && +clean(r[col.lng]) || null, created_at:new Date().toISOString() }))
+    .filter(s=>s.meter_no||s.account_no||s.hesr_no||s.lat);
+}
+async function bulkImport(files){
+  if(typeof XLSX==='undefined'){ toast('تعذر تحميل مكتبة Excel'); return; }
+  const gov = $('#sGov').value || CONFIG.DEFAULT_GOV;
+  const items=[];
+  for(const f of files){ if(!/\.(xlsx|xls|csv)$/i.test(f.name)) continue; try{ items.push({file:f, rows: await readRows(f), dist: guessDistrict(f.name, gov)}); }catch(e){ items.push({file:f, rows:[], dist:'', err:e.message}); } }
+  if(!items.length){ toast('لم أجد ملفات Excel'); return; }
+  const box=$('#bulkPreview');
+  const draw=()=>{
+    box.innerHTML = `<div class="vcard"><b>${items.length} ملف · ${esc(gov)}</b>
+      <div class="tbl-wrap"><table><thead><tr><th>الملف</th><th>الحي</th><th>المواقع</th><th>الحالة</th></tr></thead><tbody>
+      ${items.map((it,i)=>{ const n=it.rows.length? mapRows(it.rows,gov,it.dist||'x').length : 0; const ex=it.dist? S.sites.filter(s=>s.district===it.dist && (s.governorate||CONFIG.DEFAULT_GOV)===gov).length : 0;
+        const dupe = it.dist && items.filter(x=>x.dist===it.dist).length>1;
+        return `<tr style="cursor:default"><td style="white-space:normal;min-width:160px">${esc(it.file.name)}</td>
+        <td><select class="in" data-bi="${i}" style="min-width:130px">${distOpts(gov, it.dist, 'اختر الحي')}</select></td>
+        <td>${n}</td><td>${it.err?'<span class="pill p-bad">تعذرت القراءة</span>': !it.dist?'<span class="pill p-warn">حدد الحي</span>': dupe?'<span class="pill p-bad">حي مكرر</span>': ex?'<span class="pill p-warn">يستبدل الملف السابق</span>':'<span class="pill p-ok">جاهز</span>'}</td></tr>`; }).join('')}
+      </tbody></table></div>
+      <div class="row-btns"><button class="btn pri" id="bulkGo">اعتماد كل الملفات</button><button class="btn sm" id="bulkCancel">إلغاء</button><span class="hint" id="bulkSt"></span></div></div>`;
+    box.querySelectorAll('[data-bi]').forEach(sel=>sel.onchange=()=>{ items[+sel.dataset.bi].dist=sel.value; draw(); });
+    $('#bulkCancel').onclick=()=>box.innerHTML='';
+    $('#bulkGo').onclick=async()=>{
+      const ready = items.filter(it=>it.dist && it.rows.length && !it.err);
+      const dists = ready.map(it=>it.dist);
+      if(new Set(dists).size!==dists.length){ toast('فيه حي مختار لأكثر من ملف، صحّحه أولاً'); return; }
+      if(!ready.length){ toast('حدد الحي لكل ملف'); return; }
+      const st=$('#bulkSt'); $('#bulkGo').disabled=true; let total=0;
+      try{
+        for(let i=0;i<ready.length;i++){
+          const it=ready[i]; st.textContent=`جاري رفع ${i+1} من ${ready.length}: حي ${it.dist}…`;
+          await DB.deleteDistrictSites(gov, it.dist);
+          if(!districtsOf(gov).includes(it.dist) ) await DB.addDistrict(gov, it.dist);
+          const arr = mapRows(it.rows, gov, it.dist); await DB.addSites(arr); total+=arr.length;
+        }
+        buildSiteIdx(); await relinkVisits();
+        box.innerHTML=''; toast(`تم اعتماد ${ready.length} حي · ${total} موقع مستهدف`, 4000); fillDistrictSelects(); renderSettings();
+      }catch(e){ st.textContent='تعذر الرفع: '+e.message; $('#bulkGo').disabled=false; }
+    };
+  };
+  draw();
+}
+$('#bulkFiles').onchange = e=>{ const f=[...e.target.files]; e.target.value=''; if(f.length) bulkImport(f); };
+(()=>{ const dz=$('#bulkDrop');
+  dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', ()=>dz.classList.remove('over'));
+  dz.addEventListener('drop', e=>{ e.preventDefault(); dz.classList.remove('over'); bulkImport([...e.dataTransfer.files]); });
+})();
+
 /* عند اختيار حي من القائمة تظهر خانة تحميل ملف مبادرة الحي */
 function renderDistPanel(openPicker){
   const gov=$('#sGov').value, dist=$('#sDist').value, box=$('#sDistPanel');

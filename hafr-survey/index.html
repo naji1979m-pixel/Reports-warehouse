@@ -311,7 +311,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
         <label class="f">إلى تاريخ<input class="in" id="rTo" type="date"></label>
         <label class="f">المحافظة<select class="in" id="rGov"></select></label>
         <label class="f">الحي<select class="in" id="rDist"></select></label>
-        <label class="f">الصور في التقرير (PDF و Excel)<select class="in" id="rPhotos"><option value="all" selected>صور كل المعاينات</option><option value="viol">صور التعديات فقط</option><option value="none">بدون صور</option></select></label>
+        <label class="f">الصور في التقرير (PDF و Excel)<select class="in" id="rPhotos"><option value="all" selected>صور كل المعاينات</option><option value="viol">صور التعديات فقط</option><option value="links">روابط الصور فقط (سريع لأي حجم)</option><option value="none">بدون صور</option></select></label>
       </div>
       <div class="row-btns">
         <button class="btn pri" id="pdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>تقرير PDF</button>
@@ -412,6 +412,24 @@ const IDB = {
 };
 
 /* ================== طبقة البيانات ================== */
+const thumbPath = m => `${m.visit_id}/${m.id}_t.jpg`;
+/* صورة مصغرة بمقاس موحد 4:3 بخلفية بيضاء بدون قص، تُرفع مع الأصلية */
+async function makeTile(src, W=640, H=476){
+  try{
+    const bmp = await createImageBitmap(src instanceof Blob ? src : await (await fetch(src)).blob());
+    const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d');
+    x.fillStyle='#ffffff'; x.fillRect(0,0,W,H);
+    const k=Math.min(W/bmp.width, H/bmp.height), w=bmp.width*k, h=bmp.height*k;
+    x.drawImage(bmp,(W-w)/2,(H-h)/2,w,h);
+    return await new Promise(r=>c.toBlob(r,'image/jpeg',0.78));
+  }catch(e){ return null; }
+}
+const blobToDataURL = b => new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.onerror=()=>r(null); fr.readAsDataURL(b); });
+/* تشغيل مهام بالتوازي بعدد محدد */
+async function pool(items, limit, fn){
+  let i=0; const run = async()=>{ while(i<items.length){ const k=i++; await fn(items[k], k); } };
+  await Promise.all(Array.from({length:Math.min(limit, items.length)}, run));
+}
 let sb = null;
 const urlCache = new Map();
 const DB = {
@@ -481,15 +499,17 @@ const DB = {
       m.path = `${visitId}/${m.id}.${ext}`;
       const {error} = await sb.storage.from(CONFIG.BUCKET).upload(m.path, file, {contentType:file.type||undefined, upsert:false});
       if(error) throw error;
+      if(!isVideo){ const t=await makeTile(file); if(t) await sb.storage.from(CONFIG.BUCKET).upload(thumbPath(m), t, {contentType:'image/jpeg', upsert:true}); }
       const r = await sb.from('survey_media').insert({id:m.id, visit_id:visitId, type:m.type, name:m.name, path:m.path, created_at:m.created_at});
       if(r.error) throw r.error;
     } else {
-      await IDB.put('media', {...m, blob:file}); m.blob=file;
+      const t = isVideo? null : await makeTile(file);
+      await IDB.put('media', {...m, blob:file, thumb:t}); m.blob=file; m.thumb=t;
     }
     return m;
   },
   async deleteMedia(m){
-    if(MODE==='cloud'){ await sb.storage.from(CONFIG.BUCKET).remove([m.path]); const {error}=await sb.from('survey_media').delete().eq('id',m.id); if(error) throw error; }
+    if(MODE==='cloud'){ await sb.storage.from(CONFIG.BUCKET).remove([m.path, thumbPath(m)]); const {error}=await sb.from('survey_media').delete().eq('id',m.id); if(error) throw error; }
     else await IDB.del('media', m.id);
   },
   async deleteVisit(v){
@@ -509,6 +529,22 @@ const DB = {
       }
     } else need.forEach(m=>{ if(m.blob) urlCache.set(m.id, URL.createObjectURL(m.blob)); });
     return list.map(m=>urlCache.get(m.id));
+  },
+  /* روابط الصور المصغرة الجاهزة (أسرع بكثير للتصدير)، ومع الصور القديمة نرجع للأصلية */
+  async tileUrls(list){
+    const out = new Array(list.length).fill(null);
+    if(MODE==='cloud'){
+      for(let i=0;i<list.length;i+=500){
+        const chunk=list.slice(i,i+500);
+        const {data} = await sb.storage.from(CONFIG.BUCKET).createSignedUrls(chunk.map(thumbPath), 3600*6);
+        (data||[]).forEach((d,j)=>{ if(d && d.signedUrl && !d.error) out[i+j]={url:d.signedUrl, tile:true}; });
+      }
+      const miss = list.map((m,i)=>out[i]?null:i).filter(i=>i!==null);
+      if(miss.length){ const urls = await this.mediaUrls(miss.map(i=>list[i])); miss.forEach((i,k)=>{ if(urls[k]) out[i]={url:urls[k], tile:false}; }); }
+    } else {
+      list.forEach((m,i)=>{ if(m.thumb) out[i]={url:URL.createObjectURL(m.thumb), tile:true}; else if(m.blob) out[i]={url:URL.createObjectURL(m.blob), tile:false}; });
+    }
+    return out;
   },
   async addSites(arr){
     if(MODE==='cloud'){ for(let i=0;i<arr.length;i+=500){ const {error}=await sb.from('survey_sites').insert(arr.slice(i,i+500)); if(error) throw error; } }
@@ -1368,7 +1404,11 @@ async function exportExcelWithPhotos(){
     /* 3) المعاينات و 4) التعديات: بيانات فقط، مع رابط لصور كل معاينة في ورقة «ألبوم الصور» */
     const ALBUM='ألبوم الصور', PER_ROW=4;
     const need = v => mode==='all' || (mode==='viol' && (v.result===R_BAD||v.result===R_REM));
-    const albumList = mode==='none' ? [] : list.filter(v=>need(v) && (v.media||[]).some(m=>m.type==='image'));
+    const EMBED_MAX = 1500;
+    let albumList = (mode==='none'||mode==='links') ? [] : list.filter(v=>need(v) && (v.media||[]).some(m=>m.type==='image'));
+    const wantImgs = albumList.reduce((a,v)=>a+v.media.filter(m=>m.type==='image').length,0);
+    if(wantImgs>EMBED_MAX){ toast(`عدد الصور ${wantImgs} أكبر من الحد المناسب لملف Excel (${EMBED_MAX}). صدّرت الملف بروابط الصور. لتضمين الصور حدد فترة أقصر أو حياً واحداً.`, 9000); albumList=[]; }
+    const platformLink = id => location.origin + location.pathname + '#v-' + id;
     /* حساب مواقع كل معاينة في الألبوم مسبقاً عشان روابط الانتقال */
     const albumPos = new Map(); { let cur=7; for(const v of albumList){ const n=v.media.filter(m=>m.type==='image').length; albumPos.set(v.id, cur); cur += 1 + Math.ceil(n/PER_ROW) + 1; } }
     const totalImgs = albumList.reduce((a,v)=>a+v.media.filter(m=>m.type==='image').length,0);
@@ -1382,6 +1422,7 @@ async function exportExcelWithPhotos(){
         const r=xlRow(ws, vc, vals, i, 34);
         if(v.lat){ const c=r.getCell(13); c.value={text:'فتح الخريطة', hyperlink:`https://www.google.com/maps?q=${v.lat},${v.lng}`}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; }
         if(albumPos.has(v.id)){ const c=r.getCell(14); c.value={text:`عرض الصور (${nImg})`, hyperlink:`#'${ALBUM}'!A${albumPos.get(v.id)}`}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; }
+        else if(mode!=='none' && (nImg||nVid)){ const c=r.getCell(14); c.value={text:`في المنصة (${nImg+nVid})`, hyperlink:platformLink(v.id)}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; }
         const rc=r.getCell(7);
         if(v.result===R_BAD) rc.font={name:XL.font,bold:true,color:{argb:XL.red}};
         else if(v.result===R_REM) rc.font={name:XL.font,bold:true,color:{argb:'FFB26A00'}};
@@ -1397,7 +1438,15 @@ async function exportExcelWithPhotos(){
       const ac=Array.from({length:PER_ROW},(_,i)=>({h: i===0?'صور المعاينات':'', k:'c'+i, w:34}));
       const wa=xlSheet(wb,ALBUM,ac,'ألبوم صور المعاينات',sub+` · ${albumList.length} معاينة · ${totalImgs} صورة`,logoId);
       wa.autoFilter=undefined; wa.mergeCells(6,1,6,PER_ROW);
-      let done=0;
+      /* تجهيز كل الصور بالتوازي (8 في نفس الوقت) من النسخ المصغرة الجاهزة */
+      const allIms = albumList.flatMap(v=>v.media.filter(m=>m.type==='image'));
+      const srcs = await DB.tileUrls(allIms);
+      const tiles = new Map(); let done=0;
+      await pool(allIms, 8, async (m,k)=>{
+        const sObj=srcs[k]; let d=null;
+        if(sObj){ try{ d = sObj.tile ? await blobToDataURL(await (await fetch(sObj.url)).blob()) : await blobToDataURL(await makeTile(sObj.url)); }catch(e){ d=null; } }
+        tiles.set(m.id, d); done++; if(done%5===0||done===allIms.length) btn.textContent=`جاري تجهيز الصور ${done}/${allIms.length}…`;
+      });
       for(const v of albumList){
         const start = albumPos.get(v.id);
         const ims = v.media.filter(m=>m.type==='image');
@@ -1408,11 +1457,10 @@ async function exportExcelWithPhotos(){
         band.font={name:XL.font,bold:true,size:11,color:{argb:'FFFFFFFF'}};
         band.fill={type:'pattern',pattern:'solid',fgColor:{argb: v.result===R_BAD? XL.red : v.result===R_REM? 'FFB26A00' : XL.blue}};
         band.alignment={horizontal:'right',vertical:'middle'}; wa.getRow(start).height=26;
-        const urls = await DB.mediaUrls(ims);
         for(let j=0;j<ims.length;j++){
           const row = start + 1 + Math.floor(j/PER_ROW), col = j % PER_ROW;
           wa.getRow(row).height = 136;
-          const th = await toTile(urls[j]); done++; btn.textContent=`جاري تجهيز الصور ${done}/${totalImgs}…`;
+          const th = tiles.get(ims[j].id);
           const cell = wa.getCell(row, col+1); cell.border = xlBorder;
           if(!th){ cell.value='تعذر تحميل الصورة'; cell.alignment={horizontal:'center',vertical:'middle'}; continue; }
           const id = wb.addImage({base64:th, extension:'jpeg'});
@@ -1442,12 +1490,12 @@ async function exportExcelWithPhotos(){
         if(x.lat){ const c=row.getCell(6); c.value={text:'فتح الخريطة', hyperlink:`https://www.google.com/maps?q=${x.lat},${x.lng}`}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; } });
     }
 
-    if(mode!=='none' && totalImgs===0) toast(mode==='viol' ? 'لا توجد صور لمعاينات فيها تعدٍ في هذه الفترة. اختر «صور كل المعاينات»' : 'لا توجد صور مرفقة بالمعاينات في هذه الفترة', 6000);
+    if((mode==='all'||mode==='viol') && wantImgs===0) toast(mode==='viol' ? 'لا توجد صور لمعاينات فيها تعدٍ في هذه الفترة. اختر «صور كل المعاينات»' : 'لا توجد صور مرفقة بالمعاينات في هذه الفترة', 6000);
     btn.textContent='جاري إنشاء الملف…';
     const buf=await wb.xlsx.writeBuffer();
     const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
     a.download=`تقرير_المسح_الميداني_حفر_الباطن_${today()}.xlsx`; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-    if(!(mode!=='none' && totalImgs===0)) toast('تم تجهيز ملف Excel'+(totalImgs? ` مع ${totalImgs} صورة`:''));
+    if(!((mode==='all'||mode==='viol') && wantImgs===0)) toast('تم تجهيز ملف Excel'+(totalImgs? ` مع ${totalImgs} صورة`:''));
   }catch(e){ toast('تعذر إنشاء Excel: '+(e.message||e), 6000); }
   finally{ btn.disabled=false; btn.innerHTML=btn.dataset.html; }
 }
@@ -1703,6 +1751,7 @@ async function startApp(){
   try{ await DB.loadAll(); }catch(e){ toast('تعذر تحميل البيانات: '+e.message, 6000); }
   buildSiteIdx(); applyRole(); fillDistrictSelects(); bindSelPairs();
   show(lsGet('hs_tab','dash'));
+  const hm = location.hash.match(/^#v-([\w-]+)$/); if(hm && S.visits.some(v=>v.id===hm[1])) setTimeout(()=>openDetail(hm[1]), 300);
 }
 
 (async function boot(){

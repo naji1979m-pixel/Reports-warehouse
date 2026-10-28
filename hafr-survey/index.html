@@ -1295,14 +1295,37 @@ async function toThumb(url, max=260){
 async function logoData(){
   try{ const b=await (await fetch('nwc-logo.png')).blob(); return await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b); }); }catch(e){ return null; }
 }
-function styleHeader(row){
-  row.height=24;
-  row.eachCell(c=>{ c.font={bold:true,color:{argb:'FFFFFFFF'},name:'Arial',size:11}; c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F5BB0'}};
-    c.alignment={vertical:'middle',horizontal:'center',wrapText:true}; c.border={top:{style:'thin',color:{argb:'FFCDDBEE'}},bottom:{style:'thin',color:{argb:'FFCDDBEE'}},left:{style:'thin',color:{argb:'FFCDDBEE'}},right:{style:'thin',color:{argb:'FFCDDBEE'}}}; });
+/* تنسيق موحد لكل أوراق Excel */
+const XL = { blue:'FF1F5BB0', teal:'FF16A39A', sky:'FFE3EDF9', zebra:'FFF6F9FD', line:'FFCDDBEE', red:'FFC23A32', green:'FF17845A', font:'Arial' };
+const xlBorder = { top:{style:'thin',color:{argb:XL.line}}, bottom:{style:'thin',color:{argb:XL.line}}, left:{style:'thin',color:{argb:XL.line}}, right:{style:'thin',color:{argb:XL.line}} };
+/* ترويسة كل ورقة: الشعار + العنوان + الفترة، والجدول يبدأ من الصف 6 */
+function xlSheet(wb, name, cols, title, sub, logoId){
+  const ws = wb.addWorksheet(name, {views:[{rightToLeft:true, state:'frozen', ySplit:6, showGridLines:false}],
+    pageSetup:{orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0, paperSize:9, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2}}});
+  ws.columns = cols.map(c=>({key:c.k, width:c.w}));
+  const n = cols.length;
+  ws.getRow(1).height = 30; ws.getRow(2).height = 22; ws.getRow(3).height = 18; ws.getRow(4).height = 6; ws.getRow(5).height = 4;
+  ws.mergeCells(1,1,1,Math.max(1,n-3)); ws.mergeCells(2,1,2,Math.max(1,n-3)); ws.mergeCells(3,1,3,Math.max(1,n-3));
+  const c1=ws.getCell(1,1); c1.value=title; c1.font={name:XL.font,size:16,bold:true,color:{argb:XL.blue}}; c1.alignment={horizontal:'right',vertical:'middle'};
+  const c2=ws.getCell(2,1); c2.value='مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية'; c2.font={name:XL.font,size:11,bold:true,color:{argb:'FF10284A'}}; c2.alignment={horizontal:'right',vertical:'middle'};
+  const c3=ws.getCell(3,1); c3.value=sub; c3.font={name:XL.font,size:10,color:{argb:'FF58708F'}}; c3.alignment={horizontal:'right',vertical:'middle'};
+  for(let c=1;c<=n;c++){ ws.getCell(4,c).fill={type:'pattern',pattern:'solid',fgColor:{argb: c%2? XL.teal : XL.blue}}; }
+  if(logoId!=null) ws.addImage(logoId, {tl:{col:Math.max(n-3,1)+0.2,row:0.15}, ext:{width:210,height:58}});
+  const h = ws.getRow(6); h.values = cols.map(c=>c.h); h.height = 30;
+  h.eachCell(c=>{ c.font={name:XL.font,bold:true,size:11,color:{argb:'FFFFFFFF'}}; c.fill={type:'pattern',pattern:'solid',fgColor:{argb:XL.blue}}; c.alignment={horizontal:'center',vertical:'middle',wrapText:true}; c.border=xlBorder; });
+  ws.autoFilter = {from:{row:6,column:1}, to:{row:6,column:n}};
+  return ws;
 }
-function styleBody(ws, from){
-  for(let i=from;i<=ws.rowCount;i++){ ws.getRow(i).eachCell({includeEmpty:true}, c=>{ c.font={name:'Arial',size:10.5}; c.alignment={vertical:'middle',horizontal:'right',wrapText:true};
-    c.border={top:{style:'thin',color:{argb:'FFE3EDF9'}},bottom:{style:'thin',color:{argb:'FFE3EDF9'}},left:{style:'thin',color:{argb:'FFE3EDF9'}},right:{style:'thin',color:{argb:'FFE3EDF9'}}}; }); }
+function xlRow(ws, cols, values, idx, height){
+  const r = ws.addRow(values); r.height = height || 24;
+  cols.forEach((c,i)=>{ const cell=r.getCell(i+1);
+    cell.font={name:XL.font,size:10.5,color:{argb:'FF10284A'}};
+    cell.alignment={horizontal:c.a||'center', vertical:'middle', wrapText:!!c.wrap};
+    cell.border=xlBorder;
+    if(idx%2) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:XL.zebra}};
+    if(c.text && cell.value!=='' && cell.value!=null) { cell.value=String(cell.value); cell.numFmt='@'; }
+  });
+  return r;
 }
 async function exportExcelWithPhotos(){
   const {list,f,t,d,g}=reportSet(); const st=stats(list); const ds=districtStats(list, g, d);
@@ -1311,73 +1334,83 @@ async function exportExcelWithPhotos(){
   const btn=$('#xlsBtn'); btn.disabled=true;
   try{
     const wb=new ExcelJS.Workbook(); wb.creator='مبادرات إدارة المخالفات والتعديات'; wb.created=new Date();
-    const RTL={views:[{rightToLeft:true}]};
-    /* الملخص مع الشعار */
-    const s1=wb.addWorksheet('الملخص',RTL); s1.columns=[{width:30},{width:42}];
-    const logo=await logoData();
-    if(logo){ const id=wb.addImage({base64:logo, extension:'png'}); s1.addImage(id,{tl:{col:0,row:0},ext:{width:290,height:80}}); }
-    for(let i=0;i<5;i++) s1.addRow([]);
-    const tl=s1.addRow(['مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية']); tl.font={bold:true,size:14,color:{argb:'FF1F5BB0'},name:'Arial'}; s1.mergeCells(tl.number,1,tl.number,2);
-    const t2=s1.addRow(['تقرير إنجاز مبادرة المسح الميداني لأحياء حفر الباطن']); t2.font={bold:true,size:12,name:'Arial'}; s1.mergeCells(t2.number,1,t2.number,2);
-    s1.addRow([]);
-    const kv=[['الفترة',periodText(f,t)],['القطاع','القطاع الشرقي'],['المحافظة',g||'جميع المحافظات'],['الحي',d||'جميع الأحياء'],['تاريخ التقرير',today()],
-      ['المواقع المستهدفة',planned],['المواقع المنجزة',done],['نسبة الإنجاز %',planned? Math.round(done/planned*1000)/10 : ''],
-      ['إجمالي المعاينات',st.total],['بدون تعدٍ',st.ok],['تعديات قائمة',st.bad],['تمت إزالتها',st.removed],['توصيلات بها تسريب',st.leak]];
-    const k0=s1.rowCount+1; kv.forEach(r=>s1.addRow(r)); styleBody(s1,k0);
-    for(let i=k0;i<=s1.rowCount;i++){ s1.getRow(i).getCell(1).font={bold:true,name:'Arial',size:10.5}; s1.getRow(i).getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE3EDF9'}}; }
-    /* الأحياء */
-    const s2=wb.addWorksheet('الأحياء',RTL);
-    s2.columns=[['المحافظة',14],['الحي',18],['المستهدف',11],['المنجز',11],['النسبة %',10],['خارج القائمة',13],['تعديات',10],['أزيلت',10],['تسريبات',10]].map(([h,w])=>({header:h,width:w}));
-    ds.forEach(r=>s2.addRow([r.governorate,r.district,r.planned,r.done,r.pct??'',r.outside,r.bad,r.removed,r.leak])); styleHeader(s2.getRow(1)); styleBody(s2,2);
-    /* المعاينات والتعديات مع الصور */
-    const H=[['التاريخ',12],['المحافظة',12],['الحي',14],['رقم الحصر',18],['رقم العداد',13],['قراءة العداد',12],['رقم الحساب',14],['نتيجة الكشف',14],['تسريب',8],['المحبس',10],['حالة العداد',11],['العقار',20],['Latitude',12],['Longitude',12],['عدد المرفقات',10],['الملاحظات',36]];
+    const logo=await logoData(); const logoId = logo ? wb.addImage({base64:logo, extension:'png'}) : null;
+    const sub = `${periodText(f,t)} · ${scopeText(g,d)} · تاريخ التقرير ${fmtD(today())}`;
+
+    /* 1) الملخص */
+    const sc=[{h:'البند',k:'a',w:34,a:'right'},{h:'القيمة',k:'b',w:26},{h:'',k:'c',w:6},{h:'',k:'d',w:16},{h:'',k:'e',w:16}];
+    const s1=xlSheet(wb,'الملخص',sc,'تقرير إنجاز مبادرة المسح الميداني لأحياء حفر الباطن',sub,logoId);
+    const pct = planned? Math.round(done/planned*1000)/10 : null;
+    [['المواقع المستهدفة',planned],['المواقع المنجزة',done],['نسبة الإنجاز',pct==null?'—':pct+'%'],['إجمالي المعاينات',st.total],
+     ['تم الكشف بدون تعدٍ',st.ok],['تعديات قائمة',st.bad],['تعديات تمت إزالتها',st.removed],['توصيلات بها تسريب',st.leak]]
+     .forEach((r,i)=>{ const row=xlRow(s1,sc,[r[0],r[1],'','',''],i,26); row.getCell(1).font={name:XL.font,bold:true,size:11};
+       row.getCell(2).font={name:XL.font,bold:true,size:13,color:{argb: /تعدي/.test(r[0])&&!/بدون/.test(r[0])? XL.red : XL.blue}}; [3,4,5].forEach(k=>{ const c=row.getCell(k); c.border={}; c.fill=undefined; }); });
+
+    /* 2) الأحياء */
+    const dc=[{h:'المحافظة',k:'g',w:14},{h:'الحي',k:'d',w:18},{h:'المستهدف',k:'p',w:12},{h:'المنجز',k:'n',w:12},{h:'نسبة الإنجاز',k:'r',w:13},{h:'خارج القائمة',k:'o',w:13},{h:'تعديات',k:'b',w:11},{h:'أزيلت',k:'m',w:11},{h:'تسريبات',k:'l',w:11}];
+    const s2=xlSheet(wb,'الأحياء',dc,'الإنجاز حسب الحي',sub,logoId);
+    ds.forEach((r,i)=>{ const row=xlRow(s2,dc,[r.governorate,r.district,r.planned||'—',r.done,r.pct==null?'—':r.pct+'%',r.outside,r.bad,r.removed,r.leak],i);
+      if(r.bad) row.getCell(7).font={name:XL.font,bold:true,color:{argb:XL.red}}; });
+
+    /* 3) المعاينات و 4) التعديات مع الصور */
+    const vc=[{h:'م',k:'i',w:6},{h:'التاريخ',k:'dt',w:12},{h:'الحي',k:'d',w:14},{h:'رقم الحصر',k:'h',w:18,text:true},{h:'رقم العداد',k:'m',w:13,text:true},{h:'قراءة العداد',k:'rd',w:12,text:true},
+      {h:'نتيجة الكشف',k:'res',w:15},{h:'التسريب',k:'lk',w:10},{h:'المحبس',k:'vl',w:10},{h:'حالة العداد',k:'mc',w:11},{h:'العقار',k:'pr',w:20,wrap:true},{h:'الملاحظات',k:'nt',w:38,a:'right',wrap:true},{h:'الموقع',k:'loc',w:12}];
     const photoCols = mode==='none'?0:MAXP;
-    const toRow=v=>[v.visit_date,v.governorate,v.district,v.hesr_no,v.meter_no,v.meter_reading,v.account_no,v.result,yn(v.leak),v.valve,v.meter_condition,v.property,v.lat??'',v.lng??'',(v.media||[]).length,v.notes];
-    const need = v => mode==='all' || ((mode==='viol') && (v.result===R_BAD||v.result===R_REM));
-    let done2=0; const totalImgs = list.filter(need).reduce((a,v)=>a+Math.min(MAXP,(v.media||[]).filter(m=>m.type==='image').length),0);
-    async function sheetWithPhotos(name, rows){
-      const ws=wb.addWorksheet(name,RTL);
-      ws.columns=[...H.map(([h,w])=>({header:h,width:w})), ...Array.from({length:photoCols},(_,i)=>({header:'صورة '+(i+1),width:17}))];
-      styleHeader(ws.getRow(1));
-      for(const v of rows){
-        const r=ws.addRow(toRow(v));
+    const need = v => mode==='all' || (mode==='viol' && (v.result===R_BAD||v.result===R_REM));
+    const allCols = [...vc, ...Array.from({length:photoCols},(_,i)=>({h:'صورة '+(i+1),k:'p'+i,w:18}))];
+    const totalImgs = list.filter(need).reduce((a,v)=>a+Math.min(MAXP,(v.media||[]).filter(m=>m.type==='image').length),0);
+    let doneImgs=0;
+    async function visitsSheet(name, title, rows){
+      const ws=xlSheet(wb,name,allCols,title,sub+` · ${rows.length} معاينة`,logoId);
+      for(let i=0;i<rows.length;i++){
+        const v=rows[i];
         const ims = photoCols && need(v) ? (v.media||[]).filter(m=>m.type==='image').slice(0,MAXP) : [];
+        const vals=[i+1, fmtD(v.visit_date), v.district, v.hesr_no, v.meter_no, v.meter_reading, v.result||'—', v.leak?'بها تسريب':v.leak===false?'لا':'—', v.valve||'—', v.meter_condition||'—', v.property||'', v.notes||'', v.lat?'فتح الخريطة':'—', ...Array(photoCols).fill('')];
+        const r=xlRow(ws, allCols, vals, i, ims.length? 100 : 30);
+        if(v.lat){ const c=r.getCell(13); c.value={text:'فتح الخريطة', hyperlink:`https://www.google.com/maps?q=${v.lat},${v.lng}`}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; }
+        const rc=r.getCell(7);
+        if(v.result===R_BAD) rc.font={name:XL.font,bold:true,color:{argb:XL.red}};
+        else if(v.result===R_REM) rc.font={name:XL.font,bold:true,color:{argb:'FFB26A00'}};
+        else if(v.result===R_OK) rc.font={name:XL.font,bold:true,color:{argb:XL.green}};
         if(ims.length){
-          r.height=96;
           const urls=await DB.mediaUrls(ims);
-          for(let i=0;i<ims.length;i++){
-            const th=await toThumb(urls[i]); done2++; btn.textContent=`جاري تجهيز الصور ${Math.min(done2,totalImgs)}/${totalImgs}…`;
+          for(let j=0;j<ims.length;j++){
+            const th=await toThumb(urls[j]); doneImgs++; btn.textContent=`جاري تجهيز الصور ${Math.min(doneImgs,totalImgs)}/${totalImgs}…`;
             if(!th) continue;
             const id=wb.addImage({base64:th.data, extension:'jpeg'});
-            const sc=Math.min(118/th.w, 124/th.h);
-            ws.addImage(id,{tl:{col:H.length+i+0.05,row:r.number-1+0.05},ext:{width:Math.round(th.w*sc),height:Math.round(th.h*sc)}});
+            const k=Math.min(120/th.w, 124/th.h);
+            ws.addImage(id,{tl:{col:vc.length+j+0.06,row:r.number-1+0.06},ext:{width:Math.round(th.w*k),height:Math.round(th.h*k)}});
           }
         }
-        if(v.result===R_BAD) r.getCell(8).font={bold:true,color:{argb:'FFC23A32'},name:'Arial'};
       }
-      styleBody(ws,2); ws.views=[{rightToLeft:true,state:'frozen',ySplit:1}];
       return ws;
     }
-    await sheetWithPhotos('المعاينات', list);
-    await sheetWithPhotos('التعديات', list.filter(v=>v.result===R_BAD||v.result===R_REM));
-    /* الإنجاز اليومي */
-    const s5=wb.addWorksheet('الإنجاز اليومي',RTL);
-    s5.columns=[['التاريخ',12],['المسجّل بالمنصة',15],['بدون تعدٍ',11],['تعديات',10],['إجمالي المقاول',14],['كشف (مقاول)',13],['تعديات (مقاول)',14]].map(([h,w])=>({header:h,width:w}));
-    [...new Set(list.map(v=>v.visit_date))].sort().forEach(day=>{ const l=list.filter(v=>v.visit_date===day); const b=l.filter(v=>v.result===R_BAD||v.result===R_REM).length; const c=S.daily.find(x=>x.report_date===day)||{}; s5.addRow([day,l.length,l.length-b,b,c.total??'',c.inspected??'',c.violations??'']); });
-    styleHeader(s5.getRow(1)); styleBody(s5,2);
-    /* المواقع المتبقية */
+    await visitsSheet('المعاينات','سجل المعاينات الميدانية', list);
+    await visitsSheet('التعديات','التعديات المرصودة', list.filter(v=>v.result===R_BAD||v.result===R_REM));
+
+    /* 5) الإنجاز اليومي */
+    const yc=[{h:'التاريخ',k:'d',w:13},{h:'المسجّل بالمنصة',k:'a',w:16},{h:'بدون تعدٍ',k:'o',w:12},{h:'تعديات',k:'b',w:11},{h:'إجمالي المقاول',k:'t',w:15},{h:'كشف (مقاول)',k:'i',w:14},{h:'تعديات (مقاول)',k:'v',w:15},{h:'الفرق',k:'f',w:11}];
+    const s5=xlSheet(wb,'الإنجاز اليومي',yc,'الإنجاز اليومي ومقارنته بتقرير المقاول',sub,logoId);
+    [...new Set(list.map(v=>v.visit_date))].sort().forEach((day,i)=>{ const l=list.filter(v=>v.visit_date===day); const b=l.filter(v=>v.result===R_BAD||v.result===R_REM).length; const c=S.daily.find(x=>x.report_date===day)||{};
+      const diff = c.total!=null ? c.total-l.length : '';
+      const row=xlRow(s5,yc,[fmtD(day),l.length,l.length-b,b,c.total??'—',c.inspected??'—',c.violations??'—',diff===''?'—':diff],i);
+      if(diff>0) row.getCell(8).font={name:XL.font,bold:true,color:{argb:XL.red}}; });
+
+    /* 6) المواقع المتبقية */
     if(S.sites.length){
       const visited=new Set(S.visits.map(v=>v.site_id)); const rem=S.sites.filter(x=>(!g||(x.governorate||CONFIG.DEFAULT_GOV)===g) && (!d||x.district===d) && !visited.has(x.id));
-      const s6=wb.addWorksheet('المواقع المتبقية',RTL);
-      s6.columns=[['المحافظة',12],['الحي',14],['رقم الحصر',18],['رقم العداد',13],['رقم الحساب',14],['Latitude',12],['Longitude',12]].map(([h,w])=>({header:h,width:w}));
-      rem.forEach(x=>s6.addRow([x.governorate||CONFIG.DEFAULT_GOV,x.district,x.hesr_no,x.meter_no,x.account_no,x.lat??'',x.lng??''])); styleHeader(s6.getRow(1)); styleBody(s6,2);
+      const rc=[{h:'م',k:'i',w:6},{h:'الحي',k:'d',w:14},{h:'رقم الحصر',k:'h',w:18,text:true},{h:'رقم العداد',k:'m',w:14,text:true},{h:'رقم الحساب',k:'a',w:15,text:true},{h:'الموقع',k:'l',w:13}];
+      const s6=xlSheet(wb,'المواقع المتبقية',rc,'المواقع المستهدفة غير المنجزة',sub+` · ${rem.length} موقع`,logoId);
+      rem.forEach((x,i)=>{ const row=xlRow(s6,rc,[i+1,x.district,x.hesr_no||'—',x.meter_no||'—',x.account_no||'—',x.lat?'فتح الخريطة':'—'],i);
+        if(x.lat){ const c=row.getCell(6); c.value={text:'فتح الخريطة', hyperlink:`https://www.google.com/maps?q=${x.lat},${x.lng}`}; c.font={name:XL.font,size:10.5,color:{argb:XL.blue},underline:true}; } });
     }
+
     if(photoCols && totalImgs===0) toast(mode==='viol' ? 'لا توجد صور لمعاينات فيها تعدٍ في هذه الفترة. اختر «صور كل المعاينات»' : 'لا توجد صور مرفقة بالمعاينات في هذه الفترة', 6000);
     btn.textContent='جاري إنشاء الملف…';
     const buf=await wb.xlsx.writeBuffer();
     const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
     a.download=`تقرير_المسح_الميداني_حفر_الباطن_${today()}.xlsx`; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-    toast('تم تجهيز ملف Excel'+(photoCols? ' مع الصور':''));
+    if(!(photoCols && totalImgs===0)) toast('تم تجهيز ملف Excel'+(totalImgs? ` مع ${totalImgs} صورة`:''));
   }catch(e){ toast('تعذر إنشاء Excel: '+(e.message||e), 6000); }
   finally{ btn.disabled=false; btn.innerHTML=btn.dataset.html; }
 }

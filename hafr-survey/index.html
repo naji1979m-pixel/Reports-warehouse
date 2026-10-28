@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية</title>
-<meta name="theme-color" content="#1f5bb0">
+<meta name="theme-color" content="#0061b5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="المبادرات">
@@ -24,9 +24,9 @@
 <style>
 /* هوية شركة المياه الوطنية: أزرق الشعار مع لمسة الفيروزي، شاشة كاملة العرض */
 :root{
-  --blue:#1f5bb0; --blue-2:#2f7fd0; --teal:#16a39a; --sky:#e3edf9; --ink:#10284a; --muted:#58708f;
-  --bg:#f1f5fb; --card:#ffffff; --line:#cddbee;
-  --ok:#17845a; --ok-bg:#e3f4ec; --bad:#c23a32; --bad-bg:#fbe7e5; --warn:#b26a00; --warn-bg:#fdf1dc;
+  --blue:#0061b5; --blue-2:#278cc4; --teal:#0aa59b; --sky:#e6f1f8; --ink:#0b2e55; --muted:#5b7896;
+  --bg:#f3f8fc; --card:#ffffff; --line:#cfe0ee;
+  --ok:#078a81; --ok-bg:#e0f4f2; --bad:#c23a32; --bad-bg:#fbe7e5; --warn:#b26a00; --warn-bg:#fdf1dc;
   --font:"IBM Plex Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
   --r:12px;
 }
@@ -45,7 +45,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15p
 button,input,select,textarea{font:inherit;color:inherit}
 .wrap{width:100%;margin:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 header.top{background:var(--card);color:var(--ink);padding-top:env(safe-area-inset-top,0px);position:relative}
-header.top::after{content:"";position:absolute;inset:auto 0 0 0;height:4px;background:linear-gradient(90deg,var(--teal),var(--blue))}
+header.top::after{content:"";position:absolute;inset:auto 0 0 0;height:5px;background:linear-gradient(90deg,#0aa59b 0 20%,#1999af 20% 40%,#278cc4 40% 60%,#0061b5 60% 80%,#0b2e55 80% 100%)}
 header.top .wrap{display:flex;align-items:center;gap:16px;padding-block:12px 16px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:16px;flex:1;min-width:0}
 .logo-tile{background:#fff;border-radius:10px;padding:4px 8px;flex:none;display:flex}
@@ -87,7 +87,10 @@ h3{font-size:16px;margin:0 0 10px}
 .tbl-wrap{max-width:100%}
 html,body{overflow-x:hidden}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+@media (min-width:900px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi b,.kpi i{display:block}
+.kpi{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--kc,var(--blue));border-radius:var(--r);padding:12px 14px}
+.kpi[style*="--kc"] b{color:var(--kc)}
 .kpi span{color:var(--muted);font-size:12.5px;display:block}
 .kpi b{font-size:26px;font-variant-numeric:tabular-nums;line-height:1.3}
 .kpi i{font-style:normal;font-size:12px;color:var(--muted)}
@@ -102,8 +105,8 @@ html,body{overflow-x:hidden}
 .dist .row .t span{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
 #map{height:340px;border-radius:10px;z-index:1;direction:ltr}
 #map .leaflet-popup-content{direction:rtl;text-align:right}
-.leaflet-tooltip.pt-lbl{background:rgba(255,255,255,.92);border:1px solid #cddbee;border-radius:6px;padding:1px 5px;font:600 10.5px/1.35 var(--font);color:#10284a;box-shadow:none;direction:rtl;text-align:right;white-space:nowrap}
-.leaflet-tooltip.pt-lbl.done{border-color:#17845a} .leaflet-tooltip.pt-lbl.todo{border-color:#d93025}
+.leaflet-tooltip.pt-lbl{background:rgba(255,255,255,.92);border:1px solid #cfe0ee;border-radius:6px;padding:1px 5px;font:600 10.5px/1.35 var(--font);color:#0b2e55;box-shadow:none;direction:rtl;text-align:right;white-space:nowrap}
+.leaflet-tooltip.pt-lbl.done{border-color:#078a81} .leaflet-tooltip.pt-lbl.todo{border-color:#d93025}
 .leaflet-tooltip.pt-lbl::before{display:none}
 #map.far .pt-lbl{display:none}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
@@ -161,69 +164,69 @@ dialog .db{padding:16px;display:grid;gap:14px}
 /* ===== الطباعة / PDF ===== */
 @media print{
   @page{ size:A4; margin:11mm 10mm 14mm;
-    @bottom-center{ content:"صفحة " counter(page) " من " counter(pages); font:9px "IBM Plex Sans Arabic",Arial,sans-serif; color:#5e738c; }
-    @bottom-right{ content:"مبادرات إدارة المخالفات والتعديات – الوحدة الشمالية"; font:8.5px "IBM Plex Sans Arabic",Arial,sans-serif; color:#8a9bb0; } }
-  html,body{background:#fff!important;color:#10284a;padding:0!important;margin:0}
+    @bottom-center{ content:"صفحة " counter(page) " من " counter(pages); font:9px "IBM Plex Sans Arabic",Arial,sans-serif; color:#5b7896; }
+    @bottom-right{ content:"مبادرات إدارة المخالفات والتعديات – الوحدة الشمالية"; font:8.5px "IBM Plex Sans Arabic",Arial,sans-serif; color:#7f9bb5; } }
+  html,body{background:#fff!important;color:#0b2e55;padding:0!important;margin:0}
   body > *:not(#printArea){display:none!important}
   #printArea{display:block!important}
 }
 #printArea{display:none}
 .pr, .pr *{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}
-.pr{font-family:"IBM Plex Sans Arabic",Arial,sans-serif;font-size:10.5px;line-height:1.55;color:#10284a;direction:rtl}
+.pr{font-family:"IBM Plex Sans Arabic",Arial,sans-serif;font-size:10.5px;line-height:1.55;color:#0b2e55;direction:rtl}
 .pr .ph{display:flex;justify-content:space-between;align-items:center;gap:16px}
-.pr .ph .eb{font-size:10px;color:#5e738c;font-weight:600}
-.pr .ph h1{font-size:19px;line-height:1.35;margin:2px 0;color:#1f5bb0;font-weight:700}
-.pr .ph .un{font-size:11px;font-weight:600;color:#10284a}
+.pr .ph .eb{font-size:10px;color:#5b7896;font-weight:600}
+.pr .ph h1{font-size:19px;line-height:1.35;margin:2px 0;color:#0061b5;font-weight:700}
+.pr .ph .un{font-size:11px;font-weight:600;color:#0b2e55}
 .pr .ph img{height:54px;width:auto}
-.pr .band{height:5px;margin:10px 0 12px;background:linear-gradient(90deg,#1f5bb0 0 65%,#16a39a 65% 100%);border-radius:3px}
-.pr .meta{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #d3deeb;border-radius:8px;overflow:hidden;margin-bottom:12px}
-.pr .meta div{padding:6px 10px;border-left:1px solid #d3deeb;background:#f7fafd}
+.pr .band{height:6px;margin:10px 0 12px;background:linear-gradient(90deg,#0aa59b 0 20%,#1999af 20% 40%,#278cc4 40% 60%,#0061b5 60% 80%,#0b2e55 80% 100%);border-radius:3px}
+.pr .meta{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #cfe0ee;border-radius:8px;overflow:hidden;margin-bottom:12px}
+.pr .meta div{padding:6px 10px;border-left:1px solid #cfe0ee;background:#f4f9fc}
 .pr .meta div:last-child{border-left:0}
-.pr .meta span{display:block;font-size:9px;color:#5e738c}
+.pr .meta span{display:block;font-size:9px;color:#5b7896}
 .pr .meta b{font-size:10.5px}
-.pr h2{font-size:13px;color:#1f5bb0;margin:16px 0 8px;padding-bottom:4px;border-bottom:2px solid #16a39a;display:block;break-after:avoid;overflow:hidden}
-.pr h2 small{float:left;font-size:9.5px;color:#5e738c;font-weight:500;margin-top:3px}
+.pr h2{font-size:13px;color:#0061b5;margin:16px 0 8px;padding-bottom:4px;border-bottom:2px solid #0aa59b;display:block;break-after:avoid;overflow:hidden}
+.pr h2 small{float:left;font-size:9.5px;color:#5b7896;font-weight:500;margin-top:3px}
 .pr .kp{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
-.pr .kp div{background:#f2f6fb;border-radius:7px;border-top:3px solid var(--c,#1f5bb0);padding:7px 9px 8px;break-inside:avoid}
-.pr .kp span{display:block;font-size:9px;color:#5e738c;font-weight:600}
-.pr .kp b{display:block;font-size:19px;line-height:1.3;color:var(--c,#1f5bb0);font-variant-numeric:tabular-nums}
-.pr .kp i{font-style:normal;font-size:8.5px;color:#8a9bb0}
-.pr .prog{margin-top:10px;background:#f7fafd;border:1px solid #d3deeb;border-radius:8px;padding:8px 10px}
+.pr .kp div{background:#eef6fb;border-radius:7px;border-top:3px solid var(--c,#0061b5);padding:7px 9px 8px;break-inside:avoid}
+.pr .kp span{display:block;font-size:9px;color:#5b7896;font-weight:600}
+.pr .kp b{display:block;font-size:19px;line-height:1.3;color:var(--c,#0061b5);font-variant-numeric:tabular-nums}
+.pr .kp i{font-style:normal;font-size:8.5px;color:#7f9bb5}
+.pr .prog{margin-top:10px;background:#f4f9fc;border:1px solid #cfe0ee;border-radius:8px;padding:8px 10px}
 .pr .prog .t{display:flex;justify-content:space-between;font-size:10px;margin-bottom:5px}
-.pr .bar{height:9px;background:#e3ebf5;border-radius:9px;overflow:hidden;display:flex;direction:rtl;justify-content:flex-start}
-.pr .bar i{display:block;flex:none;height:100%;background:linear-gradient(270deg,#16a39a,#1f5bb0);border-radius:9px}
+.pr .bar{height:9px;background:#dcebf5;border-radius:9px;overflow:hidden;display:flex;direction:rtl;justify-content:flex-start}
+.pr .bar i{display:block;flex:none;height:100%;background:linear-gradient(270deg,#0aa59b,#0061b5);border-radius:9px}
 .pr table{width:100%;border-collapse:collapse;font-size:9.5px}
 .pr thead{display:table-header-group}
-.pr th{background:#1f5bb0;color:#fff;font-weight:600;padding:5px 4px;border:1px solid #1f5bb0;text-align:center}
-.pr td{padding:4px;border:1px solid #d3deeb;text-align:center;vertical-align:middle}
-.pr tbody tr:nth-child(even) td{background:#f7fafd}
+.pr th{background:#0061b5;color:#fff;font-weight:600;padding:5px 4px;border:1px solid #0061b5;text-align:center}
+.pr td{padding:4px;border:1px solid #cfe0ee;text-align:center;vertical-align:middle}
+.pr tbody tr:nth-child(even) td{background:#f4f9fc}
 .pr tr{break-inside:avoid}
 .pr td.r{text-align:right}
-.pr tr.tot td{background:#10284a!important;color:#fff;font-weight:700;border-color:#10284a}
+.pr tr.tot td{background:#0b2e55!important;color:#fff;font-weight:700;border-color:#0b2e55}
 .pr td .mb{display:flex;align-items:center;gap:5px}
 .pr td .mb .bar{flex:1;height:7px}
 .pr td .mb em{font-style:normal;min-width:34px;font-weight:600}
 .pr .pill{display:inline-block;padding:1px 7px;border-radius:9px;font-weight:600;font-size:9px}
-.pr .ok{background:#e6f4ec;color:#17845a} .pr .bad{background:#fbe9e7;color:#c23a32} .pr .rem{background:#fdf1dc;color:#b26a00} .pr .na{background:#eef2f7;color:#5e738c}
-.pr .chart{border:1px solid #d3deeb;border-radius:8px;padding:6px 8px 2px;margin-bottom:8px}
+.pr .ok{background:#e0f4f2;color:#078a81} .pr .bad{background:#fbe9e7;color:#c23a32} .pr .rem{background:#fdf1dc;color:#b26a00} .pr .na{background:#eef2f7;color:#5b7896}
+.pr .chart{border:1px solid #cfe0ee;border-radius:8px;padding:6px 8px 2px;margin-bottom:8px}
 .pr .chart svg{width:100%;height:auto;display:block}
-.pr .lg{display:flex;gap:14px;font-size:9px;color:#5e738c;padding:2px 2px 4px}
+.pr .lg{display:flex;gap:14px;font-size:9px;color:#5b7896;padding:2px 2px 4px}
 .pr .lg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-left:4px;vertical-align:middle}
-.pr .vc{border:1px solid #d3deeb;border-radius:8px;overflow:hidden;margin-bottom:9px;break-inside:avoid}
-.pr .vc .vh{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;color:#fff;font-weight:600;font-size:10px;background:#1f5bb0}
+.pr .vc{border:1px solid #cfe0ee;border-radius:8px;overflow:hidden;margin-bottom:9px;break-inside:avoid}
+.pr .vc .vh{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;color:#fff;font-weight:600;font-size:10px;background:#0061b5}
 .pr .vc.b .vh{background:#c23a32} .pr .vc.m .vh{background:#b26a00}
-.pr .vc .vi{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #e3ebf5}
-.pr .vc .vi div{padding:4px 10px;font-size:9.5px;border-left:1px solid #e3ebf5}
-.pr .vc .vi span{color:#5e738c;font-size:8.5px;display:block}
-.pr .vc .vn{padding:5px 10px;font-size:9.5px;border-bottom:1px solid #e3ebf5}
+.pr .vc .vi{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #dcebf5}
+.pr .vc .vi div{padding:4px 10px;font-size:9.5px;border-left:1px solid #dcebf5}
+.pr .vc .vi span{color:#5b7896;font-size:8.5px;display:block}
+.pr .vc .vn{padding:5px 10px;font-size:9.5px;border-bottom:1px solid #dcebf5}
 .pr .vc .vn.e{background:#fdf1dc;color:#7a4a00}
 .pr .vc .ims{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:7px}
-.pr .vc .ims div{aspect-ratio:4/3;background:#f2f6fb;border-radius:5px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.pr .vc .ims div{aspect-ratio:4/3;background:#eef6fb;border-radius:5px;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .pr .vc .ims img{width:100%;height:100%;object-fit:contain;display:block}
-.pr .note{font-size:9.5px;color:#5e738c;background:#f7fafd;border:1px dashed #d3deeb;border-radius:6px;padding:6px 10px}
+.pr .note{font-size:9.5px;color:#5b7896;background:#f4f9fc;border:1px dashed #cfe0ee;border-radius:6px;padding:6px 10px}
 .pr .sig{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:26px;break-inside:avoid}
 .pr .sig div{text-align:center;font-size:10px;font-weight:600}
-.pr .sig div::before{content:"";display:block;border-top:1px solid #8a9bb0;margin:34px 10px 5px}
+.pr .sig div::before{content:"";display:block;border-top:1px solid #7f9bb5;margin:34px 10px 5px}
 .pr .pb{break-before:page}
 </style>
 </head>
@@ -287,6 +290,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
       <div class="row-btns"><a class="btn sm" href="https://hafar.momah.gov.sa/ar/node/3777" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.5-2.5V4L9 6.5m0 13.5l6-2.5m-6 2.5V6.5m6 11l5.5 2.5V6.5L15 4m0 13.5V4M9 6.5L15 4"/></svg>مستكشف أحياء حفر الباطن</a><select class="in" id="dashGov" style="width:auto"></select><button class="btn sm" id="refreshBtn">تحديث</button></div>
     </div>
     <div class="kpis" id="kpis"></div>
+    <div class="card" id="doneChart" hidden style="margin-bottom:14px"><h3>المنجز والمتبقي <span class="mini">· المنجز بالأخضر والمتبقي بالأحمر</span></h3><img alt="رسم المنجز والمتبقي" style="width:100%;max-width:1100px;display:block;margin:0 auto;border-radius:8px"></div>
     <div class="two">
       <div class="card"><h3>الإنجاز حسب الحي</h3><div class="dist" id="distBars"></div></div>
       <div class="card"><h3>المعاينات اليومية (آخر 14 يوم)</h3><div class="chart" id="dailyChart"></div>
@@ -294,7 +298,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
     </div>
     <div class="two" style="margin-top:14px">
       <div class="card"><h3>خريطة المواقع</h3><div id="map"></div>
-        <div class="legend"><span><i class="dot" style="background:#17845a"></i>منجز</span><span><i class="dot" style="background:#d93025"></i>غير منجز</span><span>قرّب الخريطة لتظهر أرقام الحصر (ح) والعداد (ع)</span></div></div>
+        <div class="legend"><span><i class="dot" style="background:#0aa59b"></i>منجز</span><span><i class="dot" style="background:#d93025"></i>غير منجز</span><span>قرّب الخريطة لتظهر أرقام الحصر (ح) والعداد (ع)</span></div></div>
       <div class="card"><h3>تقرير المقاول اليومي مقابل المسجّل</h3><div id="dailyCompare"></div></div>
     </div>
     <div class="card" style="margin-top:14px"><h3>آخر المعاينات</h3><div id="recent"></div></div>
@@ -874,13 +878,18 @@ function renderDash(){
   const pct = planned ? Math.round(st.matched.size/planned*1000)/10 : null;
   const last = S.visits.reduce((a,v)=> v.created_at>a? v.created_at : a, '');
   $('#dashSub').textContent = last ? 'آخر تحديث للبيانات: ' + new Date(last).toLocaleString('ar-SA-u-nu-latn',{dateStyle:'medium',timeStyle:'short'}) : 'لا توجد معاينات مسجلة بعد';
-  $('#kpis').innerHTML = `
-    <div class="kpi main"><span>نسبة الإنجاز</span><b>${pct==null?'—':pct+'%'}</b><i>${planned? st.matched.size+' من '+planned+' موقع مستهدف' : 'ارفع ملفات المواقع المستهدفة من الإعدادات'}</i></div>
-    <div class="kpi"><span>إجمالي المعاينات</span><b>${st.total}</b><i>اليوم: ${st.today}</i></div>
-    <div class="kpi ok"><span>تم الكشف بدون تعدٍ</span><b>${st.ok}</b><i>${st.total? Math.round(st.ok/st.total*100):0}% من المعاينات</i></div>
-    <div class="kpi bad"><span>تعديات مرصودة</span><b>${st.violAll}</b><i>أزيل منها: ${st.removed}</i></div>
-    <div class="kpi"><span>توصيلات بها تسريب</span><b>${st.leak}</b><i>من واقع المعاينات</i></div>
-    <div class="kpi"><span>أخطاء رصد المقاول</span><b style="color:var(--warn)">${st.err}</b><i>${st.total? Math.round(st.err/st.total*100):0}% من المعاينات</i></div>`;
+  const doneN = st.matched.size, pend = planned? Math.max(0, planned-doneN) : null;
+  const K = (cls,label,val,sub,color)=>`<div class="kpi ${cls}" style="--kc:${color}"><span>${label}</span><b>${val}</b><i>${sub||''}</i></div>`;
+  $('#kpis').innerHTML =
+    K('','المستهدف', planned? planned.toLocaleString('en-US'):'—', planned? 'موقع في ملفات الأحياء':'ارفع ملفات الأحياء من الإعدادات', '#0b2e55') +
+    K('','المنجز', doneN.toLocaleString('en-US'), 'موقع تمت معاينته', '#0aa59b') +
+    K('','نسبة الإنجاز', pct==null?'—':pct+'%', planned? `${doneN} من ${planned}`:'', '#0061b5') +
+    K('','إجمالي المعاينات', st.total.toLocaleString('en-US'), `اليوم: ${st.today}`, '#278cc4') +
+    K('','في انتظار المعاينة', pend==null?'—':pend.toLocaleString('en-US'), 'موقع لم يُزر بعد', '#d93025') +
+    K('','تعديات مرصودة', st.violAll, `أزيل منها: ${st.removed}`, '#c23a32') +
+    K('','توصيلات بها تسريب', st.leak, 'من واقع المعاينات', '#1999af') +
+    K('','أخطاء رصد المقاول', st.err, `${st.total? Math.round(st.err/st.total*100):0}% من المعاينات`, '#b26a00');
+  drawDoneChart(districtStats(VV, dg||null), planned, doneN).then(ch=>{ const box=$('#doneChart'); if(!box) return; box.hidden=!ch; if(ch) box.querySelector('img').src=ch.data; });
   const ds = districtStats(VV, dg||null);
   $('#distBars').innerHTML = ds.length ? ds.map(r=>`
     <div class="row"><div class="t"><b>${esc(r.district)}${dg?'':` <small class="mini">· ${esc(r.governorate)}</small>`}</b><span>${r.planned? `${r.done} / ${r.planned} · ${r.pct}%` : `${r.visited} معاينة (لا توجد قائمة مستهدفة)`}${r.bad+r.removed? ` · <b style="color:var(--bad)">${r.bad+r.removed} تعدٍ</b>`:''}</span></div>
@@ -942,7 +951,7 @@ function renderMap(){
   const pts=[]; const visitedSites=new Set(S.visits.map(v=>v.site_id).filter(Boolean));
   S.sites.forEach(s=>{ if(s.lat && s.lng && !visitedSites.has(s.id)){ L.circleMarker([s.lat,s.lng],{radius:6,color:'#fff',weight:1.5,fillColor:'#d93025',fillOpacity:.9}).bindTooltip(ptLabel(s),{permanent:true,direction:'top',offset:[0,-6],className:'pt-lbl todo'}).bindPopup(`<b>غير منجز</b> · ${esc(s.district)}${s.hesr_no?'<br>حصر '+esc(s.hesr_no):''}${s.meter_no?'<br>عداد '+esc(s.meter_no):''}${s.account_no?'<br>حساب '+esc(s.account_no):''}<br><a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${s.lat},${s.lng}">فتح في الخرائط</a>`).addTo(mapLayer); pts.push([s.lat,s.lng]); } });
   S.visits.forEach(v=>{ if(v.lat && v.lng){ const bad=v.result===R_BAD||v.result===R_REM;
-    const mk=L.circleMarker([v.lat,v.lng],{radius:7,color:'#fff',weight:2,fillColor:'#17845a',fillOpacity:.95}).bindTooltip(ptLabel(v),{permanent:true,direction:'top',offset:[0,-7],className:'pt-lbl done'}).addTo(mapLayer);
+    const mk=L.circleMarker([v.lat,v.lng],{radius:7,color:'#fff',weight:2,fillColor:'#0aa59b',fillOpacity:.95}).bindTooltip(ptLabel(v),{permanent:true,direction:'top',offset:[0,-7],className:'pt-lbl done'}).addTo(mapLayer);
     mk.bindPopup(`<b>منجز</b> · ${esc(v.district||'')}<br>حصر ${esc(v.hesr_no)}${v.meter_no?'<br>عداد '+esc(v.meter_no):''}<br>${bad?'<b style="color:#c23a32">'+esc(v.result)+'</b>':esc(v.result||'')}<br><a href="#" data-open="${v.id}">فتح التفاصيل</a>`); pts.push([v.lat,v.lng]); } });
   if(pts.length) map.fitBounds(pts,{padding:[20,20],maxZoom:16});
 }
@@ -1372,7 +1381,7 @@ function paginateReport(root, PAGE_W=718, PAGE_H=1035, FOOT=26){
     newPage(); queue.unshift(el);
   }
   if(empty() && pages.length>1){ pages.pop().remove(); }
-  pages.forEach((pg,i)=> pg.insertAdjacentHTML('beforeend', `<div style="position:absolute;left:0;right:0;bottom:0;height:${FOOT}px;display:flex;justify-content:space-between;align-items:flex-end;font-size:8.5px;color:#8a9bb0;border-top:1px solid #e3ebf5;padding-top:4px"><span>مبادرات إدارة المخالفات والتعديات – الوحدة الشمالية</span><span>صفحة ${i+1} من ${pages.length}</span></div>`));
+  pages.forEach((pg,i)=> pg.insertAdjacentHTML('beforeend', `<div style="position:absolute;left:0;right:0;bottom:0;height:${FOOT}px;display:flex;justify-content:space-between;align-items:flex-end;font-size:8.5px;color:#7f9bb5;border-top:1px solid #dcebf5;padding-top:4px"><span>مبادرات إدارة المخالفات والتعديات – الوحدة الشمالية</span><span>صفحة ${i+1} من ${pages.length}</span></div>`));
   return {stage, pages};
 }
 async function downloadReportPDF(root, filename, onProgress){
@@ -1434,12 +1443,12 @@ $('#pdfBtn').onclick = async ()=>{
     const W=700,H=170,L=34,B=24,T=10, max=Math.max(4,...cd.map(x=>Math.max(x.n, x.ct||0))), step=Math.ceil(max/4), top=step*4, cw=(W-L-8)/cd.length;
     const y=v=>T+(H-T-B)*(1-v/top);
     chart=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-    for(let i=0;i<=4;i++){ const v=step*i; chart+=`<line x1="${L}" x2="${W-6}" y1="${y(v)}" y2="${y(v)}" stroke="#e3ebf5"/><text x="${L-6}" y="${y(v)+3}" text-anchor="end" font-size="9" fill="#5e738c">${v}</text>`; }
+    for(let i=0;i<=4;i++){ const v=step*i; chart+=`<line x1="${L}" x2="${W-6}" y1="${y(v)}" y2="${y(v)}" stroke="#dcebf5"/><text x="${L-6}" y="${y(v)+3}" text-anchor="end" font-size="9" fill="#5b7896">${v}</text>`; }
     cd.forEach((x,i)=>{ const bx=W-8-(i+1)*cw+cw*.2, bw=cw*.6;
-      if(x.ok) chart+=`<rect x="${bx}" y="${y(x.ok)}" width="${bw}" height="${y(0)-y(x.ok)}" fill="#1f5bb0" rx="2"/>`;
+      if(x.ok) chart+=`<rect x="${bx}" y="${y(x.ok)}" width="${bw}" height="${y(0)-y(x.ok)}" fill="#0061b5" rx="2"/>`;
       if(x.b) chart+=`<rect x="${bx}" y="${y(x.ok+x.b)}" width="${bw}" height="${y(x.ok)-y(x.ok+x.b)}" fill="#c23a32" rx="2"/>`;
-      if(x.ct!=null) chart+=`<circle cx="${bx+bw/2}" cy="${y(x.ct)}" r="3.5" fill="#fff" stroke="#16a39a" stroke-width="2"/>`;
-      chart+=`<text x="${bx+bw/2}" y="${H-8}" text-anchor="middle" font-size="8.5" fill="#5e738c">${x.day.slice(8)}/${+x.day.slice(5,7)}</text>`; });
+      if(x.ct!=null) chart+=`<circle cx="${bx+bw/2}" cy="${y(x.ct)}" r="3.5" fill="#fff" stroke="#0aa59b" stroke-width="2"/>`;
+      chart+=`<text x="${bx+bw/2}" y="${H-8}" text-anchor="middle" font-size="8.5" fill="#5b7896">${x.day.slice(8)}/${+x.day.slice(5,7)}</text>`; });
     chart+='</svg>';
   }
   const card = v => { const ims=(v.media||[]).filter(m=>m.type==='image' && src.has(m.id));
@@ -1457,14 +1466,14 @@ $('#pdfBtn').onclick = async ()=>{
     <div class="meta"><div><span>الفترة</span><b>${esc(periodText(f,t))}</b></div><div><span>النطاق</span><b>${esc(g||'جميع المحافظات')}${d?' · حي '+esc(d):''}</b></div><div><span>تاريخ التقرير</span><b>${fmtD(today())}</b></div><div><span>أعدّه</span><b>${esc(S.userName||'—')}</b></div></div>
     <h2>المؤشرات الرئيسية</h2>
     <div class="kp">
-      <div style="--c:#10284a"><span>المستهدف</span><b>${N(planned)}</b></div>
-      <div style="--c:#17845a"><span>المنجز</span><b>${N(done)}</b></div>
-      <div style="--c:#1f5bb0"><span>نسبة الإنجاز</span><b>${P(pct)}</b></div>
-      <div style="--c:#10284a"><span>إجمالي المعاينات</span><b>${N(st.total)}</b></div>
+      <div style="--c:#0b2e55"><span>المستهدف</span><b>${N(planned)}</b></div>
+      <div style="--c:#0aa59b"><span>المنجز</span><b>${N(done)}</b></div>
+      <div style="--c:#0061b5"><span>نسبة الإنجاز</span><b>${P(pct)}</b></div>
+      <div style="--c:#278cc4"><span>إجمالي المعاينات</span><b>${N(st.total)}</b></div>
       <div style="--c:#d93025"><span>في انتظار المعاينة</span><b>${planned?N(Math.max(0,planned-done)):'—'}</b></div>
-      <div style="--c:#17845a"><span>بدون تعدٍ</span><b>${N(st.ok)}</b></div>
+      <div style="--c:#078a81"><span>بدون تعدٍ</span><b>${N(st.ok)}</b></div>
       <div style="--c:#c23a32"><span>تعديات قائمة</span><b>${N(st.bad)}</b></div>
-      <div style="--c:#b26a00"><span>تعديات أُزيلت</span><b>${N(st.removed)}</b></div>
+      <div style="--c:#1999af"><span>تعديات أُزيلت</span><b>${N(st.removed)}</b></div>
       <div style="--c:#b26a00"><span>توصيلات بها تسريب</span><b>${N(st.leak)}</b></div>
       <div style="--c:#b26a00"><span>أخطاء رصد المقاول</span><b>${N(st.err)}</b></div>
     </div>
@@ -1476,7 +1485,7 @@ $('#pdfBtn').onclick = async ()=>{
     ${ds.length?`<tr class="tot"><td colspan="2">الإجمالي</td><td>${N(planned)}</td><td>${N(done)}</td><td>${N(Math.max(0,planned-done))}</td><td>${P(pct)}</td><td>${N(st.total)}</td><td>${st.bad+st.removed}</td><td>${st.removed}</td><td>${st.leak}</td></tr>`:'<tr><td colspan="10">لا توجد بيانات</td></tr>'}
     </tbody></table>
     <h2>الإنجاز اليومي<small>${days.length} يوم عمل</small></h2>
-    ${chart?`<div class="chart">${chart}<div class="lg"><span><i style="background:#1f5bb0"></i>بدون تعدٍ</span><span><i style="background:#c23a32"></i>تعديات</span><span><i style="background:#fff;border:2px solid #16a39a;border-radius:50%"></i>حسب تقرير المقاول</span></div></div>`:''}
+    ${chart?`<div class="chart">${chart}<div class="lg"><span><i style="background:#0061b5"></i>بدون تعدٍ</span><span><i style="background:#c23a32"></i>تعديات</span><span><i style="background:#fff;border:2px solid #0aa59b;border-radius:50%"></i>حسب تقرير المقاول</span></div></div>`:''}
     <table><thead><tr><th>التاريخ</th><th>المسجّل بالمنصة</th><th>بدون تعدٍ</th><th>تعديات</th><th>تسريبات</th><th>أخطاء رصد</th><th>حسب المقاول</th><th>الفرق</th></tr></thead><tbody>
     ${dayRows.map(x=>{ const df=x.ct==null?null:x.ct-x.n; return `<tr><td>${fmtD(x.day)}</td><td><b>${x.n}</b></td><td>${x.ok}</td><td>${x.b}</td><td>${x.leak}</td><td>${x.err}</td><td>${N(x.ct)}</td><td>${df==null?'—':df>0?`<b style="color:#c23a32">${df}</b>`:df}</td></tr>`; }).join('') || '<tr><td colspan="8">لا توجد معاينات في هذه الفترة</td></tr>'}
     </tbody></table>
@@ -1536,8 +1545,9 @@ async function logoData(){
 /* @@XL_BUILDER_START@@ */
 /* ===== بناء ملف Excel (دالة نقية: تستقبل البيانات الجاهزة وترجع المصنف) ===== */
 function buildWorkbook(ExcelJS, D){
-  const C = { blue:'FF1F5BB0', navy:'FF10284A', teal:'FF16A39A', sky:'FFE8F0FA', zebra:'FFF7FAFD', line:'FFD3DEEB', mute:'FF5E738C',
-              red:'FFC23A32', redBg:'FFFBE9E7', green:'FF17845A', greenBg:'FFE6F4EC', amber:'FFB26A00', amberBg:'FFFDF1DC', white:'FFFFFFFF' };
+  const SHADES = ['FF0AA59B','FF1999AF','FF278CC4','FF0061B5','FF0B2E55'];
+  const C = { blue:'FF0061B5', sky2:'FF278CC4', cyan:'FF1999AF', navy:'FF0B2E55', teal:'FF0AA59B', sky:'FFE6F1F8', zebra:'FFF4F9FC', line:'FFCFE0EE', mute:'FF5B7896',
+              red:'FFC23A32', redBg:'FFFBE9E7', green:'FF078A81', greenBg:'FFE0F4F2', amber:'FFB26A00', amberBg:'FFFDF1DC', white:'FFFFFFFF' };
   const F = 'Arial';
   const EMU = 9525;
   const thin = { style:'thin', color:{argb:C.line} };
@@ -1565,7 +1575,7 @@ function buildWorkbook(ExcelJS, D){
       if(mTo>1) ws.mergeCells(r,1,r,mTo);
       const c = ws.getCell(r,1); c.value = txt; c.font = { name:F, ...font }; c.alignment = { horizontal:'right', vertical:'middle' };
     }
-    for(let c=1;c<=n;c++) ws.getCell(4,c).fill = fill(c <= Math.ceil(n*0.35) ? C.teal : C.blue);
+    for(let c=1;c<=n;c++) ws.getCell(4,c).fill = fill(SHADES[Math.min(SHADES.length-1, Math.floor((c-1)*SHADES.length/n))]);
     if(logoId!=null){
       const startCol = Math.max(mTo, n-2);
       ws.addImage(logoId, { tl:{ nativeCol:startCol, nativeColOff:4*EMU, nativeRow:0, nativeRowOff:6*EMU }, ext:{ width:196, height:54 }, editAs:'oneCell' });
@@ -1610,8 +1620,8 @@ function buildWorkbook(ExcelJS, D){
     const ws = sheet('الملخص التنفيذي', W, D.title, D.sub, { portrait:true, onePage:true });
     section(ws, 6, 10, 'المؤشرات الرئيسية');
     const cards = [
-      ['المستهدف', K.planned, C.navy], ['المنجز', K.done, C.green], ['نسبة الإنجاز', K.pct, C.blue, '0.0%'], ['إجمالي المعاينات', K.total, C.navy], ['في انتظار المعاينة', K.pending, C.red],
-      ['تم الكشف بدون تعدٍ', K.ok, C.green], ['تعديات قائمة', K.bad, C.red], ['تعديات أُزيلت', K.removed, C.amber], ['توصيلات بها تسريب', K.leak, C.amber], ['أخطاء رصد المقاول', K.err, C.amber]
+      ['المستهدف', K.planned, C.navy], ['المنجز', K.done, C.green], ['نسبة الإنجاز', K.pct, C.blue, '0.0%'], ['إجمالي المعاينات', K.total, C.sky2], ['في انتظار المعاينة', K.pending, C.red],
+      ['تم الكشف بدون تعدٍ', K.ok, C.green], ['تعديات قائمة', K.bad, C.red], ['تعديات أُزيلت', K.removed, C.cyan], ['توصيلات بها تسريب', K.leak, C.amber], ['أخطاء رصد المقاول', K.err, C.amber]
     ];
     cards.forEach((cd,i)=>{
       const r0 = 7 + Math.floor(i/5)*4, c0 = 1 + (i%5)*2;
@@ -1651,7 +1661,7 @@ function buildWorkbook(ExcelJS, D){
       const row=dataRow(ws, r, ['الإجمالي','', tot.p, tot.d, Math.max(0,tot.p-tot.d), tot.p? tot.d/tot.p : null, tot.v, tot.b, tot.m, tot.l], ds, 0, 26);
       ws.mergeCells(r,1,r,2);
       row.eachCell(c=>{ c.font={name:F,size:10.5,bold:true,color:{argb:C.white}}; c.fill=fill(C.navy); });
-      ws.addConditionalFormatting({ ref:`F${dStart}:F${r-1}`, rules:[{ type:'dataBar', minLength:0, maxLength:100, cfvo:[{type:'num',value:0},{type:'num',value:1}], color:{argb:'FF16A39A'}, gradient:false }] });
+      ws.addConditionalFormatting({ ref:`F${dStart}:F${r-1}`, rules:[{ type:'dataBar', minLength:0, maxLength:100, cfvo:[{type:'num',value:0},{type:'num',value:1}], color:{argb:'FF0AA59B'}, gradient:false }] });
       r++;
     } else { ws.mergeCells(r,1,r,10); const c=ws.getCell(r,1); c.value='لا توجد بيانات في هذه الفترة'; c.font={name:F,color:{argb:C.mute}}; c.alignment={horizontal:'center'}; r++; }
 
@@ -1756,7 +1766,7 @@ async function drawDoneChart(ds, planned, done){
   const rows = ds.filter(r=>r.planned>0).sort((a,b)=>b.planned-a.planned).slice(0,12);
   const W=1600, H=Math.max(440, 110 + rows.length*58);
   const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d');
-  const GREEN='#17845a', RED='#d93025', INK='#10284a', MUTE='#5e738c', FONT='"IBM Plex Sans Arabic", Arial, sans-serif';
+  const GREEN='#0aa59b', RED='#d93025', INK='#0b2e55', MUTE='#5b7896', FONT='"IBM Plex Sans Arabic", Arial, sans-serif';
   x.fillStyle='#ffffff'; x.fillRect(0,0,W,H); x.direction='rtl';
   /* الدائرة */
   const cx=W-215, cy=H/2-10, R=150, T=48, frac=Math.min(1,done/planned);
@@ -1773,7 +1783,7 @@ async function drawDoneChart(ds, planned, done){
   /* أشرطة الأحياء */
   const xR=W-470, xL=40, labW=190, bR=xR-labW, bL=xL+150;
   x.textAlign='right'; x.fillStyle=INK; x.font=`700 30px ${FONT}`; x.fillText('الإنجاز حسب الحي', xR, 52);
-  x.strokeStyle='#e3ebf5'; x.lineWidth=2; x.beginPath(); x.moveTo(xL,72); x.lineTo(xR,72); x.stroke();
+  x.strokeStyle='#dcebf5'; x.lineWidth=2; x.beginPath(); x.moveTo(xL,72); x.lineTo(xR,72); x.stroke();
   if(!rows.length){ x.fillStyle=MUTE; x.font=`500 24px ${FONT}`; x.fillText('لا توجد أحياء لها مواقع مستهدفة', xR, 130); }
   rows.forEach((r,i)=>{
     const y=110+i*58, bw=bR-bL, dn=Math.min(r.done,r.planned), g=bw*dn/r.planned;

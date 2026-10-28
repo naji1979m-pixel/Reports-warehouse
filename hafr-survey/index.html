@@ -1307,7 +1307,7 @@ async function importSiteFile(file, gov, dist){
   }
 }
 /* يبحث في كل الأوراق عن صف العناوين الحقيقي (حتى لو كان فوقه عنوان أو شعار) */
-const HEAD_RX = [/عداد/, /حساب/, /حصر/, /lat|عرض/i, /lon|lng|طول/i];
+const HEAD_RX = [/عداد|meter|serial/i, /حساب|account|acct|contract/i, /حصر|premise|survey|inventory/i, /lat|عرض|^y$/i, /lon|lng|طول|^x$/i];
 function bestSheetRows(wb){
   let best = {score:-1, rows:[]};
   for(const name of wb.SheetNames){
@@ -1338,11 +1338,11 @@ async function importSiteRows(rows, name, gov, dist){
   const keys = Object.keys(rows[0]);
   const pick = test => keys.find(k=>test(normalize(k).toLowerCase()));
   const col = {
-    meter: pick(k=>/عداد/.test(k) && !/قراء/.test(k)),
-    account: pick(k=>/حساب/.test(k)),
-    hesr: pick(k=>/حصر/.test(k)),
-    lat: pick(k=>/lat|عرض/.test(k)),
-    lng: pick(k=>/lon|lng|طول/.test(k))
+    meter: pick(k=>(/عداد|meter|serial/.test(k)) && !/قراء|read|consum|استهلاك|type|نوع|size|قطر|status|حال/.test(k)),
+    account: pick(k=>/حساب|account|acct|contract/.test(k) && !/name|اسم|type|نوع|status/.test(k)),
+    hesr: pick(k=>/حصر|premise|survey no|inventory/.test(k)),
+    lat: pick(k=>/lat|عرض/.test(k) || k==='y'),
+    lng: pick(k=>/lon|lng|طول/.test(k) || k==='x')
   };
   const clean = x => (typeof x==='number' ? (Number.isInteger(x)? String(x) : String(x)) : normalize(String(x??''))).replace(/[^\d.]/g,'');
   const arr = rows.map(r=>({ id:uid(), governorate:gov, district:dist,

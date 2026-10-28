@@ -1048,6 +1048,7 @@ document.addEventListener('paste', e=>{
   const files = [...(cd.files||[])].filter(f=>/^image|^video/.test(f.type));
   const text = cd.getData('text/plain') || cd.getData('text') || '';
   const t = e.target;
+  if(t && t.closest && t.closest('[data-filepaste]')) return;
   const inBox = t && t.id==='pasteBox';
   const isField = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && !inBox;
   if(inBox || (S.tab==='add' && !isField)){ e.preventDefault(); ingest(text, files); return; }
@@ -1286,7 +1287,19 @@ async function importSiteFile(file, gov, dist){
   if(typeof XLSX==='undefined'){ toast('تعذر تحميل مكتبة Excel'); return; }
   const wb = XLSX.read(await file.arrayBuffer());
   const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:'', raw:false});
-  if(!rows.length){ toast('الملف فارغ'); return; }
+  return importSiteRows(rows, file.name, gov, dist);
+}
+/* خلايا منسوخة من Excel (نص مفصول بـ Tab) */
+function rowsFromText(text){
+  const lines = normalize(text).split('\n').map(l=>l.replace(/\s+$/,'')).filter(Boolean);
+  if(lines.length<2) return [];
+  const sep = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
+  const head = lines[0].split(sep).map(h=>h.trim());
+  return lines.slice(1).map(l=>{ const c=l.split(sep); const o={}; head.forEach((h,i)=>o[h||('عمود'+(i+1))]=(c[i]||'').trim()); return o; });
+}
+async function importSiteRows(rows, name, gov, dist){
+  if(!rows.length){ toast('الملف فارغ أو لا يحتوي صف عناوين'); return; }
+  const file = {name};
   const keys = Object.keys(rows[0]);
   const pick = test => keys.find(k=>test(normalize(k).toLowerCase()));
   const col = {
@@ -1329,6 +1342,7 @@ function renderDistPanel(openPicker){
     <span class="hint">${n? `مرفوع: ${n} موقع مستهدف · ${v} معاينة مسجلة` : 'لم يُرفع ملف لهذا الحي بعد'}</span>
     <div class="row-btns"><label class="btn pri">${n?'استبدال ملف الحي':'تحميل ملف الحي'}<input type="file" id="siteFile" accept=".xlsx,.xls,.csv" hidden></label>
     ${n?`<button class="btn sm danger" type="button" id="delDistFile">حذف ملف الحي</button>`:''}</div>
+    <textarea class="in" data-filepaste id="filePaste" rows="2" style="min-height:64px;text-align:center;border-style:dashed" placeholder="📎 الصق الملف هنا: اضغط مطولاً واختر «لصق» (أو Ctrl+V). يقبل ملف Excel منسوخاً أو خلايا منسوخة من Excel"></textarea>
     <span class="hint">أو اسحب ملف Excel وأفلته هنا</span></div>`;
   const inp=$('#siteFile');
   inp.onchange=()=>{ const f=inp.files[0]; inp.value=''; if(f) importSiteFile(f, gov, dist); };
@@ -1336,6 +1350,18 @@ function renderDistPanel(openPicker){
   dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('over'); });
   dz.addEventListener('dragleave', ()=>dz.classList.remove('over'));
   dz.addEventListener('drop', e=>{ e.preventDefault(); dz.classList.remove('over'); const f=e.dataTransfer.files[0]; if(f) importSiteFile(f, gov, dist); });
+  const fp=$('#filePaste');
+  fp.addEventListener('paste', e=>{
+    e.preventDefault(); e.stopPropagation();
+    const f=[...(e.clipboardData?.files||[])][0];
+    if(f){ toast('تم استلام الملف: '+f.name); importSiteFile(f, gov, dist); return; }
+    const t=e.clipboardData?.getData('text/plain')||'';
+    const rows=rowsFromText(t);
+    if(rows.length){ importSiteRows(rows, 'خلايا ملصوقة من Excel', gov, dist); }
+    else toast('ما وصل ملف. انسخ ملف Excel نفسه (من الملفات أو الواتساب) أو انسخ الخلايا مع صف العناوين', 5000);
+    fp.value='';
+  });
+  fp.addEventListener('input', ()=>{ const rows=rowsFromText(fp.value); if(rows.length){ importSiteRows(rows,'خلايا ملصوقة من Excel',gov,dist); fp.value=''; } });
   const del=$('#delDistFile'); if(del) del.onclick=async()=>{ if(!confirm('حذف ملف المواقع المستهدفة لحي '+dist+'؟ (المعاينات لا تُحذف)')) return; await DB.deleteDistrictSites(gov, dist); buildSiteIdx(); renderSettings(); };
   if(openPicker && !n){ try{ inp.click(); }catch(e){} }
 }

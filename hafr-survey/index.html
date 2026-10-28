@@ -1464,7 +1464,8 @@ async function exportExcelWithPhotos(){
           const cell = wa.getCell(row, col+1); cell.border = xlBorder;
           if(!th){ cell.value='تعذر تحميل الصورة'; cell.alignment={horizontal:'center',vertical:'middle'}; continue; }
           const id = wb.addImage({base64:th, extension:'jpeg'});
-          wa.addImage(id, {tl:{col:col+0.04,row:row-1+0.04}, br:{col:col+0.96,row:row-0.04}, editAs:'oneCell'});
+          /* مقاس ثابت بالبكسل داخل الخانة (العمود 34 ≈ 243px والصف 136pt ≈ 181px) بنفس نسبة الصورة 4:3 */
+          wa.addImage(id, {tl:{col:col+0.07,row:row-1+0.2}, ext:{width:232,height:172}, editAs:'oneCell'});
         }
         /* إطار لبقية خانات آخر صف */
         const lastRow = start + Math.ceil(ims.length/PER_ROW);

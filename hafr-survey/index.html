@@ -855,10 +855,10 @@ function renderMap(){
   setTimeout(()=>map.invalidateSize(),50);
   mapLayer.clearLayers();
   const pts=[]; const visitedSites=new Set(S.visits.map(v=>v.site_id).filter(Boolean));
-  S.sites.forEach(s=>{ if(s.lat && s.lng && !visitedSites.has(s.id)){ L.circleMarker([s.lat,s.lng],{radius:6,color:'#fff',weight:1.5,fillColor:'#d93025',fillOpacity:.9}).bindTooltip(ptLabel(s),{permanent:true,direction:'top',offset:[0,-6],className:'pt-lbl todo'}).bindPopup(`<b>غير منجز</b> · ${esc(s.district)}<br>عداد ${esc(s.meter_no)}${s.account_no?'<br>حساب '+esc(s.account_no):''}`).addTo(mapLayer); pts.push([s.lat,s.lng]); } });
+  S.sites.forEach(s=>{ if(s.lat && s.lng && !visitedSites.has(s.id)){ L.circleMarker([s.lat,s.lng],{radius:6,color:'#fff',weight:1.5,fillColor:'#d93025',fillOpacity:.9}).bindTooltip(ptLabel(s),{permanent:true,direction:'top',offset:[0,-6],className:'pt-lbl todo'}).bindPopup(`<b>غير منجز</b> · ${esc(s.district)}${s.hesr_no?'<br>حصر '+esc(s.hesr_no):''}${s.meter_no?'<br>عداد '+esc(s.meter_no):''}${s.account_no?'<br>حساب '+esc(s.account_no):''}<br><a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${s.lat},${s.lng}">فتح في الخرائط</a>`).addTo(mapLayer); pts.push([s.lat,s.lng]); } });
   S.visits.forEach(v=>{ if(v.lat && v.lng){ const bad=v.result===R_BAD||v.result===R_REM;
     const mk=L.circleMarker([v.lat,v.lng],{radius:7,color:'#fff',weight:2,fillColor:'#17845a',fillOpacity:.95}).bindTooltip(ptLabel(v),{permanent:true,direction:'top',offset:[0,-7],className:'pt-lbl done'}).addTo(mapLayer);
-    mk.bindPopup(`<b>منجز</b> · ${esc(v.district||'')}<br>حصر ${esc(v.hesr_no)}<br>${bad?'<b style="color:#c23a32">'+esc(v.result)+'</b>':esc(v.result||'')}<br><a href="#" data-open="${v.id}">فتح التفاصيل</a>`); pts.push([v.lat,v.lng]); } });
+    mk.bindPopup(`<b>منجز</b> · ${esc(v.district||'')}<br>حصر ${esc(v.hesr_no)}${v.meter_no?'<br>عداد '+esc(v.meter_no):''}<br>${bad?'<b style="color:#c23a32">'+esc(v.result)+'</b>':esc(v.result||'')}<br><a href="#" data-open="${v.id}">فتح التفاصيل</a>`); pts.push([v.lat,v.lng]); } });
   if(pts.length) map.fitBounds(pts,{padding:[20,20],maxZoom:16});
 }
 document.addEventListener('click', e=>{ const a=e.target.closest('[data-open]'); if(a){ e.preventDefault(); openDetail(a.dataset.open); } });

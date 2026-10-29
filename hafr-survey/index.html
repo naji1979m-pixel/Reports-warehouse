@@ -367,6 +367,8 @@ dialog .db{padding:16px;display:grid;gap:14px}
       <div class="row-btns">
         <button class="btn pri" id="pdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>تحميل PDF</button>
         <button class="btn" id="xlsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M8 12l4 5M12 12l-4 5"/></svg>تصدير Excel</button>
+        <button class="btn" id="pdf1Btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>ملخص PDF (صفحة واحدة)</button>
+        <button class="btn" id="pptBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M12 17v4M8 21h8M7 13l3-3 2 2 4-4"/></svg>شريحة PowerPoint</button>
       </div>
     </div>
     <div id="repPreview" style="margin-top:14px"></div>
@@ -1815,10 +1817,10 @@ function buildWorkbook(ExcelJS, D){
 /* @@XL_BUILDER_END@@ */
 
 /* رسم «المنجز بالأخضر والمتبقي بالأحمر»: دائرة للإجمالي + أشرطة لكل حي (صورة PNG تُستخدم في Excel و PDF) */
-async function drawDoneChart(ds, planned, done){
+async function drawDoneChart(ds, planned, done, maxRows=12){
   if(!planned) return null;
   try{ await document.fonts.ready; }catch(e){}
-  const rows = ds.filter(r=>r.planned>0).sort((a,b)=>b.planned-a.planned).slice(0,12);
+  const rows = ds.filter(r=>r.planned>0).sort((a,b)=>b.planned-a.planned).slice(0,maxRows);
   const W=1600, H=Math.max(440, 110 + rows.length*58);
   const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d');
   const GREEN='#0aa59b', RED='#d93025', INK='#0b2e55', MUTE='#5b7896', FONT='"IBM Plex Sans Arabic", Arial, sans-serif';
@@ -1910,6 +1912,117 @@ async function exportExcelWithPhotos(){
   }catch(e){ toast('تعذر إنشاء Excel: '+(e.message||e), 6000); console.error(e); }
   finally{ btn.disabled=false; btn.innerHTML=btn.dataset.html; }
 }
+/* ===== بيانات الملخص المشتركة (صفحة PDF واحدة + شريحة PowerPoint) ===== */
+function summaryData(){
+  const {list,f,t,d,g}=reportSet(); const st=stats(list); const ds=districtStats(list, g, d);
+  const planned = ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
+  return { list, st, ds, planned, done, pct: planned? done/planned : null, pending: planned? Math.max(0,planned-done) : null,
+    period: periodText(f,t), scope: `${g||'جميع محافظات الوحدة الشمالية'}${d?' · حي '+d:''}`, date: fmtD(today()) };
+}
+const fmtN = n => (n==null)?'—':Number(n).toLocaleString('en-US');
+const fmtP = x => x==null?'—':(Math.round(x*1000)/10)+'%';
+
+/* ===== تقرير PDF في صفحة واحدة ===== */
+$('#pdf1Btn').onclick = async ()=>{
+  const btn=$('#pdf1Btn'), html0=btn.innerHTML; btn.disabled=true; btn.textContent='جاري التجهيز…';
+  try{
+    const S1 = summaryData(), {st, ds, planned, done} = S1;
+    const chart = await drawDoneChart(ds, planned, done, 8);
+    const top = ds.filter(r=>r.planned||r.visited).sort((a,b)=>(b.planned-a.planned)||(b.visited-a.visited)).slice(0,8);
+    $('#printArea').innerHTML = `<div class="pr">
+      <div class="ph"><div><div class="eb">شركة المياه الوطنية · إدارة المخالفات والتعديات</div><h1>ملخص إنجاز مبادرة المسح الميداني لأحياء حفر الباطن</h1><div class="un">مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية</div></div><img src="nwc-logo.png" alt="شركة المياه الوطنية"></div>
+      <div class="band"></div>
+      <div class="meta"><div><span>الفترة</span><b>${esc(S1.period)}</b></div><div><span>النطاق</span><b>${esc(S1.scope)}</b></div><div><span>تاريخ التقرير</span><b>${S1.date}</b></div><div><span>أعدّه</span><b>${esc(S.userName||'—')}</b></div></div>
+      <div class="kp">
+        <div style="--c:#0b2e55"><span>المستهدف</span><b>${fmtN(planned)}</b></div>
+        <div style="--c:#0aa59b"><span>المنجز</span><b>${fmtN(done)}</b></div>
+        <div style="--c:#0061b5"><span>نسبة الإنجاز</span><b>${fmtP(S1.pct)}</b></div>
+        <div style="--c:#278cc4"><span>إجمالي المعاينات</span><b>${fmtN(st.total)}</b></div>
+        <div style="--c:#d93025"><span>في انتظار المعاينة</span><b>${fmtN(S1.pending)}</b></div>
+      </div>
+      <div class="kp" style="grid-template-columns:repeat(4,1fr);margin-top:7px">
+        <div style="--c:#c23a32"><span>تعديات قائمة</span><b style="font-size:16px">${fmtN(st.bad)}</b></div>
+        <div style="--c:#1999af"><span>تعديات أُزيلت</span><b style="font-size:16px">${fmtN(st.removed)}</b></div>
+        <div style="--c:#1999af"><span>توصيلات بها تسريب</span><b style="font-size:16px">${fmtN(st.leak)}</b></div>
+        <div style="--c:#b26a00"><span>أخطاء رصد المقاول</span><b style="font-size:16px">${fmtN(st.err)}</b></div>
+      </div>
+      ${chart?`<h2>المنجز والمتبقي<small>المنجز بالأخضر · المتبقي بالأحمر</small></h2><div class="chart"><img src="${chart.data}" alt="" style="width:100%;display:block"></div>`:''}
+      <h2>الإنجاز حسب الحي<small>${ds.length>top.length?`أكبر ${top.length} أحياء من ${ds.length}`:`${ds.length} حي`}</small></h2>
+      <table><thead><tr><th>الحي</th><th>المستهدف</th><th>المنجز</th><th>المتبقي</th><th style="width:26%">نسبة الإنجاز</th><th>تعديات</th></tr></thead><tbody>
+      ${top.map(r=>`<tr><td><b>${esc(r.district)}</b></td><td>${fmtN(r.planned||null)}</td><td style="color:#078a81;font-weight:700">${fmtN(r.done)}</td><td style="color:#d93025;font-weight:700">${r.planned?fmtN(Math.max(0,r.planned-r.done)):'—'}</td>
+        <td>${r.planned?`<div class="mb"><div class="bar"><i style="width:${Math.max(1,Math.min(100,r.pct))}%"></i></div><em>${r.pct}%</em></div>`:'—'}</td><td>${r.bad+r.removed||0}</td></tr>`).join('') || '<tr><td colspan="6">لا توجد بيانات</td></tr>'}
+      ${top.length?`<tr class="tot"><td>الإجمالي</td><td>${fmtN(planned)}</td><td>${fmtN(done)}</td><td>${fmtN(S1.pending)}</td><td>${fmtP(S1.pct)}</td><td>${st.bad+st.removed}</td></tr>`:''}
+      </tbody></table>
+      <div class="sig" style="margin-top:18px"><div>أعدّه</div><div>رئيس إدارة المخالفات</div><div>الاعتماد</div></div>
+    </div>`;
+    const imgs=[...$('#printArea').querySelectorAll('img')];
+    await Promise.all(imgs.map(im=> im.complete? 0 : new Promise(r=>{ im.onload=im.onerror=r; setTimeout(r,8000); })));
+    btn.textContent='جاري إنشاء PDF…';
+    await downloadReportPDF($('#printArea').firstElementChild, `ملخص_المسح_الميداني_${today()}.pdf`);
+    $('#printArea').innerHTML='';
+    toast('تم تحميل ملخص PDF');
+  }catch(e){ toast('تعذر إنشاء الملخص: '+(e.message||e), 6000); }
+  finally{ btn.disabled=false; btn.innerHTML=html0; }
+};
+
+/* ===== شريحة PowerPoint واحدة ===== */
+$('#pptBtn').onclick = async ()=>{
+  const btn=$('#pptBtn'), html0=btn.innerHTML; btn.disabled=true; btn.textContent='جاري التجهيز…';
+  try{
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js');
+    const S1 = summaryData(), {st, ds, planned, done} = S1;
+    const chart = await drawDoneChart(ds, planned, done, 7);
+    const logo = await logoData();
+    const pptx = new PptxGenJS(); pptx.layout='LAYOUT_WIDE'; pptx.rtlMode=true; pptx.title='ملخص إنجاز مبادرة المسح الميداني';
+    const sl = pptx.addSlide(); sl.background={color:'FFFFFF'};
+    const F='Arial', X0=0.4, WT=12.53;
+    const T=(text,o)=>sl.addText(text,{fontFace:F,rtlMode:true,align:'right',valign:'middle',margin:0,...o});
+    if(logo) sl.addImage({data:logo, x:X0, y:0.28, w:2.45, h:0.68});
+    T('ملخص إنجاز مبادرة المسح الميداني لأحياء حفر الباطن',{x:3.1,y:0.22,w:9.83,h:0.5,fontSize:24,bold:true,color:'0061B5'});
+    T('مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية',{x:3.1,y:0.72,w:9.83,h:0.32,fontSize:13,bold:true,color:'0B2E55'});
+    T(`${S1.period}  ·  ${S1.scope}  ·  تاريخ التقرير ${S1.date}`,{x:3.1,y:1.03,w:9.83,h:0.28,fontSize:10.5,color:'5B7896'});
+    ['0AA59B','1999AF','278CC4','0061B5','0B2E55'].forEach((c,i)=> sl.addShape(pptx.ShapeType.rect,{x:X0+i*WT/5,y:1.45,w:WT/5,h:0.07,fill:{color:c},line:{color:c}}));
+    /* بطاقات المؤشرات الخمس (من اليمين) */
+    const cards=[['المستهدف',fmtN(planned),'0B2E55'],['المنجز',fmtN(done),'0AA59B'],['نسبة الإنجاز',fmtP(S1.pct),'0061B5'],['إجمالي المعاينات',fmtN(st.total),'278CC4'],['في انتظار المعاينة',fmtN(S1.pending),'D93025']];
+    const gap=0.16, cw=(WT-gap*4)/5, cy=1.7, ch=1.2;
+    cards.forEach((c,i)=>{ const x=X0+(4-i)*(cw+gap);
+      sl.addShape(pptx.ShapeType.rect,{x,y:cy,w:cw,h:ch,fill:{color:'EEF6FB'},line:{color:'EEF6FB'}});
+      sl.addShape(pptx.ShapeType.rect,{x,y:cy,w:cw,h:0.07,fill:{color:c[2]},line:{color:c[2]}});
+      T(c[0],{x:x+0.15,y:cy+0.14,w:cw-0.3,h:0.32,fontSize:12,bold:true,color:'5B7896'});
+      T(c[1],{x:x+0.15,y:cy+0.48,w:cw-0.3,h:0.6,fontSize:30,bold:true,color:c[2]});
+    });
+    /* الرسم البياني */
+    const gy=3.1;
+    T('المنجز والمتبقي',{x:X0+4.35,y:gy,w:4.18,h:0.34,fontSize:14,bold:true,color:'0061B5'});
+    if(chart){ const w=8.13, h=Math.min(3.75, w*chart.h/chart.w); sl.addImage({data:chart.data, x:X0, y:gy+0.42, w, h}); }
+    else T('ارفع ملفات الأحياء المستهدفة لإظهار الرسم',{x:X0,y:gy+1.5,w:8.13,h:0.4,fontSize:12,color:'5B7896',align:'center'});
+    /* مؤشرات إضافية + أكبر الأحياء */
+    const rx=X0+8.45, rw=WT-8.45;
+    T('مؤشرات المعاينة',{x:rx,y:gy,w:rw,h:0.34,fontSize:14,bold:true,color:'0061B5'});
+    const sm=[['تعديات قائمة',st.bad,'C23A32'],['تعديات أُزيلت',st.removed,'1999AF'],['توصيلات بها تسريب',st.leak,'1999AF'],['أخطاء رصد المقاول',st.err,'B26A00']];
+    const sw=(rw-0.12)/2, sh=0.62;
+    sm.forEach((c,i)=>{ const x=rx+(i%2===0? sw+0.12 : 0), y=gy+0.42+Math.floor(i/2)*(sh+0.1);
+      sl.addShape(pptx.ShapeType.rect,{x,y,w:sw,h:sh,fill:{color:'F4F9FC'},line:{color:'CFE0EE'}});
+      sl.addShape(pptx.ShapeType.rect,{x:x+sw-0.06,y,w:0.06,h:sh,fill:{color:c[2]},line:{color:c[2]}});
+      T(c[0],{x:x+0.08,y:y+0.05,w:sw-0.22,h:0.24,fontSize:10,color:'5B7896'});
+      T(fmtN(c[1]),{x:x+0.08,y:y+0.28,w:sw-0.22,h:0.3,fontSize:17,bold:true,color:c[2]});
+    });
+    const top = ds.filter(r=>r.planned).sort((a,b)=>b.planned-a.planned).slice(0,5);
+    if(top.length){
+      const ty=gy+0.42+2*(sh+0.1)+0.1;
+      const hdr=['الحي','المنجز / المستهدف','النسبة'].map(h=>({text:h,options:{bold:true,color:'FFFFFF',fill:{color:'0061B5'},align:'center',rtlMode:true,fontFace:F,fontSize:10}}));
+      const rows=top.map((r,i)=>[{text:r.district,options:{bold:true,align:'right'}},{text:`${fmtN(r.done)} / ${fmtN(r.planned)}`,options:{align:'center'}},{text:r.pct+'%',options:{align:'center',bold:true,color:'078A81'}}]
+        .map(c=>({text:c.text,options:{rtlMode:true,fontFace:F,fontSize:10,color:'0B2E55',fill:{color:i%2?'F4F9FC':'FFFFFF'},...c.options}})));
+      sl.addTable([hdr.reverse(), ...rows.map(r=>r.reverse())],{x:rx,y:ty,w:rw,colW:[rw*0.25,rw*0.42,rw*0.33].reverse(),rowH:0.3,border:{type:'solid',pt:0.5,color:'CFE0EE'}});
+    }
+    T(`أُعدّ من منصة المبادرات · ${S1.date}${S.userName?' · '+S.userName:''}`,{x:X0,y:7.08,w:WT,h:0.26,fontSize:9,color:'7F9BB5'});
+    btn.textContent='جاري إنشاء الملف…';
+    await pptx.writeFile({fileName:`ملخص_المسح_الميداني_${today()}.pptx`});
+    toast('تم تحميل شريحة PowerPoint');
+  }catch(e){ toast('تعذر إنشاء الشريحة: '+(e.message||e), 6000); console.error(e); }
+  finally{ btn.disabled=false; btn.innerHTML=html0; }
+};
+
 $('#xlsBtn').dataset.html = $('#xlsBtn').innerHTML;
 $('#xlsBtn').onclick = ()=>{ if(typeof ExcelJS!=='undefined') exportExcelWithPhotos(); else exportExcelBasic(); };
 function exportExcelBasic(){

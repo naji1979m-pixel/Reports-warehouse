@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#0061b5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="المبادرات">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png?v=2">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
@@ -89,6 +90,11 @@ html,body{overflow-x:hidden}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
 @media (min-width:900px){.kpis{grid-template-columns:repeat(4,1fr)}}
 .kpi b,.kpi i{display:block}
+.kpi-btn{font:inherit;text-align:right;color:inherit;cursor:pointer;width:100%;position:relative;transition:box-shadow .15s, transform .15s}
+.kpi-btn:hover{box-shadow:0 4px 14px rgba(11,46,85,.12);transform:translateY(-1px)}
+.kpi-btn .kpi-more{display:block;font-style:normal;font-size:11.5px;color:var(--kc);font-weight:600;margin-top:4px}
+.drill-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.drill-tools .in{flex:1;min-width:160px}
 .kpi{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--kc,var(--blue));border-radius:var(--r);padding:12px 14px}
 .kpi[style*="--kc"] b{color:var(--kc)}
 .kpi span{color:var(--muted);font-size:12.5px;display:block}
@@ -404,6 +410,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
 <datalist id="distList"></datalist>
 <datalist id="errList"><option value="العقار تجاري وليس سكني"><option value="العقار سكني وليس تجاري"><option value="العقار غير مأهول وليس مأهول"><option value="رقم العداد غير صحيح"><option value="رقم الحصر غير صحيح"><option value="قراءة العداد غير صحيحة"><option value="الإحداثيات غير صحيحة"><option value="يوجد تعدٍ ولم يُرصد"><option value="رُصد تعدٍ وهو غير موجود"><option value="الصور لا تخص الموقع"></datalist>
 
+<dialog id="drill"><div class="dh"><b id="drTitle"></b><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="drBody"></div></dialog>
 <dialog id="detail"><div class="dh"><b id="dTitle">تفاصيل المعاينة</b><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="dBody"></div></dialog>
 <dialog id="viewer"><div class="dh" style="background:#000;color:#fff;border-color:#222"><span id="vCap"></span><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="vBody"></div></dialog>
 <div id="toast" hidden></div>
@@ -877,18 +884,18 @@ function renderDash(){
   const planned = dg ? S.sites.filter(s=>(s.governorate||CONFIG.DEFAULT_GOV)===dg).length : S.sites.length;
   const pct = planned ? Math.round(st.matched.size/planned*1000)/10 : null;
   const last = S.visits.reduce((a,v)=> v.created_at>a? v.created_at : a, '');
-  $('#dashSub').textContent = last ? 'آخر تحديث للبيانات: ' + new Date(last).toLocaleString('ar-SA-u-nu-latn',{dateStyle:'medium',timeStyle:'short'}) : 'لا توجد معاينات مسجلة بعد';
+  $('#dashSub').textContent = last ? 'آخر تحديث للبيانات: ' + new Date(last).toLocaleString('ar-SA-u-ca-gregory-nu-latn',{dateStyle:'medium',timeStyle:'short'}) : 'لا توجد معاينات مسجلة بعد';
   const doneN = st.matched.size, pend = planned? Math.max(0, planned-doneN) : null;
-  const K = (cls,label,val,sub,color)=>`<div class="kpi ${cls}" style="--kc:${color}"><span>${label}</span><b>${val}</b><i>${sub||''}</i></div>`;
+  const K = (key,label,val,sub,color)=>`<button type="button" class="kpi kpi-btn" data-kpi="${key}" style="--kc:${color}"><span>${label}</span><b>${val}</b><i>${sub||''}</i><em class="kpi-more">التفاصيل ‹</em></button>`;
   $('#kpis').innerHTML =
-    K('','المستهدف', planned? planned.toLocaleString('en-US'):'—', planned? 'موقع في ملفات الأحياء':'ارفع ملفات الأحياء من الإعدادات', '#0b2e55') +
-    K('','المنجز', doneN.toLocaleString('en-US'), 'موقع تمت معاينته', '#0aa59b') +
-    K('','نسبة الإنجاز', pct==null?'—':pct+'%', planned? `${doneN} من ${planned}`:'', '#0061b5') +
-    K('','إجمالي المعاينات', st.total.toLocaleString('en-US'), `اليوم: ${st.today}`, '#278cc4') +
-    K('','في انتظار المعاينة', pend==null?'—':pend.toLocaleString('en-US'), 'موقع لم يُزر بعد', '#d93025') +
-    K('','تعديات مرصودة', st.violAll, `أزيل منها: ${st.removed}`, '#c23a32') +
-    K('','توصيلات بها تسريب', st.leak, 'من واقع المعاينات', '#1999af') +
-    K('','أخطاء رصد المقاول', st.err, `${st.total? Math.round(st.err/st.total*100):0}% من المعاينات`, '#b26a00');
+    K('planned','المستهدف', planned? planned.toLocaleString('en-US'):'—', planned? 'موقع في ملفات الأحياء':'ارفع ملفات الأحياء من الإعدادات', '#0b2e55') +
+    K('done','المنجز', doneN.toLocaleString('en-US'), 'موقع تمت معاينته', '#0aa59b') +
+    K('pct','نسبة الإنجاز', pct==null?'—':pct+'%', planned? `${doneN} من ${planned}`:'', '#0061b5') +
+    K('total','إجمالي المعاينات', st.total.toLocaleString('en-US'), `اليوم: ${st.today}`, '#278cc4') +
+    K('pending','في انتظار المعاينة', pend==null?'—':pend.toLocaleString('en-US'), 'موقع لم يُزر بعد', '#d93025') +
+    K('viol','تعديات مرصودة', st.violAll, `أزيل منها: ${st.removed}`, '#c23a32') +
+    K('leak','توصيلات بها تسريب', st.leak, 'من واقع المعاينات', '#1999af') +
+    K('err','أخطاء رصد المقاول', st.err, `${st.total? Math.round(st.err/st.total*100):0}% من المعاينات`, '#b26a00');
   drawDoneChart(districtStats(VV, dg||null), planned, doneN).then(ch=>{ const box=$('#doneChart'); if(!box) return; box.hidden=!ch; if(ch) box.querySelector('img').src=ch.data; });
   const ds = districtStats(VV, dg||null);
   $('#distBars').innerHTML = ds.length ? ds.map(r=>`
@@ -901,6 +908,54 @@ function renderDash(){
   $('#recent').innerHTML = rec.length ? `<div class="tbl-wrap" style="border:0"><table><thead><tr><th>التاريخ</th><th>الحي</th><th>رقم الحصر</th><th>رقم العداد</th><th>النتيجة</th><th>المرفقات</th></tr></thead><tbody>${rec.map(rowMini).join('')}</tbody></table></div>` : '<div class="empty">لا توجد معاينات بعد.</div>';
   $('#recent').querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.id));
   renderMap();
+}
+/* ===== تفاصيل المؤشر عند الضغط على المربع ===== */
+document.addEventListener('click', e=>{ const b=e.target.closest('[data-kpi]'); if(b) showDrill(b.dataset.kpi); });
+function showDrill(key){
+  const dg=$('#dashGov').value;
+  const VV = dg ? S.visits.filter(v=>v.governorate===dg) : S.visits;
+  const SS = dg ? S.sites.filter(x=>(x.governorate||CONFIG.DEFAULT_GOV)===dg) : S.sites;
+  const visited = new Set(S.visits.map(v=>v.site_id).filter(Boolean));
+  const ds = districtStats(VV, dg||null).filter(r=>r.planned || r.visited);
+  const scope = dg || 'كل المحافظات';
+  const N = n => Number(n||0).toLocaleString('en-US');
+  const mapLink = (lat,lng)=> lat? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener">الخريطة</a>` : '—';
+  const distTable = () => `<div class="tbl-wrap"><table><thead><tr><th>الحي</th><th>المستهدف</th><th>المنجز</th><th>المتبقي</th><th>نسبة الإنجاز</th><th>المعاينات</th><th>تعديات</th></tr></thead><tbody>
+    ${ds.map(r=>`<tr data-dist="${esc(r.district)}"><td><b>${esc(r.district)}</b></td><td>${r.planned?N(r.planned):'—'}</td><td style="color:var(--ok);font-weight:700">${N(r.done)}</td><td style="color:var(--bad);font-weight:700">${r.planned?N(Math.max(0,r.planned-r.done)):'—'}</td>
+      <td style="min-width:140px">${r.planned?`<div style="display:flex;gap:6px;align-items:center"><div class="bar" style="flex:1"><div style="width:${Math.min(100,r.pct)}%;background:var(--teal)"></div></div><b>${r.pct}%</b></div>`:'—'}</td><td>${N(r.visited)}</td><td>${r.bad+r.removed||0}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">لا توجد بيانات</td></tr>'}
+    </tbody></table></div><p class="hint">اضغط على أي حي لعرض مواقعه المتبقية.</p>`;
+  const visitsTable = list => `<div class="drill-tools"><input class="in" id="drQ" placeholder="بحث برقم الحصر أو العداد أو الحي"><span class="mini" id="drCount">${N(list.length)} معاينة</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الحي</th><th>رقم الحصر</th><th>رقم العداد</th><th>النتيجة</th><th>التسريب</th><th>خطأ رصد</th><th>المرفقات</th></tr></thead><tbody id="drRows">
+    ${[...list].sort((a,b)=>(b.visit_date||'').localeCompare(a.visit_date||'')).map(v=>`<tr data-vid="${v.id}" data-q="${esc([v.hesr_no,v.meter_no,v.district,v.account_no].join(' '))}"><td>${fmtD(v.visit_date)}</td><td>${esc(v.district)}</td><td>${esc(v.hesr_no)}</td><td>${esc(v.meter_no)}</td><td>${resPill(v)}</td><td>${v.leak?'<span class="pill p-warn">تسريب</span>':v.leak===false?'لا':'—'}</td><td>${esc(v.contractor_error||'')}</td><td>${(v.media||[]).length}</td></tr>`).join('') || '<tr><td colspan="8" class="empty">لا توجد معاينات</td></tr>'}
+    </tbody></table></div><p class="hint">اضغط على أي معاينة لفتح تفاصيلها وصورها.</p>`;
+  const sitesTable = (list, onlyDist) => { const L = onlyDist? list.filter(x=>x.district===onlyDist) : list; const MAX=500;
+    return `<div class="drill-tools"><select class="in" id="drDist"><option value="">كل الأحياء</option>${[...new Set(list.map(x=>x.district))].sort((a,b)=>a.localeCompare(b,'ar')).map(d=>`<option ${d===onlyDist?'selected':''}>${esc(d)}</option>`).join('')}</select><input class="in" id="drQ" placeholder="بحث برقم الحصر أو العداد أو الحساب"><span class="mini" id="drCount">${N(L.length)} موقع</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>الحي</th><th>رقم الحصر</th><th>رقم العداد</th><th>رقم الحساب</th><th>الموقع</th></tr></thead><tbody id="drRows">
+    ${L.slice(0,MAX).map(x=>`<tr style="cursor:default" data-q="${esc([x.hesr_no,x.meter_no,x.account_no,x.district].join(' '))}"><td>${esc(x.district)}</td><td>${esc(x.hesr_no||'—')}</td><td>${esc(x.meter_no||'—')}</td><td>${esc(x.account_no||'—')}</td><td>${mapLink(x.lat,x.lng)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">لا توجد مواقع</td></tr>'}
+    </tbody></table></div>${L.length>MAX?`<p class="hint">يظهر أول ${MAX} موقع. استخدم البحث أو اختر حياً، أو صدّر ملف Excel من التقارير (ورقة «المواقع المتبقية»).</p>`:''}`; };
+  const doneSites = SS.filter(x=>visited.has(x.id)), pendSites = SS.filter(x=>!visited.has(x.id));
+  const views = {
+    planned: ['المستهدف · '+scope, ()=> distTable()],
+    pct:     ['نسبة الإنجاز حسب الحي · '+scope, ()=> distTable()],
+    done:    ['المنجز · '+scope, ()=> visitsTable(VV.filter(v=>v.site_id))],
+    total:   ['إجمالي المعاينات · '+scope, ()=> visitsTable(VV)],
+    pending: ['في انتظار المعاينة · '+scope, ()=> sitesTable(pendSites)],
+    viol:    ['التعديات المرصودة · '+scope, ()=> visitsTable(VV.filter(v=>v.result===R_BAD||v.result===R_REM))],
+    leak:    ['توصيلات بها تسريب · '+scope, ()=> visitsTable(VV.filter(v=>v.leak))],
+    err:     ['أخطاء رصد المقاول · '+scope, ()=> visitsTable(VV.filter(v=>v.contractor_error))]
+  };
+  const [title, body] = views[key] || views.total;
+  $('#drTitle').textContent = title;
+  const box=$('#drBody'); box.innerHTML = body();
+  const wire = ()=>{
+    const q=$('#drQ'), rows=()=>[...box.querySelectorAll('#drRows tr[data-q]')];
+    if(q) q.oninput=()=>{ const t=normalize(q.value.trim()); let n=0; rows().forEach(r=>{ const ok=!t || r.dataset.q.includes(t); r.hidden=!ok; if(ok) n++; }); const c=$('#drCount'); if(c) c.textContent=n.toLocaleString('en-US')+(key==='pending'?' موقع':' معاينة'); };
+    const dsel=$('#drDist'); if(dsel) dsel.onchange=()=>{ box.innerHTML = sitesTable(pendSites, dsel.value); wire(); };
+    box.querySelectorAll('tr[data-vid]').forEach(tr=>tr.onclick=()=>{ $('#drill').close(); openDetail(tr.dataset.vid); });
+    box.querySelectorAll('tr[data-dist]').forEach(tr=>tr.onclick=()=>{ $('#drTitle').textContent='في انتظار المعاينة · حي '+tr.dataset.dist; box.innerHTML = sitesTable(pendSites, tr.dataset.dist); wire(); });
+  };
+  wire();
+  $('#drill').showModal();
 }
 function resPill(v){
   if(v.result===R_BAD) return `<span class="pill p-bad">يوجد تعدٍ</span>`;
@@ -1279,9 +1334,9 @@ async function openDetail(id){
     ${visitFormHTML(work)}
     <div><h3>الصور والفيديو (${(v.media||[]).length})</h3><div class="thumbs" id="dMedia"></div></div>
     ${can.edit()? `<div><h3>إضافة مرفقات</h3>${mediaPickerHTML()}</div>`:''}
-    ${(v.history||[]).length? `<details><summary><b>سجل التحديثات (${v.history.length})</b></summary><div class="section-gap" style="gap:4px;margin-top:6px">${v.history.slice().reverse().map(h=>`<div class="mini">${new Date(h.at).toLocaleString('ar-SA-u-nu-latn',{dateStyle:'medium',timeStyle:'short'})} · ${esc(h.action)}${h.by?' · '+esc(h.by):''}${h.changed?.length?' · عُدّل: '+esc(h.changed.join('، ')):''}${h.result?' · '+esc(h.result):''}</div>`).join('')}</div></details>`:''}
+    ${(v.history||[]).length? `<details><summary><b>سجل التحديثات (${v.history.length})</b></summary><div class="section-gap" style="gap:4px;margin-top:6px">${v.history.slice().reverse().map(h=>`<div class="mini">${new Date(h.at).toLocaleString('ar-SA-u-ca-gregory-nu-latn',{dateStyle:'medium',timeStyle:'short'})} · ${esc(h.action)}${h.by?' · '+esc(h.by):''}${h.changed?.length?' · عُدّل: '+esc(h.changed.join('، ')):''}${h.result?' · '+esc(h.result):''}</div>`).join('')}</div></details>`:''}
     ${v.raw_text?`<details><summary class="hint">نص الرسالة الأصلي</summary><pre class="hint" style="white-space:pre-wrap">${esc(v.raw_text)}</pre></details>`:''}
-    <p class="mini">سُجّلت ${v.created_by? 'بواسطة '+esc(v.created_by)+' · ':''}${v.created_at? new Date(v.created_at).toLocaleString('ar-SA-u-nu-latn'):''}</p>
+    <p class="mini">سُجّلت ${v.created_by? 'بواسطة '+esc(v.created_by)+' · ':''}${v.created_at? new Date(v.created_at).toLocaleString('ar-SA-u-ca-gregory-nu-latn'):''}</p>
     ${can.edit()? `<div class="row-btns"><button class="btn pri" id="dSave">حفظ التعديلات</button>${can.admin()?'<button class="btn danger" id="dDel">حذف المعاينة</button>':''}<span class="hint" id="dSt"></span></div>`:''}`;
   const mbox = body.querySelector('#dMedia');
   const urls = await DB.mediaUrls(v.media||[]);

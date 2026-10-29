@@ -1392,6 +1392,12 @@ $('#dashGov').addEventListener('change', renderDash);
 
 const yn = b => b===true?'نعم':b===false?'لا':'';
 /* ===== تحميل PDF مباشر (بدون نافذة الطباعة) ===== */
+/* يحمّل مكتبة: أولاً من نسخة محلية مع المنصة، وإن فشلت من الإنترنت، ويتأكد إن المتغير صار متاح */
+async function loadLib(globalName, srcs){
+  if(window[globalName]) return window[globalName];
+  for(const src of srcs){ try{ await loadScript(src); }catch(e){} if(window[globalName]) return window[globalName]; }
+  throw new Error('تعذر تحميل المكتبة اللازمة. حدّث الصفحة وتأكد من الإنترنت');
+}
 function loadScript(src){ return new Promise((res,rej)=>{ if([...document.scripts].some(s=>s.src===src)) return res(); const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('تعذر تحميل مكتبة PDF، تحقق من الإنترنت')); document.head.appendChild(s); }); }
 /* يقسم التقرير لصفحات A4 مستقلة: الجداول تنقسم مع تكرار العناوين، وبطاقات الصور تنقسم، والعناوين لا تبقى وحيدة آخر الصفحة */
 function paginateReport(root, PAGE_W=718, PAGE_H=1035, FOOT=26){
@@ -1442,7 +1448,7 @@ function paginateReport(root, PAGE_W=718, PAGE_H=1035, FOOT=26){
   return {stage, pages};
 }
 async function downloadReportPDF(root, filename, onProgress){
-  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+  await loadLib('html2pdf', ['lib/html2pdf.bundle.min.js','https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js']);
   try{ await document.fonts.ready; }catch(e){}
   /* المخطط SVG يتحول لصورة (أدق في التحويل) */
   root.querySelectorAll('svg').forEach(svg=>{ const vb=svg.viewBox.baseVal; const img=new Image(); img.style.cssText='width:100%;display:block';
@@ -1969,11 +1975,11 @@ $('#pdf1Btn').onclick = async ()=>{
 $('#pptBtn').onclick = async ()=>{
   const btn=$('#pptBtn'), html0=btn.innerHTML; btn.disabled=true; btn.textContent='جاري التجهيز…';
   try{
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js');
+    const PptxGen = await loadLib('PptxGenJS', ['lib/pptxgen.bundle.js','https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js']);
     const S1 = summaryData(), {st, ds, planned, done} = S1;
     const chart = await drawDoneChart(ds, planned, done, 7);
     const logo = await logoData();
-    const pptx = new PptxGenJS(); pptx.layout='LAYOUT_WIDE'; pptx.rtlMode=true; pptx.title='ملخص إنجاز مبادرة المسح الميداني';
+    const pptx = new PptxGen(); pptx.layout='LAYOUT_WIDE'; pptx.rtlMode=true; pptx.title='ملخص إنجاز مبادرة المسح الميداني';
     const sl = pptx.addSlide(); sl.background={color:'FFFFFF'};
     const F='Arial', X0=0.4, WT=12.53;
     const T=(text,o)=>sl.addText(text,{fontFace:F,rtlMode:true,align:'right',valign:'middle',margin:0,...o});

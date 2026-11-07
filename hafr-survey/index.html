@@ -93,6 +93,7 @@ html,body{overflow-x:hidden}
 .kpi-btn{font:inherit;text-align:right;color:inherit;cursor:pointer;width:100%;position:relative;transition:box-shadow .15s, transform .15s}
 .kpi-btn:hover{box-shadow:0 4px 14px rgba(11,46,85,.12);transform:translateY(-1px)}
 .kpi-btn .kpi-more{display:block;font-style:normal;font-size:11.5px;color:var(--kc);font-weight:600;margin-top:4px}
+#periodBtns .btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
 .drill-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .drill-tools .in{flex:1;min-width:160px}
 .kpi{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--kc,var(--blue));border-radius:var(--r);padding:12px 14px}
@@ -357,6 +358,20 @@ dialog .db{padding:16px;display:grid;gap:14px}
     <h2>تقارير الإنجاز</h2>
     <p class="sub">اختر الفترة والحي، ثم حمّل التقرير PDF أو Excel مباشرة.</p>
     <div class="card section-gap">
+      <div>
+        <div class="mini" style="margin-bottom:6px;font-weight:600">الفترة الزمنية للتقرير</div>
+        <div class="row-btns" id="periodBtns">
+          <button type="button" class="btn sm" data-per="all">كامل الفترة</button>
+          <button type="button" class="btn sm" data-per="today">اليوم</button>
+          <button type="button" class="btn sm" data-per="yest">أمس</button>
+          <button type="button" class="btn sm" data-per="week">هذا الأسبوع</button>
+          <button type="button" class="btn sm" data-per="lweek">الأسبوع الماضي</button>
+          <button type="button" class="btn sm" data-per="month">هذا الشهر</button>
+          <button type="button" class="btn sm" data-per="lmonth">الشهر الماضي</button>
+          <button type="button" class="btn sm" data-per="custom">فترة مخصصة</button>
+        </div>
+        <div class="match p-n" id="periodInfo" style="margin-top:8px"></div>
+      </div>
       <div class="form">
         <label class="f">من تاريخ<input class="in" id="rFrom" type="date"></label>
         <label class="f">إلى تاريخ<input class="in" id="rTo" type="date"></label>
@@ -842,7 +857,7 @@ function render(){
   fillDistrictSelects();
   if(S.tab==='dash') renderDash();
   if(S.tab==='list') renderList();
-  if(S.tab==='reports'){ renderReportPreview(); renderCompBox(); }
+  if(S.tab==='reports'){ renderReportPreview(); renderCompBox(); updatePeriodUI(); }
   if(S.tab==='settings') renderSettings();
 }
 const SEL_PAIRS = [
@@ -1400,6 +1415,25 @@ function renderReportPreview(){
     </tbody></table></div></div>`;
 }
 ['#rFrom','#rTo','#rGov','#rDist'].forEach(id=>$(id).addEventListener('input', ()=>setTimeout(renderReportPreview)));
+/* الفترة الزمنية: أزرار سريعة تعبّي «من تاريخ» و«إلى تاريخ» وتطبّق على كل التقارير والشريحة */
+const isoD = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function periodRange(k){ const n=new Date(); n.setHours(0,0,0,0); const d=x=>{ const t=new Date(n); t.setDate(t.getDate()+x); return t; };
+  const wd=(n.getDay()+1)%7;   /* بداية الأسبوع: السبت */
+  switch(k){ case 'today': return [isoD(n),isoD(n)]; case 'yest': return [isoD(d(-1)),isoD(d(-1))];
+    case 'week': return [isoD(d(-wd)),isoD(n)]; case 'lweek': return [isoD(d(-wd-7)),isoD(d(-wd-1))];
+    case 'month': return [isoD(new Date(n.getFullYear(),n.getMonth(),1)),isoD(n)];
+    case 'lmonth': return [isoD(new Date(n.getFullYear(),n.getMonth()-1,1)),isoD(new Date(n.getFullYear(),n.getMonth(),0))];
+    default: return ['','']; } }
+function updatePeriodUI(){ const f=$('#rFrom').value, t=$('#rTo').value; const k=lsGet('hs_period','all');
+  $$('#periodBtns [data-per]').forEach(b=>b.classList.toggle('on', b.dataset.per===k));
+  const st=S.visits.filter(v=>(!f||(v.visit_date||'')>=f)&&(!t||(v.visit_date||'')<=t)).length;
+  const cp=(S.comp||[]).filter(r=>(!f&&!t)||(r.vdate&&(!f||r.vdate>=f)&&(!t||r.vdate<=t))).length;
+  $('#periodInfo').innerHTML = `الفترة المطبّقة: <b>${esc(periodText(f,t))}</b> · ${fmtN(st)} معاينة في المنصة${(S.comp||[]).length?` · ${fmtN(cp)} مخالفة في التقرير الشامل`:''}`; }
+$('#periodBtns').addEventListener('click', e=>{ const b=e.target.closest('[data-per]'); if(!b) return; const k=b.dataset.per; lsSet('hs_period',k);
+  if(k==='custom'){ updatePeriodUI(); $('#rFrom').focus(); try{ $('#rFrom').showPicker(); }catch(_){} return; }
+  const [f,t]=periodRange(k); $('#rFrom').value=f; $('#rTo').value=t; renderReportPreview(); updatePeriodUI(); toast('الفترة: '+periodText(f,t)); });
+['#rFrom','#rTo'].forEach(id=>$(id).addEventListener('change', ()=>{ lsSet('hs_period','custom'); updatePeriodUI(); }));
+(()=>{ const k=lsGet('hs_period','all'); if(k!=='custom'){ const [f,t]=periodRange(k); $('#rFrom').value=f; $('#rTo').value=t; } })();
 $('#dashGov').addEventListener('change', renderDash);
 
 const yn = b => b===true?'نعم':b===false?'لا':'';
@@ -2246,7 +2280,7 @@ function renderCompBox(){
   const byGov={}; rows.forEach(r=>byGov[r.gov]=(byGov[r.gov]||0)+1);
   const ex=lsGet('hs_slide_extra',{});
   box.innerHTML = `<h3 style="margin:0">التقرير الشامل وشريحة تقرير المخالفات والتفتيش</h3>
-    <p class="hint" style="margin:0">الشريحة تجمع المرصود في المنصة مع التقرير الشامل (منصة مكين) لمحافظات الوحدة الشمالية، وتستبعد المخالفة المكررة إذا كانت بنفس الموقع (30 متر) أو برقم العداد أو الحصر نفسه. الفترة من خانتي «من تاريخ» و«إلى تاريخ» أعلاه.</p>
+    <p class="hint" style="margin:0">الشريحة تجمع المرصود في المنصة مع التقرير الشامل (منصة مكين) لمحافظات الوحدة الشمالية، وتستبعد المخالفة المكررة إذا كانت بنفس الموقع (30 متر) أو برقم العداد أو الحصر نفسه. الفترة حسب «الفترة الزمنية للتقرير» أعلاه.</p>
     <div class="match ${rows.length?'p-ok':'p-warn'}">${rows.length? `التقرير الشامل الحالي: <b>${fmtN(rows.length)}</b> مخالفة للوحدة الشمالية${last?` · رُفع ${new Date(last).toLocaleString('ar-SA-u-ca-gregory-nu-latn',{dateStyle:'medium',timeStyle:'short'})}`:''}${by?` · بواسطة ${esc(by)}`:''}<br><span class="mini">${Object.entries(byGov).map(([g,n])=>`${esc(g)}: ${fmtN(n)}`).join(' · ')}</span>` : 'لم يُرفع التقرير الشامل بعد. الشريحة تعمل ببيانات المنصة فقط حتى يُرفع.'}</div>
     ${canUploadComp()? `<div class="row-btns"><label class="btn pri">رفع التقرير الشامل (Excel)<input type="file" id="compFile" accept=".xlsx,.xls,.csv" hidden></label><span class="hint">الملف الجديد يستبدل السابق. تُحفظ محافظات الوحدة الشمالية فقط.</span></div><div id="compPreview"></div>`
       : `<p class="hint" style="margin:0">رفع التقرير الشامل لمن لديه صلاحية «رفع الملف الشامل» فقط.</p>`}

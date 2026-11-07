@@ -2213,8 +2213,9 @@ function markCompDuplicates(compRows, platVisits){
 }
 
 /* مبادرة المسح الميداني: تراكمي من تاريخ بداية المبادرة إلى آخر تاريخ في التقرير */
-function initStart(){ return S.visits.reduce((a,v)=> v.visit_date && (!a||v.visit_date<a)? v.visit_date : a, ''); }
-function initCum(t, gov){ return S.visits.filter(v=> (!t || (v.visit_date||'')<=t) && (!gov || (northGov(v.governorate)||CONFIG.DEFAULT_GOV)===gov)); }
+/* تاريخ بداية المبادرة = أول زيارة مسجلة في مبادرة حفر الباطن */
+function initStart(){ return S.visits.reduce((a,v)=> v.visit_date && (northGov(v.governorate)||CONFIG.DEFAULT_GOV)==='حفر الباطن' && (!a||v.visit_date<a)? v.visit_date : a, ''); }
+function initCum(t, gov){ const a=initStart(); return S.visits.filter(v=> (!a || (v.visit_date||'')>=a) && (!t || (v.visit_date||'')<=t) && (!gov || (northGov(v.governorate)||CONFIG.DEFAULT_GOV)===gov)); }
 function initRangeText(t){ const a=initStart(); return `من ${a?fmtD(a):'بداية المبادرة'} إلى ${fmtD(t||today())}`; }
 function slideData(){
   const f=$('#cFrom').value, t=$('#cTo').value;

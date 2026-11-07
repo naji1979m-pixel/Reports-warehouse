@@ -372,6 +372,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
       </div>
     </div>
     <div id="repPreview" style="margin-top:14px"></div>
+    <div class="card section-gap" id="compBox" style="margin-top:14px"></div>
   </section>
 
   <!-- الإعدادات -->
@@ -455,8 +456,8 @@ const S = { role:null, user:null, userName:'', sites:[], visits:[], daily:[], di
 /* ================== التخزين المحلي (IndexedDB) ================== */
 const IDB = {
   db:null,
-  open(){ return new Promise((res,rej)=>{ const r=indexedDB.open('hafr-survey',2);
-    r.onupgradeneeded=()=>{ const d=r.result; ['sites','visits','media','daily','districts'].forEach(n=>{ if(!d.objectStoreNames.contains(n)) d.createObjectStore(n,{keyPath:'id'}); }); };
+  open(){ return new Promise((res,rej)=>{ const r=indexedDB.open('hafr-survey',3);
+    r.onupgradeneeded=()=>{ const d=r.result; ['sites','visits','media','daily','districts'].forEach(n=>{ if(!d.objectStoreNames.contains(n)) d.createObjectStore(n,{keyPath:'id'}); }); if(!d.objectStoreNames.contains('comp')) d.createObjectStore('comp',{keyPath:'vno'}); };
     r.onsuccess=()=>{ this.db=r.result; res(); }; r.onerror=()=>rej(r.error); }); },
   tx(store, mode, fn){ return new Promise((res,rej)=>{ const t=this.db.transaction(store,mode); const s=t.objectStore(store); const out=fn(s); t.oncomplete=()=>res(out && out.result!==undefined ? out.result : out); t.onerror=()=>rej(t.error); }); },
   all(store){ return new Promise((res,rej)=>{ const r=this.db.transaction(store).objectStore(store).getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
@@ -507,14 +508,25 @@ const DB = {
         this.fetchAll('survey_districts')
       ]);
       S.sites=sites; S.visits=visits; S.daily=daily; S.districts=dists;
+      try{ S.comp = await this.fetchAll('survey_comprehensive','*','vno'); }catch(e){ S.comp=[]; }
     } else {
       const [sites, visits, media, daily, dists] = await Promise.all([IDB.all('sites'),IDB.all('visits'),IDB.all('media'),IDB.all('daily'),IDB.all('districts')]);
       const byV = {}; media.forEach(m=>{ (byV[m.visit_id] ||= []).push(m); });
       visits.forEach(v=> v.media = (byV[v.id]||[]).sort((a,b)=>a.created_at.localeCompare(b.created_at)));
       S.sites=sites; S.visits=visits; S.daily=daily; S.districts=dists;
+      try{ S.comp = await IDB.all('comp'); }catch(e){ S.comp=[]; }
     }
     S.visits.forEach(v=>{ v.media ||= []; v.governorate ||= CONFIG.DEFAULT_GOV; });
     S.sites.forEach(s=>{ s.governorate ||= CONFIG.DEFAULT_GOV; });
+  },
+  async replaceComp(rows, onProgress){
+    const stamp={uploaded_at:new Date().toISOString(), uploaded_by:S.userName||null};
+    const all=rows.map(r=>({...r, ...stamp}));
+    if(MODE==='cloud'){
+      const {error}=await sb.from('survey_comprehensive').delete().neq('vno','__none__'); if(error) throw error;
+      for(let i=0;i<all.length;i+=500){ const {error}=await sb.from('survey_comprehensive').insert(all.slice(i,i+500)); if(error) throw error; onProgress&&onProgress(Math.min(i+500,all.length)); }
+    } else { await IDB.clear('comp'); await IDB.putMany('comp', all); }
+    S.comp=all;
   },
   async addDistrict(gov, name){
     const d={id:uid(), governorate:gov, name, created_at:new Date().toISOString()};
@@ -830,7 +842,7 @@ function render(){
   fillDistrictSelects();
   if(S.tab==='dash') renderDash();
   if(S.tab==='list') renderList();
-  if(S.tab==='reports') renderReportPreview();
+  if(S.tab==='reports'){ renderReportPreview(); renderCompBox(); }
   if(S.tab==='settings') renderSettings();
 }
 const SEL_PAIRS = [
@@ -2029,6 +2041,243 @@ $('#pptBtn').onclick = async ()=>{
   finally{ btn.disabled=false; btn.innerHTML=html0; }
 };
 
+/* ===================== التقرير الشامل (من منصة مكين) + شريحة تقرير المخالفات والتفتيش ===================== */
+const COMP_COLS={vno:"معرف المخالفة",visit:"رقم الزيارة",gov:"المحافظة",region:"المنطقة",date:"تاريخ بدء الزيارة",date2:"تاريخ انشاء الزيارة",
+  vstat:"حالة المخالفة",vvisit:"حالة الزيارة",amin:"حالة الزيارة لدى أمين اللجنة",decision:"قرار مدير الرقابة",decDate:"تاريخ اعتماد القرار",
+  pres:"رقم قرار رئيس الهيئة",fine:"قيمة المخالفة",coords:"موقع المخالفة",coords2:"الاحداثيات",item:"وصف بند اللائحة",prop:"نوع العقار",sev:"نوع المخالفة",officer:"اسم المفتش",explain:"ملاحظات المفتش"};
+const NORTH_GOVS=['حفر الباطن','الخفجي','النعيرية','قرية العليا','القيصومة','مليجة'];
+const govKey=g=>normalize(String(g||'')).replace(/^\s*(محافظة|محافظه|مدينة|مدينه)\s+/,'').replace(/[إأآ]/g,'ا').replace(/ة/g,'ه').replace(/^ال(?=قريه)/,'').replace(/\s+/g,' ').trim();
+const NORTH_KEYS=NORTH_GOVS.map(govKey);
+function northGov(g){ const k=govKey(g); const i=NORTH_KEYS.findIndex(n=>k===n||k.includes(n)); return i>=0? NORTH_GOVS[i] : null; }
+/* نفس تصنيف منصة الجودة والتدقيق للمرحلة */
+const HQ_ISS=["إعتماد المخالفة إرسالها","بانتظار الاعتماد النهائي"], HQ_RETVS=["بانتظار المراجعة والاعتماد","","مكتملة","مرسلة الى الأرشيف","مرسلة إلى الأرشيف"];
+const RET_AMIN=["إرسال لمدير الرقابة لاستكمال النواقص","العودة إلى أخصائي التفتيش","العودة إلى المدقق مع التعليق"];
+function compCls(r){ const vs=(r.vstat||'').trim(), vv=(r.vvisit||'').trim(), dec=(r.decision||'').trim(), am=(r.amin||'').trim();
+  if(String(r.pres||'').trim() || HQ_ISS.includes(am)) return 'iss';
+  if(dec==='معتمدة') return RET_AMIN.includes(am)?'ret':(!vs&&vv==='بانتظار المراجعة والاعتماد')?'auth':HQ_RETVS.includes(vs)?'ret':'auth';
+  if(/أرشيف/.test(vs)||dec==='غير معتمدة') return 'arch';
+  if(vs==='بانتظار المراجعة والاعتماد'||vv==='بانتظار المراجعة والاعتماد') return 'pend';
+  return 'oth'; }
+const compRetW=r=>{ const vs=(r.vstat||'').trim(); return !(/أرشيف/.test(vs)||vs==='مكتملة'); };
+function toISO(v){ if(v instanceof Date && !isNaN(v)) return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+  const s=normalize(String(v||'')).trim(); let m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/); if(m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  m=s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})/); if(m){ let y=+m[3]; if(y<100) y+=2000; return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+  return null; }
+const canUploadComp = ()=> S.role==='admin' || !!S.canUpload;
+
+async function parseCompFile(file){
+  if(typeof XLSX==='undefined') throw new Error('مكتبة Excel لم تُحمّل، حدّث الصفحة');
+  const wb = XLSX.read(await file.arrayBuffer(), {type:'array', cellDates:true});
+  let best=null;
+  for(const name of wb.SheetNames){ const aoa=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:'',raw:true,blankrows:false});
+    for(let i=0;i<Math.min(aoa.length,10);i++){ const h=aoa[i].map(x=>String(x??'').trim()); if(h.includes(COMP_COLS.vno)||h.includes(COMP_COLS.visit)){ best={aoa,hi:i,h}; break; } } if(best) break; }
+  if(!best) throw new Error('لم أجد عمود «معرف المخالفة» أو «رقم الزيارة». تأكد أنه التقرير الشامل من منصة مكين');
+  const ix={}; for(const [k,c] of Object.entries(COMP_COLS)) ix[k]=best.h.indexOf(c);
+  const g=(row,k)=> ix[k]>=0 ? row[ix[k]] : '';
+  const t=(row,k)=> String(g(row,k)??'').trim();
+  let total=0; const out=new Map(), byGov={};
+  for(const row of best.aoa.slice(best.hi+1)){
+    if(!row.some(c=>String(c).trim()!=='')) continue; total++;
+    const gov = northGov(t(row,'gov')); if(!gov) continue;
+    const vno=t(row,'vno'), visit=t(row,'visit'); if(!vno && !visit) continue;
+    const key = vno || (visit+'|'+t(row,'item'));
+    if(out.has(key)) continue;                       /* استبعاد الصفوف المكررة داخل الملف */
+    const cs=normalize(t(row,'coords')||t(row,'coords2')); const c=extractCoords(cs);
+    const fine=parseFloat(normalize(t(row,'fine')).replace(/[^\d.]/g,''))||0;
+    out.set(key,{ vno:key, visit, gov, region:t(row,'region'), vdate: toISO(g(row,'date'))||toISO(g(row,'date2')), vstat:t(row,'vstat'), vvisit:t(row,'vvisit'), amin:t(row,'amin'),
+      decision:t(row,'decision'), dec_date:String(toISO(g(row,'decDate'))||t(row,'decDate')||''), pres:t(row,'pres'), fine, coords:cs, lat:c?c.lat:null, lng:c?c.lng:null,
+      item:t(row,'item'), prop:t(row,'prop'), sev:t(row,'sev'), officer:t(row,'officer'), explain:t(row,'explain').slice(0,1000) });
+    byGov[gov]=(byGov[gov]||0)+1;
+  }
+  return { rows:[...out.values()], total, byGov };
+}
+
+/* مطابقة المخالفات المكررة بين المنصة والتقرير الشامل: نفس الموقع (≤ 30 م) أو رقم العداد/الحصر مذكور في ملاحظات المفتش */
+function haversine(a,b,c,d){ const R=6371000, r=Math.PI/180, x=(c-a)*r, y=(d-b)*r; const h=Math.sin(x/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+function markCompDuplicates(compRows, platVisits){
+  const grid=new Map(), cell=(la,ln)=>Math.floor(la/0.0004)+':'+Math.floor(ln/0.0004);
+  const nums=new Map();
+  platVisits.forEach(v=>{ if(v.lat&&v.lng){ const k=cell(v.lat,v.lng); (grid.get(k)||grid.set(k,[]).get(k)).push(v); }
+    [v.meter_no,v.hesr_no,v.account_no].forEach(n=>{ if(n && String(n).length>=7) nums.set(String(n), v); }); });
+  const dupOf=new Map();
+  compRows.forEach(r=>{
+    let hit=null;
+    if(r.lat&&r.lng){ const ci=Math.floor(r.lat/0.0004), cj=Math.floor(r.lng/0.0004);
+      for(let a=-1;a<=1&&!hit;a++) for(let b=-1;b<=1&&!hit;b++){ for(const v of (grid.get((ci+a)+':'+(cj+b))||[])){ if(haversine(r.lat,r.lng,v.lat,v.lng)<=30){ hit=v; break; } } } }
+    if(!hit && r.explain){ const ds=normalize(r.explain).match(/\d{7,}/g)||[]; for(const d of ds){ if(nums.has(d)){ hit=nums.get(d); break; } } }
+    if(hit) dupOf.set(r.vno, hit.id);
+  });
+  return dupOf;
+}
+
+function slideData(){
+  const f=$('#rFrom').value, t=$('#rTo').value;
+  const inP = d => d && (!f||d>=f) && (!t||d<=t);
+  const comp = (S.comp||[]).filter(r=> (!f&&!t) || inP(r.vdate));
+  const plat = S.visits.filter(v=> (!f&&!t) || inP(v.visit_date));
+  const platViol = plat.filter(v=>v.result===R_BAD||v.result===R_REM);
+  const dupOf = markCompDuplicates(comp, platViol);
+  const compUniq = comp.filter(r=>!dupOf.has(r.vno));
+  comp.forEach(r=> r._c = r._c || compCls(r));
+  const o={ vis:0, n:0, iss:0, sent:0, retW:0, fine:0, G:{} };
+  NORTH_GOVS.forEach(g=> o.G[g]={l:g, vis:new Set(), platVis:0, n:0, iss:0, fine:0});
+  comp.forEach(r=>{ const c=r._c, z=o.G[r.gov];
+    if(c==='iss'||c==='auth'||c==='ret') o.sent++;
+    if(c==='iss'){ o.iss++; o.fine+=r.fine||0; if(z){ z.iss++; z.fine+=r.fine||0; } }
+    if(c==='ret' && compRetW(r)) o.retW++; });
+  /* الزيارات والمخالفات: الملف الشامل + المرصود في المنصة، بدون المكرر */
+  const dupVisits=new Set(comp.filter(r=>dupOf.has(r.vno)).map(r=>r.visit||r.vno));
+  const compVisits=new Set(comp.map(r=>r.visit||r.vno));
+  compUniq.forEach(r=>{ const z=o.G[r.gov]; if(z) z.n++; });
+  comp.forEach(r=>{ const z=o.G[r.gov]; if(z && !dupVisits.has(r.visit||r.vno)) z.vis.add(r.visit||r.vno); });
+  plat.forEach(v=>{ const g=northGov(v.governorate)||CONFIG.DEFAULT_GOV; const z=o.G[g]; if(z) z.platVis++; });
+  platViol.forEach(v=>{ const g=northGov(v.governorate)||CONFIG.DEFAULT_GOV; const z=o.G[g]; if(z) z.n++; });
+  o.rows = NORTH_GOVS.map(g=>{ const z=o.G[g]; return {l:g, vis:z.vis.size+z.platVis, n:z.n, iss:z.iss, fine:z.fine}; });
+  o.vis = compVisits.size - dupVisits.size + plat.length;
+  o.n = compUniq.length + platViol.length;
+  o.rate = o.sent? Math.round(o.iss/o.sent*1000)/10 : 0;
+  /* المبادرة */
+  const ds = districtStats(plat, null, null); const planned=ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
+  const I = { planned, done, pending: planned? Math.max(0,planned-done) : 0, pct: planned? done/planned : null, inspected: plat.length, viol: platViol.length,
+    violRate: plat.length? platViol.length/plat.length : 0, dup: dupOf.size, leak: plat.filter(v=>v.leak).length, err: plat.filter(v=>v.contractor_error).length };
+  return { o, I, compN: comp.length, dupN: dupOf.size, f, t };
+}
+function slideNotes(D){ const o=D.o, I=D.I, out=[];
+  const top=o.rows.slice().sort((a,b)=>b.n-a.n)[0];
+  if(o.n && top && top.n) out.push(`أعلى محافظة في المخالفات: ${top.l} بعدد ${fmtN(top.n)} مخالفة (${Math.round(top.n/o.n*100)}% من الإجمالي).`);
+  if(o.sent) out.push(`نسبة الاعتماد ${o.rate}%: اعتمدت الهيئة ${fmtN(o.iss)} من ${fmtN(o.sent)} مخالفة محالة إليها.`);
+  if(I.planned) out.push(`مبادرة المسح الميداني: أُنجز ${fmtN(I.done)} من ${fmtN(I.planned)} موقع (${fmtP(I.pct)})، وبقي ${fmtN(I.pending)} موقع.`);
+  if(I.viol) out.push(`رُصد ${fmtN(I.viol)} تعدٍ في المبادرة (${fmtP(I.violRate)} من المعاينات)${D.dupN?`، منها ${fmtN(D.dupN)} مسجلة في التقرير الشامل واستُبعد تكرارها`:''}.`);
+  if(o.retW) out.push(`${fmtN(o.retW)} مخالفة مسترجعة بانتظار استكمال البيانات تحتاج متابعة.`);
+  return out.length? out.slice(0,4) : ['لا توجد بيانات في الفترة المختارة.']; }
+
+/* رسم الشريحة 1920×1080 على قالب تقرير المخالفات والتفتيش، مع لوحة مبادرة المسح الميداني */
+async function drawViolSlide(){
+  try{ await document.fonts.ready; }catch(e){}
+  const D=slideData(), o=D.o, I=D.I, ex=lsGet('hs_slide_extra',{});
+  const c=document.createElement('canvas'); c.width=1920; c.height=1080; const x=c.getContext('2d'); x.direction='rtl';
+  const FONT='"IBM Plex Sans Arabic", Arial, sans-serif', NAVY='#0b2e55', BLUE='#0061b5', SKY='#278cc4', CYAN='#1999af', TEAL='#0aa59b', RED='#d93025', GRAY='#5b7896', INK='#1d2b3a';
+  const F=(s,w=600)=>x.font=`${w} ${s}px ${FONT}`;
+  const T=(t,px,py,col=INK,al='right',dir='rtl')=>{ x.fillStyle=col; x.textAlign=al; x.direction=dir; x.textBaseline='middle'; x.fillText(String(t),px,py); };
+  const RR=(px,py,w,h,r,fill)=>{ x.beginPath(); x.roundRect(px,py,w,h,r); if(fill){ x.fillStyle=fill; x.fill(); } };
+  const shadow=on=>{ x.shadowColor=on?'rgba(0,40,90,.14)':'transparent'; x.shadowBlur=on?20:0; x.shadowOffsetY=on?5:0; };
+  const card=(px,py,w,h,fill='#fff')=>{ shadow(1); RR(px,py,w,h,18,fill); shadow(0); };
+  const panel=(px,py,w,h,t)=>{ card(px,py,w,h); x.save(); RR(px,py,w,h,18); x.clip(); x.fillStyle=NAVY; x.fillRect(px,py,w,50); x.restore(); F(22,700); T(t,px+w-22,py+26,'#fff'); };
+  x.fillStyle='#f3f6fa'; x.fillRect(0,0,1920,1080);
+  /* الترويسة */
+  card(44,24,1832,118); F(44,800); T('تقرير المخالفات والتفتيش',1812,70,NAVY); F(20,500); T('شركة المياه الوطنية  |  منصة المبادرات  |  إدارة المخالفات والتعديات',1812,114,GRAY);
+  try{ const lg=new Image(); lg.src='nwc-logo.png'; await lg.decode(); x.drawImage(lg,74,44,280,280*lg.height/lg.width); }catch(e){ F(50,800); T('NWC',80,82,BLUE,'left','ltr'); }
+  ['#0aa59b','#1999af','#278cc4','#0061b5','#0b2e55'].forEach((col,i)=>{ x.fillStyle=col; x.fillRect(44+i*1832/5,148,1832/5,6); });
+  /* شريط البيانات */
+  card(44,166,1832,58,'#eaf1f8'); F(21,700);
+  T(`القطاع: الشرقي        الوحدة: الشمالية        الفترة من: ${D.f?fmtD(D.f):'بداية البيانات'}   إلى: ${D.t?fmtD(D.t):fmtD(today())}        تاريخ الإصدار: ${fmtD(today())}`,960,196,NAVY,'center');
+  /* المؤشرات الخمسة */
+  const K=[['01','الزيارات الميدانية',fmtN(o.vis),NAVY],['02','المخالفات المعتمدة',fmtN(o.iss),TEAL],['03','نسبة الاعتماد',o.rate+'%',BLUE],['04','بانتظار استكمال البيانات',fmtN(o.retW),o.retW?RED:NAVY],['05','المحالة إلى الهيئة',fmtN(o.sent),SKY]];
+  const kw=(1832-4*22)/5;
+  K.forEach(([n,l,v,col],i)=>{ const px=44+(4-i)*(kw+22), py=240; card(px,py,kw,150); x.save(); RR(px,py,kw,150,18); x.clip(); x.fillStyle=col; x.fillRect(px,py,kw,10); x.restore();
+    F(19,800); T(n,px+20,py+40,col,'left','ltr'); F(22,800); T(l,px+kw-20,py+42,NAVY); F(54,800); T(v,px+kw/2,py+104,col,'center','ltr'); });
+  /* جدول + أعمدة */
+  const PY=406, PH=282, PW=904, RX=972, LX=44;
+  const table=(px,py,w,cols,data)=>{ const rh=Math.min(29, Math.floor((PH-96)/data.length)), cw=w/cols.length; F(17,800); cols.forEach((cc,j)=>T(cc,px+w-cw*j-cw/2,py+12,BLUE,'center')); x.fillStyle='#c9d6e6'; x.fillRect(px,py+27,w,1.5);
+    data.forEach((r,i)=>{ const y=py+28+rh*i+rh/2; const last=i===data.length-1; if(i%2){ x.fillStyle='#f5f8fc'; x.fillRect(px,y-rh/2,w,rh); } if(last){ x.fillStyle='#c9d6e6'; x.fillRect(px,y-rh/2,w,1.5); }
+      F(16.5,last?800:500); r.forEach((v,j)=>T(v,px+w-cw*j-cw/2,y,j?INK:NAVY,'center',j?'ltr':'rtl')); }); };
+  const bars=(px,py,w,h,items,colors)=>{ const max=Math.max(1,...items.flatMap(i=>i.v)); const gw=w/items.length, bw=Math.min(34,gw/(colors.length+1));
+    x.fillStyle='#e3ebf5'; x.fillRect(px,py+h-28,w,1.5);
+    items.forEach((it,i)=>{ const gx=px+w-gw*(i+1)+gw/2; const tw=bw*colors.length;
+      it.v.forEach((val,k)=>{ const bh=(h-62)*val/max, bx=gx-tw/2+k*bw; x.fillStyle=colors[k]; RR(bx+2,py+h-28-bh,bw-4,bh,4,colors[k]); if(val){ F(12,700); T(fmtN(val),bx+bw/2,py+h-38-bh,INK,'center','ltr'); } });
+      F(13,600); T(it.l,gx,py+h-12,GRAY,'center'); }); };
+  panel(RX,PY,PW,PH,'توزيع الزيارات والمخالفات حسب المحافظات');
+  const R1=o.rows.map(r=>[r.l,fmtN(r.vis),fmtN(r.n),(o.n?Math.round(r.n/o.n*100):0)+'%']); R1.push(['الإجمالي',fmtN(o.vis),fmtN(o.n),o.n?'100%':'0%']);
+  table(RX+PW-440,PY+64,420,['المحافظة','الزيارات','المخالفات','النسبة'],R1);
+  bars(RX+16,PY+60,PW-480,PH-64,o.rows.map(r=>({l:r.l,v:[r.vis,r.n]})),[SKY,TEAL]);
+  F(14,700); [['الزيارات',SKY],['المخالفات',TEAL]].forEach(([l,col],i)=>{ const px=RX+40+i*120, py=PY+76; x.fillStyle=col; x.fillRect(px,py-7,14,14); T(l,px+20,py,'#333','left'); });
+  panel(LX,PY,PW,PH,'المبالغ المعتمدة حسب المحافظات');
+  const R2=o.rows.map(r=>[r.l,fmtN(r.iss),fmtN(Math.round(r.fine))]); R2.push(['الإجمالي',fmtN(o.iss),fmtN(Math.round(o.fine))]);
+  table(LX+PW-440,PY+64,420,['المحافظة','عدد المخالفات','المبلغ (ريال)'],R2);
+  bars(LX+16,PY+60,PW-480,PH-64,o.rows.map(r=>({l:r.l,v:[Math.round(r.fine)]})),[BLUE]);
+  /* الصف السفلي: مبادرة المسح الميداني + الفاقد المسترجع + الملاحظات */
+  const BY=704, BH=262;
+  const IW=904; panel(RX,BY,IW,BH,'مبادرة المسح الميداني لأحياء حفر الباطن');
+  { const cx=RX+IW-118, cy=BY+50+(BH-50)/2+4, R=74, frac=I.pct||0;
+    x.lineWidth=26; x.strokeStyle=RED; x.beginPath(); x.arc(cx,cy,R,0,Math.PI*2); x.stroke();
+    if(frac>0){ x.strokeStyle=TEAL; x.beginPath(); x.arc(cx,cy,R,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.max(frac,.004)); x.stroke(); }
+    F(30,800); T(I.pct==null?'—':fmtP(I.pct),cx,cy-4,NAVY,'center','ltr'); F(14,600); T('نسبة الإنجاز',cx,cy+24,GRAY,'center');
+    const M=[['المستهدف',fmtN(I.planned),NAVY],['المنجز',fmtN(I.done),TEAL],['في انتظار المعاينة',fmtN(I.pending),RED],
+             ['التعديات المرصودة',fmtN(I.viol),RED],['نسبة التعدي',fmtP(I.violRate),BLUE],['مكرر في الملف الشامل',fmtN(D.dupN),CYAN]];
+    const gx0=RX+20, gw=IW-280, cw2=gw/3, ch2=(BH-80)/2;
+    M.forEach(([l,v,col],i)=>{ const px=gx0+gw-cw2*((i%3)+1)+6, py=BY+66+Math.floor(i/3)*(ch2+8); RR(px,py,cw2-12,ch2,12,'#f2f7fb'); x.fillStyle=col; x.fillRect(px+cw2-12-6,py,6,ch2);
+      F(16,600); T(l,px+cw2-30,py+26,GRAY); F(30,800); T(v,px+cw2-30,py+ch2-30,col,'right','ltr'); }); }
+  const LW=330, LX2=LX+570+20; panel(LX2,BY,LW,BH,'الفاقد المسترجع والتكاليف');
+  const lv=(l,v,py)=>{ F(17,700); T(l,LX2+LW-20,py,NAVY); RR(LX2+20,py+18,LW-40,46,12,'#eaf1f8'); F(26,800); T(v==null||v===''?'—':fmtN(v),LX2+LW/2,py+42,NAVY,'center','ltr'); };
+  lv('الفاقد المائي المسترجع (م³)',ex.m3,BY+82); lv('القيمة المالية (ريال)',ex.sar,BY+168);
+  const NW=570; panel(LX,BY,NW,BH,'الملاحظات التنفيذية');
+  const notes = (ex.notes&&ex.notes.trim()) ? ex.notes.split(/\n+/).filter(Boolean) : slideNotes(D);
+  let ny=BY+82; F(17,500);
+  const wrap=(t,w)=>{ const W=String(t).split(' '), L=[]; let cur=''; W.forEach(p=>{ const n=cur?cur+' '+p:p; if(x.measureText(n).width>w&&cur){ L.push(cur); cur=p; } else cur=n; }); if(cur) L.push(cur); return L; };
+  for(const tx of notes){ const L=wrap(tx,NW-70); for(let k=0;k<L.length && ny<BY+BH-14;k++){ if(!k){ x.fillStyle=BLUE; x.beginPath(); x.arc(LX+NW-26,ny,4.5,0,7); x.fill(); } F(17,500); T(L[k],LX+NW-40,ny,INK); ny+=26; } ny+=4; if(ny>BY+BH-14) break; }
+  /* التذييل */
+  card(44,984,1832,56,'#eaf1f8'); F(17,500);
+  T(`مصدر البيانات: منصة المبادرات (المرصود ميدانياً) + التقرير الشامل من منصة مكين${D.dupN?` بعد استبعاد ${fmtN(D.dupN)} مخالفة مكررة`:''}    |    تتحدّث الأرقام تلقائياً بحسب الفترة المختارة`,1812,1012,GRAY);
+  return c;
+}
+const slideName=()=>`شريحة-تقرير-المخالفات-والتفتيش-${today()}`;
+async function exportViolSlide(kind, btn){
+  const html0=btn.innerHTML; btn.disabled=true; btn.textContent='جاري التجهيز…';
+  try{
+    const c = await drawViolSlide();
+    const data = c.toDataURL('image/png');
+    if(kind==='see'){ $('#slidePrev').innerHTML=`<img src="${data}" alt="شريحة تقرير المخالفات والتفتيش" style="width:100%;display:block;border-radius:10px;box-shadow:0 6px 18px rgba(11,46,85,.18)">`; return; }
+    if(kind==='png'){ const a=document.createElement('a'); a.href=data; a.download=slideName()+'.png'; document.body.appendChild(a); a.click(); a.remove(); toast('تم تحميل الصورة'); return; }
+    if(kind==='ppt'){ const P=await loadLib('PptxGenJS',['lib/pptxgen.bundle.js','https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js']);
+      const pptx=new P(); pptx.layout='LAYOUT_WIDE'; pptx.rtlMode=true; const sl=pptx.addSlide(); sl.addImage({data, x:0, y:0, w:13.333, h:7.5});
+      await pptx.writeFile({fileName:slideName()+'.pptx'}); toast('تم تحميل شريحة PowerPoint'); return; }
+    if(kind==='pdf'){ await loadLib('html2pdf',['lib/html2pdf.bundle.min.js','https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js']);
+      await html2pdf().set({ margin:0, filename:slideName()+'.pdf', image:{type:'jpeg',quality:.95}, jsPDF:{unit:'px', format:[1920,1080], orientation:'landscape', hotfixes:['px_scaling'], compress:true} }).from(c,'canvas').save();
+      toast('تم تحميل PDF'); return; }
+  }catch(e){ toast('تعذر تجهيز الشريحة: '+(e.message||e), 6000); console.error(e); }
+  finally{ btn.disabled=false; btn.innerHTML=html0; }
+}
+
+/* واجهة التقرير الشامل في تبويب التقارير */
+function renderCompBox(){
+  const box=$('#compBox'); if(!box) return;
+  const rows=S.comp||[]; const last=rows.reduce((a,r)=> r.uploaded_at>a? r.uploaded_at : a, '');
+  const by=rows.find(r=>r.uploaded_at===last)?.uploaded_by||'';
+  const byGov={}; rows.forEach(r=>byGov[r.gov]=(byGov[r.gov]||0)+1);
+  const ex=lsGet('hs_slide_extra',{});
+  box.innerHTML = `<h3 style="margin:0">التقرير الشامل وشريحة تقرير المخالفات والتفتيش</h3>
+    <p class="hint" style="margin:0">الشريحة تجمع المرصود في المنصة مع التقرير الشامل (منصة مكين) لمحافظات الوحدة الشمالية، وتستبعد المخالفة المكررة إذا كانت بنفس الموقع (30 متر) أو برقم العداد أو الحصر نفسه. الفترة من خانتي «من تاريخ» و«إلى تاريخ» أعلاه.</p>
+    <div class="match ${rows.length?'p-ok':'p-warn'}">${rows.length? `التقرير الشامل الحالي: <b>${fmtN(rows.length)}</b> مخالفة للوحدة الشمالية${last?` · رُفع ${new Date(last).toLocaleString('ar-SA-u-ca-gregory-nu-latn',{dateStyle:'medium',timeStyle:'short'})}`:''}${by?` · بواسطة ${esc(by)}`:''}<br><span class="mini">${Object.entries(byGov).map(([g,n])=>`${esc(g)}: ${fmtN(n)}`).join(' · ')}</span>` : 'لم يُرفع التقرير الشامل بعد. الشريحة تعمل ببيانات المنصة فقط حتى يُرفع.'}</div>
+    ${canUploadComp()? `<div class="row-btns"><label class="btn pri">رفع التقرير الشامل (Excel)<input type="file" id="compFile" accept=".xlsx,.xls,.csv" hidden></label><span class="hint">الملف الجديد يستبدل السابق. تُحفظ محافظات الوحدة الشمالية فقط.</span></div><div id="compPreview"></div>`
+      : `<p class="hint" style="margin:0">رفع التقرير الشامل لمن لديه صلاحية «رفع الملف الشامل» فقط.</p>`}
+    <div class="form">
+      <label class="f">الفاقد المائي المسترجع (م³)<input class="in" id="slM3" inputmode="decimal" dir="ltr" value="${esc(ex.m3??'')}" placeholder="اختياري"></label>
+      <label class="f">القيمة المالية (ريال)<input class="in" id="slSar" inputmode="decimal" dir="ltr" value="${esc(ex.sar??'')}" placeholder="اختياري"></label>
+    </div>
+    <label class="f">الملاحظات التنفيذية <span class="mini">(سطر لكل ملاحظة، واتركها فاضية لتُكتب آلياً من الأرقام)</span><textarea class="in" id="slNotes" style="min-height:70px">${esc(ex.notes||'')}</textarea></label>
+    <div class="row-btns"><button class="btn" id="slSee">معاينة الشريحة</button><button class="btn pri" id="slPpt">PowerPoint</button><button class="btn pri" id="slPdf">PDF</button><button class="btn" id="slPng">صورة</button></div>
+    <div id="slidePrev"></div>`;
+  const sv=()=>{ const n=v=>{ const t=normalize(String(v||'')).replace(/[^\d.]/g,''); return t===''?null:+t; }; lsSet('hs_slide_extra',{m3:n($('#slM3').value), sar:n($('#slSar').value), notes:$('#slNotes').value}); };
+  ['slM3','slSar','slNotes'].forEach(id=>$('#'+id).oninput=sv);
+  [['slSee','see'],['slPpt','ppt'],['slPdf','pdf'],['slPng','png']].forEach(([id,k])=>$('#'+id).onclick=e=>exportViolSlide(k,e.currentTarget));
+  const fi=$('#compFile'); if(fi) fi.onchange=async()=>{
+    const file=fi.files[0]; fi.value=''; if(!file) return;
+    const pv=$('#compPreview'); pv.innerHTML='<div class="hint">جاري قراءة الملف… قد يستغرق دقيقة للملفات الكبيرة</div>';
+    try{
+      await new Promise(r=>setTimeout(r,30));
+      const P = await parseCompFile(file);
+      pv.innerHTML = `<div class="vcard"><b>${esc(file.name)}</b>
+        <div class="hint">صفوف الملف: ${fmtN(P.total)} · مخالفات الوحدة الشمالية بعد استبعاد المكرر داخل الملف: <b>${fmtN(P.rows.length)}</b></div>
+        <div class="hint">${Object.entries(P.byGov).map(([g,n])=>`${esc(g)}: ${fmtN(n)}`).join(' · ')||'لا توجد مخالفات لمحافظات الوحدة الشمالية في الملف'}</div>
+        <div class="row-btns"><button class="btn pri sm" id="compGo" ${P.rows.length?'':'disabled'}>اعتماد الملف واستبدال السابق</button><button class="btn sm" id="compCancel">إلغاء</button><span class="hint" id="compSt"></span></div></div>`;
+      $('#compCancel').onclick=()=>pv.innerHTML='';
+      $('#compGo').onclick=async()=>{ const b=$('#compGo'); b.disabled=true;
+        try{ await DB.replaceComp(P.rows, n=>$('#compSt').textContent=`جاري الرفع ${fmtN(n)} من ${fmtN(P.rows.length)}…`); toast(`تم رفع التقرير الشامل: ${fmtN(P.rows.length)} مخالفة`); renderCompBox(); }
+        catch(e){ $('#compSt').textContent='تعذر الرفع: '+(e.message||e); b.disabled=false; } };
+    }catch(e){ pv.innerHTML=`<div class="match p-bad">${esc(e.message||e)}</div>`; }
+  };
+}
+
 $('#xlsBtn').dataset.html = $('#xlsBtn').innerHTML;
 $('#xlsBtn').onclick = ()=>{ if(typeof ExcelJS!=='undefined') exportExcelWithPhotos(); else exportExcelBasic(); };
 function exportExcelBasic(){
@@ -2229,15 +2478,17 @@ async function renderSettings(){
   if(MODE==='local'){ $('#members').innerHTML='<p class="hint">إدارة المستخدمين تعمل بعد ربط المنصة بـ Supabase: كل شخص يطلب حساباً من شاشة الدخول وأنت توافق وتحدد صلاحيته هنا.</p>'; $('#localRole').value=S.role; return; }
   const {data,error} = await sb.from('survey_members').select('*').order('created_at');
   if(error){ $('#members').innerHTML='<p class="hint">'+esc(error.message)+'</p>'; return; }
-  $('#members').innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>الاسم</th><th>البريد</th><th>الصلاحية</th><th>الحالة</th><th></th></tr></thead><tbody>${data.map(m=>`<tr style="cursor:default"><td>${esc(m.full_name)}</td><td>${esc(m.email)}</td>
+  $('#members').innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>الاسم</th><th>البريد</th><th>الصلاحية</th><th>رفع الملف الشامل</th><th>الحالة</th><th></th></tr></thead><tbody>${data.map(m=>`<tr style="cursor:default"><td>${esc(m.full_name)}</td><td>${esc(m.email)}</td>
     <td><select class="in" data-mrole="${m.id}" style="min-width:130px">${Object.entries(ROLE_NAMES).map(([k,n])=>`<option value="${k}" ${m.role===k?'selected':''}>${n}</option>`).join('')}</select></td>
+    <td style="text-align:center"><input type="checkbox" data-mup="${m.id}" ${m.role==='admin'||m.can_upload?'checked':''} ${m.role==='admin'?'disabled title="مدير المبادرة يملك الصلاحية دائماً"':''} style="width:20px;height:20px"></td>
     <td>${m.approved?'<span class="pill p-ok">مفعّل</span>':'<span class="pill p-warn">بانتظار الموافقة</span>'}</td>
     <td>${m.approved?`<button class="btn sm" data-mapp="${m.id}" data-v="0">إيقاف</button>`:`<button class="btn sm pri" data-mapp="${m.id}" data-v="1">موافقة</button>`}</td></tr>`).join('')}</tbody></table></div>`;
   $$('[data-mrole]').forEach(s=>s.onchange=async()=>{ const {error}=await sb.from('survey_members').update({role:s.value}).eq('id',s.dataset.mrole); toast(error?error.message:'تم تحديث الصلاحية'); });
+  $$('[data-mup]').forEach(c=>c.onchange=async()=>{ const {error}=await sb.from('survey_members').update({can_upload:c.checked}).eq('id',c.dataset.mup); toast(error? (/can_upload/.test(error.message)?'شغّل أمر إضافة صلاحية الملف الشامل في Supabase أولاً':error.message) : (c.checked?'تم منح صلاحية رفع الملف الشامل':'تم سحب صلاحية رفع الملف الشامل')); });
   $$('[data-mapp]').forEach(b=>b.onclick=async()=>{ const {error}=await sb.from('survey_members').update({approved:b.dataset.v==='1'}).eq('id',b.dataset.mapp); toast(error?error.message:'تم'); renderSettings(); });
 }
 $('#localRole').onchange = e=>{ S.role=e.target.value; lsSet('hs_role', S.role); applyRole(); show(S.tab); };
-$('#wipeLocal').onclick = async()=>{ if(!confirm('مسح كل البيانات التجريبية من هذا الجهاز؟')) return; for(const s of ['sites','visits','media','daily','districts']) await IDB.clear(s); await DB.loadAll(); buildSiteIdx(); render(); toast('تم المسح'); };
+$('#wipeLocal').onclick = async()=>{ if(!confirm('مسح كل البيانات التجريبية من هذا الجهاز؟')) return; for(const s of ['sites','visits','media','daily','districts','comp']) await IDB.clear(s); await DB.loadAll(); buildSiteIdx(); render(); toast('تم المسح'); };
 $('#refreshBtn').onclick = async()=>{ await DB.loadAll(); buildSiteIdx(); render(); toast('تم التحديث'); };
 
 /* ================== الدخول ================== */
@@ -2270,7 +2521,7 @@ async function afterLogin(){
   if(!user){ showLogin(); return; }
   const {data:m} = await sb.from('survey_members').select('*').eq('id',user.id).maybeSingle();
   if(!m || !m.approved){ await sb.auth.signOut(); showLogin(); loginMsg('حسابك بانتظار موافقة مدير المبادرة.'); return; }
-  S.user=user; S.role=m.role; S.userName=m.full_name||user.email;
+  S.user=user; S.role=m.role; S.userName=m.full_name||user.email; S.canUpload=!!m.can_upload;
   $('#logoutBtn').hidden=false;
   await startApp();
 }

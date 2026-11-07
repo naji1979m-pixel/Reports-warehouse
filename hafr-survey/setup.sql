@@ -111,3 +111,23 @@ create policy sm_del on storage.objects for delete using (bucket_id = 'survey-me
 
 -- بعد ما تسجّل حسابك من شاشة «طلب حساب جديد» شغّل السطر التالي ببريدك لتصبح مدير المبادرة:
 -- update survey_members set role = 'admin', approved = true where email = 'بريدك@example.com';
+
+-- ===== التقرير الشامل (منصة مكين) وصلاحية رفعه =====
+create table if not exists survey_comprehensive (
+  vno text primary key, visit text, gov text, region text, vdate date, vstat text, vvisit text, amin text, decision text, dec_date text, pres text,
+  fine numeric default 0, coords text, lat double precision, lng double precision, item text, prop text, sev text, officer text, explain text,
+  uploaded_at timestamptz default now(), uploaded_by text
+);
+alter table survey_members add column if not exists can_upload boolean not null default false;
+create or replace function survey_can_upload() returns boolean language sql stable security definer set search_path = public as $$
+  select exists(select 1 from survey_members where id = auth.uid() and approved and (role = 'admin' or can_upload))
+$$;
+alter table survey_comprehensive enable row level security;
+drop policy if exists cp_sel on survey_comprehensive; drop policy if exists cp_ins on survey_comprehensive;
+drop policy if exists cp_upd on survey_comprehensive; drop policy if exists cp_del on survey_comprehensive;
+create policy cp_sel on survey_comprehensive for select using (survey_role() is not null);
+create policy cp_ins on survey_comprehensive for insert with check (survey_can_upload());
+create policy cp_upd on survey_comprehensive for update using (survey_can_upload());
+create policy cp_del on survey_comprehensive for delete using (survey_can_upload());
+grant select, insert, update, delete on survey_comprehensive to authenticated;
+grant execute on function survey_can_upload() to authenticated;

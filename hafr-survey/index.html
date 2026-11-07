@@ -2287,15 +2287,15 @@ async function drawViolSlide(){
   card(44,166,1832,58,'#eaf1f8'); F(21,700);
   T(`القطاع: الشرقي        الوحدة: الشمالية        الفترة من: ${D.f?fmtD(D.f):'بداية البيانات'}   إلى: ${D.t?fmtD(D.t):fmtD(today())}        تاريخ الإصدار: ${fmtD(today())}`,960,196,NAVY,'center');
   /* المؤشرات الخمسة */
-  const K=[['01','الزيارات الميدانية',fmtN(o.vis),NAVY],['02','المخالفات المرصودة',fmtN(o.n),CYAN],['03','المخالفات المعتمدة من مدير الرقابة بالشركة',fmtN(o.sent),TEAL],['04','المخالفات غير المعتمدة لعدم اكتمال أركان المخالفة',fmtN(o.rej),o.rej?RED:NAVY],['05','نسبة الاعتماد',o.rate+'%',BLUE],['06','بانتظار استكمال البيانات',fmtN(o.archData),o.archData?'#b26a00':NAVY],['07','المعتمد من الهيئة السعودية للمياه',fmtN(o.iss),SKY]];
-  const NK=K.length, kw=(1832-(NK-1)*22)/NK;
-  K.forEach(([n,l,v,col],i)=>{ const px=44+(NK-1-i)*(kw+22), py=240; card(px,py,kw,150); x.save(); RR(px,py,kw,150,18); x.clip(); x.fillStyle=col; x.fillRect(px,py,kw,10); x.restore();
+  const K=[['01','الزيارات الميدانية',fmtN(o.vis),NAVY],['02','المخالفات المرصودة',fmtN(o.n),CYAN],['03','بانتظار المراجعة والاعتماد من مدير الرقابة بالشركة',fmtN(o.pend),'#b26a00'],['04','المخالفات المعتمدة من مدير الرقابة بالشركة',fmtN(o.sent),TEAL],['05','المخالفات غير المعتمدة لعدم اكتمال أركان المخالفة',fmtN(o.rej),o.rej?RED:NAVY],['06','نسبة الاعتماد',o.rate+'%',BLUE],['07','بانتظار استكمال البيانات',fmtN(o.archData),GRAY],['08','المعتمد من الهيئة السعودية للمياه',fmtN(o.iss),SKY]];
+  const NK=K.length, KG=16, kw=(1832-(NK-1)*KG)/NK;
+  K.forEach(([n,l,v,col],i)=>{ const px=44+(NK-1-i)*(kw+KG), py=240; card(px,py,kw,150); x.save(); RR(px,py,kw,150,18); x.clip(); x.fillStyle=col; x.fillRect(px,py,kw,10); x.restore();
     F(18,800); T(n,px+16,py+34,col,'left','ltr');
     const wrapL=(fs,w)=>{ F(fs,800); const W=l.split(' '), L=[]; let cur=''; W.forEach(p=>{ const t2=cur?cur+' '+p:p; if(x.measureText(t2).width>w && cur){ L.push(cur); cur=p; } else cur=t2; }); if(cur) L.push(cur); return L; };
     let fs=21, L=wrapL(fs,kw-62); if(L.length>2){ fs=18; L=wrapL(fs,kw-62); } if(L.length>2){ fs=16; L=wrapL(fs,kw-56); }
     const lh=fs+5; L.forEach((ln,k)=>T(ln,px+kw-16,py+34+k*lh,NAVY));
     const vy=py+34+(L.length-1)*lh+(150-34-(L.length-1)*lh)/2+8;
-    if(n==='02'){ F(44,800); T(v,px+kw/2,py+88,col,'center','ltr'); F(13.5,600); T(`بانتظار المراجعة ${fmtN(o.pend)}  ·  المبادرة ${fmtN(o.platOnly)}`,px+kw/2,py+130,GRAY,'center'); }
+    if(n==='02'){ F(L.length>1?38:44,800); T(v,px+kw/2,L.length>1?py+102:py+88,col,'center','ltr'); F(13,600); T(`منها تعديات المبادرة: ${fmtN(o.platOnly)}`,px+kw/2,py+136,GRAY,'center'); }
     else { F(L.length>2?42:48,800); T(v,px+kw/2,Math.min(vy,py+120),col,'center','ltr'); } });
   /* جدول + أعمدة */
   const PY=406, PH=282, PW=904, RX=972, LX=44;

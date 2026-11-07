@@ -2287,16 +2287,15 @@ async function drawViolSlide(){
   card(44,166,1832,58,'#eaf1f8'); F(21,700);
   T(`القطاع: الشرقي        الوحدة: الشمالية        الفترة من: ${D.f?fmtD(D.f):'بداية البيانات'}   إلى: ${D.t?fmtD(D.t):fmtD(today())}        تاريخ الإصدار: ${fmtD(today())}`,960,196,NAVY,'center');
   /* المؤشرات الخمسة */
-  const K=[['01','الزيارات الميدانية',fmtN(o.vis),NAVY],['02','المخالفات المرصودة',fmtN(o.n),CYAN],['03','بانتظار المراجعة والاعتماد من مدير الرقابة بالشركة',fmtN(o.pend),'#b26a00'],['04','المخالفات المعتمدة من مدير الرقابة بالشركة',fmtN(o.sent),TEAL],['05','المخالفات غير المعتمدة لعدم اكتمال أركان المخالفة',fmtN(o.rej),o.rej?RED:NAVY],['06','نسبة الاعتماد',o.rate+'%',BLUE],['07','بانتظار استكمال البيانات',fmtN(o.archData),GRAY],['08','المعتمد من الهيئة السعودية للمياه',fmtN(o.iss),SKY]];
+  const K=[['01','الزيارات الميدانية',fmtN(o.vis),NAVY],['02','المخالفات المرصودة',fmtN(o.n),CYAN],['03','تعديات المبادرة غير المسجلة في منصة مكين',fmtN(o.platOnly),'#5a8a2e'],['04','بانتظار المراجعة والاعتماد من مدير الرقابة بالشركة',fmtN(o.pend),'#b26a00'],['05','المخالفات المعتمدة من مدير الرقابة بالشركة',fmtN(o.sent),TEAL],['06','المخالفات غير المعتمدة لعدم اكتمال أركان المخالفة',fmtN(o.rej),o.rej?RED:NAVY],['07','نسبة الاعتماد',o.rate+'%',BLUE],['08','بانتظار استكمال البيانات',fmtN(o.archData),GRAY],['09','المعتمد من الهيئة السعودية للمياه',fmtN(o.iss),SKY]];
   const NK=K.length, KG=16, kw=(1832-(NK-1)*KG)/NK;
   K.forEach(([n,l,v,col],i)=>{ const px=44+(NK-1-i)*(kw+KG), py=240; card(px,py,kw,150); x.save(); RR(px,py,kw,150,18); x.clip(); x.fillStyle=col; x.fillRect(px,py,kw,10); x.restore();
     F(18,800); T(n,px+16,py+34,col,'left','ltr');
     const wrapL=(fs,w)=>{ F(fs,800); const W=l.split(' '), L=[]; let cur=''; W.forEach(p=>{ const t2=cur?cur+' '+p:p; if(x.measureText(t2).width>w && cur){ L.push(cur); cur=p; } else cur=t2; }); if(cur) L.push(cur); return L; };
-    let fs=21, L=wrapL(fs,kw-62); if(L.length>2){ fs=18; L=wrapL(fs,kw-62); } if(L.length>2){ fs=16; L=wrapL(fs,kw-56); }
+    let fs=20, L=wrapL(fs,kw-56); if(L.length>2){ fs=17; L=wrapL(fs,kw-54); } if(L.length>3){ fs=15; L=wrapL(fs,kw-50); }
     const lh=fs+5; L.forEach((ln,k)=>T(ln,px+kw-16,py+34+k*lh,NAVY));
     const vy=py+34+(L.length-1)*lh+(150-34-(L.length-1)*lh)/2+8;
-    if(n==='02'){ F(L.length>1?38:44,800); T(v,px+kw/2,L.length>1?py+102:py+88,col,'center','ltr'); F(13,600); T(`منها تعديات المبادرة: ${fmtN(o.platOnly)}`,px+kw/2,py+136,GRAY,'center'); }
-    else { F(L.length>2?42:48,800); T(v,px+kw/2,Math.min(vy,py+120),col,'center','ltr'); } });
+    { F(L.length>2?38:46,800); T(v,px+kw/2,Math.min(vy,py+124),col,'center','ltr'); } });
   /* جدول + أعمدة */
   const PY=406, PH=282, PW=904, RX=972, LX=44;
   const table=(px,py,w,cols,data)=>{ const rh=Math.min(29, Math.floor((PH-96)/data.length)), cw=w/cols.length; F(17,800); cols.forEach((cc,j)=>T(cc,px+w-cw*j-cw/2,py+12,BLUE,'center')); x.fillStyle='#c9d6e6'; x.fillRect(px,py+27,w,1.5);
@@ -2338,7 +2337,7 @@ async function drawViolSlide(){
   for(const tx of notes){ const L=wrap(tx,NW-70); for(let k=0;k<L.length && ny<BY+BH-14;k++){ if(!k){ x.fillStyle=BLUE; x.beginPath(); x.arc(LX+NW-26,ny,4.5,0,7); x.fill(); } F(17,500); T(L[k],LX+NW-40,ny,INK); ny+=26; } ny+=4; if(ny>BY+BH-14) break; }
   /* التذييل */
   card(44,984,1832,56,'#eaf1f8'); F(17,500);
-  T(`المرصود ${fmtN(o.n)} = معتمدة ${fmtN(o.sent)} + غير معتمدة ${fmtN(o.rej)} + مؤرشفة ${fmtN(o.archData)} + بانتظار المراجعة ${fmtN(o.pend)} + تعديات المبادرة غير المسجلة في الشامل ${fmtN(o.platOnly)}    |    المصدر: التقرير الشامل (منصة مكين) + منصة المبادرات${D.dupN?` بعد استبعاد ${fmtN(D.dupN)} مكرر`:''}`,1812,1012,GRAY);
+  T(`المرصود ${fmtN(o.n)} = معتمدة ${fmtN(o.sent)} + غير معتمدة ${fmtN(o.rej)} + مؤرشفة ${fmtN(o.archData)} + بانتظار المراجعة ${fmtN(o.pend)} + تعديات المبادرة ${fmtN(o.platOnly)}    |    المصدر: التقرير الشامل (منصة مكين) + منصة المبادرات${D.dupN?` بعد استبعاد ${fmtN(D.dupN)} مكرر`:''}`,1812,1012,GRAY);
   return c;
 }
 const slideName=()=>`شريحة-تقرير-المخالفات-والتفتيش-${today()}`;

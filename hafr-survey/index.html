@@ -2224,27 +2224,29 @@ function slideData(){
   const plat = S.visits.filter(v=> (!f&&!t) || inP(v.visit_date));
   const platViol = plat.filter(v=>v.result===R_BAD||v.result===R_REM);
   const dupOf = markCompDuplicates(comp, platViol);
-  const compUniq = comp.filter(r=>!dupOf.has(r.vno));
   comp.forEach(r=> r._c = r._c || compCls(r));
-  const o={ vis:0, n:0, iss:0, sent:0, retW:0, archData:0, rej:0, fine:0, G:{} };
+  const o={ vis:0, n:0, iss:0, sent:0, retW:0, archData:0, rej:0, pend:0, platOnly:0, fine:0, G:{} };
   NORTH_GOVS.forEach(g=> o.G[g]={l:g, vis:new Set(), platVis:0, n:0, iss:0, fine:0});
-  comp.forEach(r=>{ const c=r._c, z=o.G[r.gov];
+  /* كل مخالفة في الملف الشامل تقع في خانة واحدة فقط، فمجموع الخانات = المرصود:
+     معتمدة من مدير الرقابة + غير معتمدة + مؤرشفة لعدم توفر بيانات المخالف + بانتظار المراجعة والاعتماد + تعديات المبادرة غير المسجلة في الشامل */
+  comp.forEach(r=>{ const c=r._c, z=o.G[r.gov], dec=(r.decision||'').trim();
     if(c==='iss'||c==='auth'||c==='ret') o.sent++;
+    else if(dec==='غير معتمدة') o.rej++;
+    else if(c==='arch') o.archData++;
+    else o.pend++;
     if(c==='iss'){ o.iss++; o.fine+=r.fine||0; if(z){ z.iss++; z.fine+=r.fine||0; } }
     if(c==='ret' && compRetW(r)) o.retW++;
-    /* مؤرشفة بسبب عدم توفر بيانات المخالف: حالة المخالفة «أرشيف» وليست مرفوضة من مدير الرقابة ولا صدر لها قرار */
-    if((r.decision||'').trim()==='غير معتمدة') o.rej++;
-    if(c!=='iss' && /أرشيف/.test(r.vstat||'') && (r.decision||'').trim()!=='غير معتمدة') o.archData++; });
-  /* الزيارات والمخالفات: الملف الشامل + المرصود في المنصة، بدون المكرر */
-  const dupVisits=new Set(comp.filter(r=>dupOf.has(r.vno)).map(r=>r.visit||r.vno));
+    if(z){ z.n++; z.vis.add(r.visit||r.vno); } });
+  /* الزيارات والمخالفات: الملف الشامل كاملاً + المرصود في المبادرة غير المسجل في الشامل */
+  const dupIds=new Set(dupOf.values());
   const compVisits=new Set(comp.map(r=>r.visit||r.vno));
-  compUniq.forEach(r=>{ const z=o.G[r.gov]; if(z) z.n++; });
-  comp.forEach(r=>{ const z=o.G[r.gov]; if(z && !dupVisits.has(r.visit||r.vno)) z.vis.add(r.visit||r.vno); });
-  plat.forEach(v=>{ const g=northGov(v.governorate)||CONFIG.DEFAULT_GOV; const z=o.G[g]; if(z) z.platVis++; });
-  platViol.forEach(v=>{ const g=northGov(v.governorate)||CONFIG.DEFAULT_GOV; const z=o.G[g]; if(z) z.n++; });
+  const platU = plat.filter(v=>!dupIds.has(v.id)), platViolU = platViol.filter(v=>!dupIds.has(v.id));
+  platU.forEach(v=>{ const g=northGov(v.governorate)||CONFIG.DEFAULT_GOV; const z=o.G[g]; if(z) z.platVis++; });
+  platViolU.forEach(v=>{ const g=northGov(v.governorate)||CONFIG.DEFAULT_GOV; const z=o.G[g]; if(z) z.n++; });
   o.rows = NORTH_GOVS.map(g=>{ const z=o.G[g]; return {l:g, vis:z.vis.size+z.platVis, n:z.n, iss:z.iss, fine:z.fine}; });
-  o.vis = compVisits.size - dupVisits.size + plat.length;
-  o.n = compUniq.length + platViol.length;
+  o.vis = compVisits.size + platU.length;
+  o.platOnly = platViolU.length;
+  o.n = comp.length + o.platOnly;
   /* نسبة الاعتماد: ما اعتمده مدير الرقابة بالشركة ÷ المخالفات المرصودة في الفترة */
   o.rate = o.n? Math.round(o.sent/o.n*1000)/10 : 0;
   /* المبادرة */
@@ -2292,7 +2294,9 @@ async function drawViolSlide(){
     const wrapL=(fs,w)=>{ F(fs,800); const W=l.split(' '), L=[]; let cur=''; W.forEach(p=>{ const t2=cur?cur+' '+p:p; if(x.measureText(t2).width>w && cur){ L.push(cur); cur=p; } else cur=t2; }); if(cur) L.push(cur); return L; };
     let fs=21, L=wrapL(fs,kw-62); if(L.length>2){ fs=18; L=wrapL(fs,kw-62); } if(L.length>2){ fs=16; L=wrapL(fs,kw-56); }
     const lh=fs+5; L.forEach((ln,k)=>T(ln,px+kw-16,py+34+k*lh,NAVY));
-    const vy=py+34+(L.length-1)*lh+(150-34-(L.length-1)*lh)/2+8; F(L.length>2?42:48,800); T(v,px+kw/2,Math.min(vy,py+120),col,'center','ltr'); });
+    const vy=py+34+(L.length-1)*lh+(150-34-(L.length-1)*lh)/2+8;
+    if(n==='02'){ F(44,800); T(v,px+kw/2,py+88,col,'center','ltr'); F(13.5,600); T(`بانتظار المراجعة ${fmtN(o.pend)}  ·  المبادرة ${fmtN(o.platOnly)}`,px+kw/2,py+130,GRAY,'center'); }
+    else { F(L.length>2?42:48,800); T(v,px+kw/2,Math.min(vy,py+120),col,'center','ltr'); } });
   /* جدول + أعمدة */
   const PY=406, PH=282, PW=904, RX=972, LX=44;
   const table=(px,py,w,cols,data)=>{ const rh=Math.min(29, Math.floor((PH-96)/data.length)), cw=w/cols.length; F(17,800); cols.forEach((cc,j)=>T(cc,px+w-cw*j-cw/2,py+12,BLUE,'center')); x.fillStyle='#c9d6e6'; x.fillRect(px,py+27,w,1.5);
@@ -2334,7 +2338,7 @@ async function drawViolSlide(){
   for(const tx of notes){ const L=wrap(tx,NW-70); for(let k=0;k<L.length && ny<BY+BH-14;k++){ if(!k){ x.fillStyle=BLUE; x.beginPath(); x.arc(LX+NW-26,ny,4.5,0,7); x.fill(); } F(17,500); T(L[k],LX+NW-40,ny,INK); ny+=26; } ny+=4; if(ny>BY+BH-14) break; }
   /* التذييل */
   card(44,984,1832,56,'#eaf1f8'); F(17,500);
-  T(`مصدر البيانات: منصة المبادرات (المرصود ميدانياً) + التقرير الشامل من منصة مكين${D.dupN?` بعد استبعاد ${fmtN(D.dupN)} مخالفة مكررة`:''}    |    تتحدّث الأرقام تلقائياً بحسب الفترة المختارة`,1812,1012,GRAY);
+  T(`المرصود ${fmtN(o.n)} = معتمدة ${fmtN(o.sent)} + غير معتمدة ${fmtN(o.rej)} + مؤرشفة ${fmtN(o.archData)} + بانتظار المراجعة ${fmtN(o.pend)} + تعديات المبادرة غير المسجلة في الشامل ${fmtN(o.platOnly)}    |    المصدر: التقرير الشامل (منصة مكين) + منصة المبادرات${D.dupN?` بعد استبعاد ${fmtN(D.dupN)} مكرر`:''}`,1812,1012,GRAY);
   return c;
 }
 const slideName=()=>`شريحة-تقرير-المخالفات-والتفتيش-${today()}`;

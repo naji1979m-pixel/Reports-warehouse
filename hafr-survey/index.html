@@ -2226,13 +2226,14 @@ function slideData(){
   const dupOf = markCompDuplicates(comp, platViol);
   const compUniq = comp.filter(r=>!dupOf.has(r.vno));
   comp.forEach(r=> r._c = r._c || compCls(r));
-  const o={ vis:0, n:0, iss:0, sent:0, retW:0, archData:0, fine:0, G:{} };
+  const o={ vis:0, n:0, iss:0, sent:0, retW:0, archData:0, rej:0, fine:0, G:{} };
   NORTH_GOVS.forEach(g=> o.G[g]={l:g, vis:new Set(), platVis:0, n:0, iss:0, fine:0});
   comp.forEach(r=>{ const c=r._c, z=o.G[r.gov];
     if(c==='iss'||c==='auth'||c==='ret') o.sent++;
     if(c==='iss'){ o.iss++; o.fine+=r.fine||0; if(z){ z.iss++; z.fine+=r.fine||0; } }
     if(c==='ret' && compRetW(r)) o.retW++;
     /* مؤرشفة بسبب عدم توفر بيانات المخالف: حالة المخالفة «أرشيف» وليست مرفوضة من مدير الرقابة ولا صدر لها قرار */
+    if((r.decision||'').trim()==='غير معتمدة') o.rej++;
     if(c!=='iss' && /أرشيف/.test(r.vstat||'') && (r.decision||'').trim()!=='غير معتمدة') o.archData++; });
   /* الزيارات والمخالفات: الملف الشامل + المرصود في المنصة، بدون المكرر */
   const dupVisits=new Set(comp.filter(r=>dupOf.has(r.vno)).map(r=>r.visit||r.vno));
@@ -2259,6 +2260,7 @@ function slideNotes(D){ const o=D.o, I=D.I, out=[];
   if(o.n) out.push(`نسبة الاعتماد ${o.rate}%: اعتمد مدير الرقابة بالشركة ${fmtN(o.sent)} من ${fmtN(o.n)} مخالفة مرصودة في الفترة، واعتمدت الهيئة منها ${fmtN(o.iss)}.`);
   if(I.planned) out.push(`مبادرة المسح الميداني: أُنجز ${fmtN(I.done)} من ${fmtN(I.planned)} موقع (${fmtP(I.pct)})، وبقي ${fmtN(I.pending)} موقع.`);
   if(I.viol) out.push(`رُصد ${fmtN(I.viol)} تعدٍ في المبادرة (${fmtP(I.violRate)} من المعاينات)${D.dupN?`، منها ${fmtN(D.dupN)} مسجلة في التقرير الشامل واستُبعد تكرارها`:''}.`);
+  if(o.rej) out.push(`${fmtN(o.rej)} مخالفة غير معتمدة من مدير الرقابة لعدم اكتمال أركان المخالفة.`);
   if(o.archData) out.push(`${fmtN(o.archData)} مخالفة مؤرشفة لعدم توفر بيانات المخالف — بانتظار استكمال البيانات.`);
   return out.length? out.slice(0,4) : ['لا توجد بيانات في الفترة المختارة.']; }
 
@@ -2283,12 +2285,14 @@ async function drawViolSlide(){
   card(44,166,1832,58,'#eaf1f8'); F(21,700);
   T(`القطاع: الشرقي        الوحدة: الشمالية        الفترة من: ${D.f?fmtD(D.f):'بداية البيانات'}   إلى: ${D.t?fmtD(D.t):fmtD(today())}        تاريخ الإصدار: ${fmtD(today())}`,960,196,NAVY,'center');
   /* المؤشرات الخمسة */
-  const K=[['01','الزيارات الميدانية',fmtN(o.vis),NAVY],['02','المخالفات المرصودة',fmtN(o.n),'#b26a00'],['03','المخالفات المعتمدة من مدير الرقابة بالشركة',fmtN(o.sent),TEAL],['04','نسبة الاعتماد',o.rate+'%',BLUE],['05','بانتظار استكمال البيانات',fmtN(o.archData),o.archData?RED:NAVY],['06','المعتمد من الهيئة السعودية للمياه',fmtN(o.iss),SKY]];
+  const K=[['01','الزيارات الميدانية',fmtN(o.vis),NAVY],['02','المخالفات المرصودة',fmtN(o.n),CYAN],['03','المخالفات المعتمدة من مدير الرقابة بالشركة',fmtN(o.sent),TEAL],['04','المخالفات غير المعتمدة لعدم اكتمال أركان المخالفة',fmtN(o.rej),o.rej?RED:NAVY],['05','نسبة الاعتماد',o.rate+'%',BLUE],['06','بانتظار استكمال البيانات',fmtN(o.archData),o.archData?'#b26a00':NAVY],['07','المعتمد من الهيئة السعودية للمياه',fmtN(o.iss),SKY]];
   const NK=K.length, kw=(1832-(NK-1)*22)/NK;
   K.forEach(([n,l,v,col],i)=>{ const px=44+(NK-1-i)*(kw+22), py=240; card(px,py,kw,150); x.save(); RR(px,py,kw,150,18); x.clip(); x.fillStyle=col; x.fillRect(px,py,kw,10); x.restore();
-    F(19,800); T(n,px+20,py+40,col,'left','ltr'); F(22,800);
-    if(x.measureText(l).width<=kw-80){ T(l,px+kw-20,py+42,NAVY); F(54,800); T(v,px+kw/2,py+104,col,'center','ltr'); }
-    else { F(19,800); const W=l.split(' '); let a=W.slice(0,Math.ceil(W.length/2)).join(' '), b=W.slice(Math.ceil(W.length/2)).join(' '); for(let k=Math.ceil(W.length/2);k<W.length && x.measureText(a).width<x.measureText(b).width;k++){ a=W.slice(0,k+1).join(' '); b=W.slice(k+1).join(' '); } T(a,px+kw-20,py+36,NAVY); T(b,px+kw-20,py+62,NAVY); F(50,800); T(v,px+kw/2,py+112,col,'center','ltr'); } });
+    F(18,800); T(n,px+16,py+34,col,'left','ltr');
+    const wrapL=(fs,w)=>{ F(fs,800); const W=l.split(' '), L=[]; let cur=''; W.forEach(p=>{ const t2=cur?cur+' '+p:p; if(x.measureText(t2).width>w && cur){ L.push(cur); cur=p; } else cur=t2; }); if(cur) L.push(cur); return L; };
+    let fs=21, L=wrapL(fs,kw-62); if(L.length>2){ fs=18; L=wrapL(fs,kw-62); } if(L.length>2){ fs=16; L=wrapL(fs,kw-56); }
+    const lh=fs+5; L.forEach((ln,k)=>T(ln,px+kw-16,py+34+k*lh,NAVY));
+    const vy=py+34+(L.length-1)*lh+(150-34-(L.length-1)*lh)/2+8; F(L.length>2?42:48,800); T(v,px+kw/2,Math.min(vy,py+120),col,'center','ltr'); });
   /* جدول + أعمدة */
   const PY=406, PH=282, PW=904, RX=972, LX=44;
   const table=(px,py,w,cols,data)=>{ const rh=Math.min(29, Math.floor((PH-96)/data.length)), cw=w/cols.length; F(17,800); cols.forEach((cc,j)=>T(cc,px+w-cw*j-cw/2,py+12,BLUE,'center')); x.fillStyle='#c9d6e6'; x.fillRect(px,py+27,w,1.5);

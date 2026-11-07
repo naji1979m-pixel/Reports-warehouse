@@ -2239,7 +2239,8 @@ function slideData(){
   o.rows = NORTH_GOVS.map(g=>{ const z=o.G[g]; return {l:g, vis:z.vis.size+z.platVis, n:z.n, iss:z.iss, fine:z.fine}; });
   o.vis = compVisits.size - dupVisits.size + plat.length;
   o.n = compUniq.length + platViol.length;
-  o.rate = o.sent? Math.round(o.iss/o.sent*1000)/10 : 0;
+  /* نسبة الاعتماد: ما اعتمده مدير الرقابة بالشركة ÷ المرصود في التقرير الشامل خلال الفترة */
+  o.rate = comp.length? Math.round(o.sent/comp.length*1000)/10 : 0;
   /* المبادرة */
   const ds = districtStats(plat, null, null); const planned=ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
   const I = { planned, done, pending: planned? Math.max(0,planned-done) : 0, pct: planned? done/planned : null, inspected: plat.length, viol: platViol.length,
@@ -2249,7 +2250,7 @@ function slideData(){
 function slideNotes(D){ const o=D.o, I=D.I, out=[];
   const top=o.rows.slice().sort((a,b)=>b.n-a.n)[0];
   if(o.n && top && top.n) out.push(`أعلى محافظة في المخالفات: ${top.l} بعدد ${fmtN(top.n)} مخالفة (${Math.round(top.n/o.n*100)}% من الإجمالي).`);
-  if(o.sent) out.push(`نسبة الاعتماد ${o.rate}%: اعتمدت الهيئة السعودية للمياه ${fmtN(o.iss)} من ${fmtN(o.sent)} مخالفة معتمدة من مدير الرقابة بالشركة.`);
+  if(D.compN) out.push(`نسبة الاعتماد ${o.rate}%: اعتمد مدير الرقابة بالشركة ${fmtN(o.sent)} من ${fmtN(D.compN)} مخالفة مرصودة في الفترة، واعتمدت الهيئة منها ${fmtN(o.iss)}.`);
   if(I.planned) out.push(`مبادرة المسح الميداني: أُنجز ${fmtN(I.done)} من ${fmtN(I.planned)} موقع (${fmtP(I.pct)})، وبقي ${fmtN(I.pending)} موقع.`);
   if(I.viol) out.push(`رُصد ${fmtN(I.viol)} تعدٍ في المبادرة (${fmtP(I.violRate)} من المعاينات)${D.dupN?`، منها ${fmtN(D.dupN)} مسجلة في التقرير الشامل واستُبعد تكرارها`:''}.`);
   if(o.archData) out.push(`${fmtN(o.archData)} مخالفة مؤرشفة لعدم توفر بيانات المخالف — بانتظار استكمال البيانات.`);

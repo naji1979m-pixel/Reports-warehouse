@@ -2221,12 +2221,14 @@ function slideData(){
   const dupOf = markCompDuplicates(comp, platViol);
   const compUniq = comp.filter(r=>!dupOf.has(r.vno));
   comp.forEach(r=> r._c = r._c || compCls(r));
-  const o={ vis:0, n:0, iss:0, sent:0, retW:0, fine:0, G:{} };
+  const o={ vis:0, n:0, iss:0, sent:0, retW:0, archData:0, fine:0, G:{} };
   NORTH_GOVS.forEach(g=> o.G[g]={l:g, vis:new Set(), platVis:0, n:0, iss:0, fine:0});
   comp.forEach(r=>{ const c=r._c, z=o.G[r.gov];
     if(c==='iss'||c==='auth'||c==='ret') o.sent++;
     if(c==='iss'){ o.iss++; o.fine+=r.fine||0; if(z){ z.iss++; z.fine+=r.fine||0; } }
-    if(c==='ret' && compRetW(r)) o.retW++; });
+    if(c==='ret' && compRetW(r)) o.retW++;
+    /* مؤرشفة بسبب عدم توفر بيانات المخالف: حالة المخالفة «أرشيف» وليست مرفوضة من مدير الرقابة ولا صدر لها قرار */
+    if(c!=='iss' && /أرشيف/.test(r.vstat||'') && (r.decision||'').trim()!=='غير معتمدة') o.archData++; });
   /* الزيارات والمخالفات: الملف الشامل + المرصود في المنصة، بدون المكرر */
   const dupVisits=new Set(comp.filter(r=>dupOf.has(r.vno)).map(r=>r.visit||r.vno));
   const compVisits=new Set(comp.map(r=>r.visit||r.vno));
@@ -2247,10 +2249,10 @@ function slideData(){
 function slideNotes(D){ const o=D.o, I=D.I, out=[];
   const top=o.rows.slice().sort((a,b)=>b.n-a.n)[0];
   if(o.n && top && top.n) out.push(`أعلى محافظة في المخالفات: ${top.l} بعدد ${fmtN(top.n)} مخالفة (${Math.round(top.n/o.n*100)}% من الإجمالي).`);
-  if(o.sent) out.push(`نسبة الاعتماد ${o.rate}%: اعتمدت الهيئة ${fmtN(o.iss)} من ${fmtN(o.sent)} مخالفة محالة إليها.`);
+  if(o.sent) out.push(`نسبة الاعتماد ${o.rate}%: اعتمدت الهيئة السعودية للمياه ${fmtN(o.iss)} من ${fmtN(o.sent)} مخالفة معتمدة من مدير الرقابة بالشركة.`);
   if(I.planned) out.push(`مبادرة المسح الميداني: أُنجز ${fmtN(I.done)} من ${fmtN(I.planned)} موقع (${fmtP(I.pct)})، وبقي ${fmtN(I.pending)} موقع.`);
   if(I.viol) out.push(`رُصد ${fmtN(I.viol)} تعدٍ في المبادرة (${fmtP(I.violRate)} من المعاينات)${D.dupN?`، منها ${fmtN(D.dupN)} مسجلة في التقرير الشامل واستُبعد تكرارها`:''}.`);
-  if(o.retW) out.push(`${fmtN(o.retW)} مخالفة مسترجعة بانتظار استكمال البيانات تحتاج متابعة.`);
+  if(o.archData) out.push(`${fmtN(o.archData)} مخالفة مؤرشفة لعدم توفر بيانات المخالف — بانتظار استكمال البيانات.`);
   return out.length? out.slice(0,4) : ['لا توجد بيانات في الفترة المختارة.']; }
 
 /* رسم الشريحة 1920×1080 على قالب تقرير المخالفات والتفتيش، مع لوحة مبادرة المسح الميداني */
@@ -2274,10 +2276,12 @@ async function drawViolSlide(){
   card(44,166,1832,58,'#eaf1f8'); F(21,700);
   T(`القطاع: الشرقي        الوحدة: الشمالية        الفترة من: ${D.f?fmtD(D.f):'بداية البيانات'}   إلى: ${D.t?fmtD(D.t):fmtD(today())}        تاريخ الإصدار: ${fmtD(today())}`,960,196,NAVY,'center');
   /* المؤشرات الخمسة */
-  const K=[['01','الزيارات الميدانية',fmtN(o.vis),NAVY],['02','المخالفات المعتمدة',fmtN(o.iss),TEAL],['03','نسبة الاعتماد',o.rate+'%',BLUE],['04','بانتظار استكمال البيانات',fmtN(o.retW),o.retW?RED:NAVY],['05','المحالة إلى الهيئة',fmtN(o.sent),SKY]];
+  const K=[['01','الزيارات الميدانية',fmtN(o.vis),NAVY],['02','المخالفات المعتمدة من مدير الرقابة بالشركة',fmtN(o.sent),TEAL],['03','نسبة الاعتماد',o.rate+'%',BLUE],['04','بانتظار استكمال البيانات',fmtN(o.archData),o.archData?RED:NAVY],['05','المعتمد من الهيئة السعودية للمياه',fmtN(o.iss),SKY]];
   const kw=(1832-4*22)/5;
   K.forEach(([n,l,v,col],i)=>{ const px=44+(4-i)*(kw+22), py=240; card(px,py,kw,150); x.save(); RR(px,py,kw,150,18); x.clip(); x.fillStyle=col; x.fillRect(px,py,kw,10); x.restore();
-    F(19,800); T(n,px+20,py+40,col,'left','ltr'); F(22,800); T(l,px+kw-20,py+42,NAVY); F(54,800); T(v,px+kw/2,py+104,col,'center','ltr'); });
+    F(19,800); T(n,px+20,py+40,col,'left','ltr'); F(22,800);
+    if(x.measureText(l).width<=kw-80){ T(l,px+kw-20,py+42,NAVY); F(54,800); T(v,px+kw/2,py+104,col,'center','ltr'); }
+    else { F(19,800); const W=l.split(' '); let a=W.slice(0,Math.ceil(W.length/2)).join(' '), b=W.slice(Math.ceil(W.length/2)).join(' '); for(let k=Math.ceil(W.length/2);k<W.length && x.measureText(a).width<x.measureText(b).width;k++){ a=W.slice(0,k+1).join(' '); b=W.slice(k+1).join(' '); } T(a,px+kw-20,py+36,NAVY); T(b,px+kw-20,py+62,NAVY); F(50,800); T(v,px+kw/2,py+112,col,'center','ltr'); } });
   /* جدول + أعمدة */
   const PY=406, PH=282, PW=904, RX=972, LX=44;
   const table=(px,py,w,cols,data)=>{ const rh=Math.min(29, Math.floor((PH-96)/data.length)), cw=w/cols.length; F(17,800); cols.forEach((cc,j)=>T(cc,px+w-cw*j-cw/2,py+12,BLUE,'center')); x.fillStyle='#c9d6e6'; x.fillRect(px,py+27,w,1.5);

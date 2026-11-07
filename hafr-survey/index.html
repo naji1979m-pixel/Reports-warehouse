@@ -1000,10 +1000,10 @@ function renderDash(){
   renderMap();
 }
 /* ===== تفاصيل المؤشر عند الضغط على المربع ===== */
-document.addEventListener('click', e=>{ const b=e.target.closest('[data-kpi]'); if(b) showDrill(b.dataset.kpi, b.dataset.krng? {f:$('#cFrom').value, t:$('#cTo').value, g:$('#cGov').value} : null); });
+document.addEventListener('click', e=>{ const b=e.target.closest('[data-kpi]'); if(b) showDrill(b.dataset.kpi, b.dataset.krng? {f:'', t:$('#cTo').value, g:$('#cGov').value} : null); });
 function showDrill(key, rng){
   const dg= rng? rng.g : $('#dashGov').value;
-  let VV = dg ? S.visits.filter(v=>v.governorate===dg) : S.visits;
+  let VV = dg ? S.visits.filter(v=> rng? (northGov(v.governorate)||CONFIG.DEFAULT_GOV)===dg : v.governorate===dg) : S.visits;
   if(rng && (rng.f||rng.t)) VV = VV.filter(v=>(!rng.f||(v.visit_date||'')>=rng.f) && (!rng.t||(v.visit_date||'')<=rng.t));
   const SS = dg ? S.sites.filter(x=>(x.governorate||CONFIG.DEFAULT_GOV)===dg) : S.sites;
   const visited = new Set(S.visits.map(v=>v.site_id).filter(Boolean));
@@ -2212,6 +2212,10 @@ function markCompDuplicates(compRows, platVisits){
   return dupOf;
 }
 
+/* مبادرة المسح الميداني: تراكمي من تاريخ بداية المبادرة إلى آخر تاريخ في التقرير */
+function initStart(){ return S.visits.reduce((a,v)=> v.visit_date && (!a||v.visit_date<a)? v.visit_date : a, ''); }
+function initCum(t, gov){ return S.visits.filter(v=> (!t || (v.visit_date||'')<=t) && (!gov || (northGov(v.governorate)||CONFIG.DEFAULT_GOV)===gov)); }
+function initRangeText(t){ const a=initStart(); return `من ${a?fmtD(a):'بداية المبادرة'} إلى ${fmtD(t||today())}`; }
 function slideData(){
   const f=$('#cFrom').value, t=$('#cTo').value;
   const inP = d => d && (!f||d>=f) && (!t||d<=t);
@@ -2242,9 +2246,10 @@ function slideData(){
   /* نسبة الاعتماد: ما اعتمده مدير الرقابة بالشركة ÷ المخالفات المرصودة في الفترة */
   o.rate = o.n? Math.round(o.sent/o.n*1000)/10 : 0;
   /* المبادرة */
-  const ds = districtStats(plat, null, null); const planned=ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
-  const I = { planned, done, pending: planned? Math.max(0,planned-done) : 0, pct: planned? done/planned : null, inspected: plat.length, viol: platViol.length,
-    violRate: plat.length? platViol.length/plat.length : 0, dup: dupOf.size, leak: plat.filter(v=>v.leak).length, err: plat.filter(v=>v.contractor_error).length };
+  const cum = initCum(t, null), cumViol = cum.filter(v=>v.result===R_BAD||v.result===R_REM).length;
+  const ds = districtStats(cum, null, null); const planned=ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
+  const I = { planned, done, pending: planned? Math.max(0,planned-done) : 0, pct: planned? done/planned : null, inspected: cum.length, viol: cumViol,
+    violRate: cum.length? cumViol/cum.length : 0, dup: dupOf.size, leak: cum.filter(v=>v.leak).length, err: cum.filter(v=>v.contractor_error).length, range: initRangeText(t) };
   return { o, I, compN: comp.length, dupN: dupOf.size, f, t };
 }
 function slideNotes(D){ const o=D.o, I=D.I, out=[];
@@ -2267,7 +2272,7 @@ async function drawViolSlide(){
   const RR=(px,py,w,h,r,fill)=>{ x.beginPath(); x.roundRect(px,py,w,h,r); if(fill){ x.fillStyle=fill; x.fill(); } };
   const shadow=on=>{ x.shadowColor=on?'rgba(0,40,90,.14)':'transparent'; x.shadowBlur=on?20:0; x.shadowOffsetY=on?5:0; };
   const card=(px,py,w,h,fill='#fff')=>{ shadow(1); RR(px,py,w,h,18,fill); shadow(0); };
-  const panel=(px,py,w,h,t)=>{ card(px,py,w,h); x.save(); RR(px,py,w,h,18); x.clip(); x.fillStyle=NAVY; x.fillRect(px,py,w,50); x.restore(); F(22,700); T(t,px+w-22,py+26,'#fff'); };
+  const panel=(px,py,w,h,t,sub)=>{ card(px,py,w,h); x.save(); RR(px,py,w,h,18); x.clip(); x.fillStyle=NAVY; x.fillRect(px,py,w,50); x.restore(); F(22,700); T(t,px+w-22,py+26,'#fff'); if(sub){ F(16,600); T(sub,px+22,py+26,'#bcd3ea','left'); } };
   x.fillStyle='#f3f6fa'; x.fillRect(0,0,1920,1080);
   /* الترويسة */
   card(44,24,1832,118); F(44,800); T('تقرير المخالفات والتفتيش',1812,70,NAVY); F(20,500); T('شركة المياه الوطنية  |  منصة المبادرات  |  إدارة المخالفات والتعديات',1812,114,GRAY);
@@ -2304,7 +2309,7 @@ async function drawViolSlide(){
   bars(LX+16,PY+60,PW-480,PH-64,o.rows.map(r=>({l:r.l,v:[Math.round(r.fine)]})),[BLUE]);
   /* الصف السفلي: مبادرة المسح الميداني + الفاقد المسترجع + الملاحظات */
   const BY=704, BH=262;
-  const IW=904; panel(RX,BY,IW,BH,'مبادرة المسح الميداني لأحياء حفر الباطن');
+  const IW=904; panel(RX,BY,IW,BH,'مبادرة المسح الميداني لأحياء حفر الباطن',I.range);
   { const cx=RX+IW-118, cy=BY+50+(BH-50)/2+4, R=74, frac=I.pct||0;
     x.lineWidth=26; x.strokeStyle=RED; x.beginPath(); x.arc(cx,cy,R,0,Math.PI*2); x.stroke();
     if(frac>0){ x.strokeStyle=TEAL; x.beginPath(); x.arc(cx,cy,R,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.max(frac,.004)); x.stroke(); }
@@ -2402,10 +2407,11 @@ function compData(){
   const T=cxZ(), G={}; NORTH_GOVS.forEach(x=>G[x]=cxZ());
   comp.forEach(r=>{ cxAdd(T,r); cxAdd(G[r.gov]||(G[r.gov]=cxZ()), r); });
   const pGov = g ? (CONFIG.GOVS.find(x=>northGov(x)===g)||g) : null;
-  const ds = districtStats(plat, pGov, null); const planned=ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
-  const st = stats(plat);
-  const I = { planned, done, pct: planned? done/planned : null, pending: planned? Math.max(0,planned-done) : null, total: plat.length,
-    viol: platViol.length, leak: st.leak, err: plat.filter(v=>v.contractor_error).length, dup: dupOf.size };
+  const cum = initCum(t, g||null), cumViol = cum.filter(v=>v.result===R_BAD||v.result===R_REM).length;
+  const ds = districtStats(cum, pGov, null); const planned=ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
+  const st = stats(cum);
+  const I = { planned, done, pct: planned? done/planned : null, pending: planned? Math.max(0,planned-done) : null, total: cum.length,
+    viol: cumViol, leak: st.leak, err: cum.filter(v=>v.contractor_error).length, dup: dupOf.size, range: initRangeText(t) };
   return { f, t, g, comp, plat, platViol, dupOf, T, G, I, ds, unified: comp.length - dupOf.size + platViol.length };
 }
 function cxStep(no, stage, key, label, val, sub, color, extra=''){
@@ -2439,7 +2445,7 @@ function compHtml(D){
     ${govs.map(g=>{ const o=D.G[g]; const c=(k,v)=>`<td class="cx-td" data-cx="${k}" data-cg="${esc(g)}">${fmtN(v)}</td>`; return `<tr style="cursor:default"><td><b>${esc(g)}</b></td>${c('n',o.n)}${c('pend',o.pend)}${c('sent',o.sent)}${c('auth',o.auth)}${c('ret',o.ret)}${c('iss',o.iss)}<td>${fmtN(Math.round(o.fine))}</td><td><b>${cxQ(o)==null?'—':cxQ(o)+'%'}</b></td></tr>`; }).join('')}
     <tr class="tot" style="cursor:default;font-weight:800;background:var(--sky)"><td>الإجمالي</td><td>${fmtN(T.n)}</td><td>${fmtN(T.pend)}</td><td>${fmtN(T.sent)}</td><td>${fmtN(T.auth)}</td><td>${fmtN(T.ret)}</td><td>${fmtN(T.iss)}</td><td>${fmtN(Math.round(T.fine))}</td><td>${cxQ(T)==null?'—':cxQ(T)+'%'}</td></tr>
     </tbody></table></div></div>
-  <div class="card section-gap" style="margin-top:14px"><h3 style="margin:0">مبادرة المسح الميداني <span class="mini">· من تقرير المنصة لنفس الفترة</span></h3>
+  <div class="card section-gap" style="margin-top:14px"><h3 style="margin:0">مبادرة المسح الميداني <span class="mini">· تراكمي ${esc(I.range)}</span></h3>
     <div class="kpis" style="margin:0">
       ${K('planned','المستهدف',fmtN(I.planned),'المواقع في ملفات الأحياء','#0b2e55')}
       ${K('done','المنجز',fmtN(I.done),'مواقع تمت معاينتها','#0aa59b')}
@@ -2453,7 +2459,7 @@ function compHtml(D){
     <div class="cx-chart" id="cxChart" hidden><img alt="المنجز والمتبقي"></div>
   </div>
   <div class="cx-uni"><div><b>إجمالي المخالفات الموحّد</b><span class="mini">التقرير الشامل + التعديات المرصودة في المبادرة، بعد استبعاد المكرر</span></div>
-    <div class="cx-eq"><span>${fmtN(D.comp.length)} <small>الشامل</small></span><i>+</i><span>${fmtN(I.viol)} <small>المبادرة</small></span><i>−</i><button type="button" class="cx-dup" data-cx="dup">${fmtN(I.dup)} <small>مكرر</small></button><i>=</i><b>${fmtN(D.unified)}</b></div></div>`;
+    <div class="cx-eq"><span>${fmtN(D.comp.length)} <small>الشامل</small></span><i>+</i><span>${fmtN(D.platViol.length)} <small>المبادرة</small></span><i>−</i><button type="button" class="cx-dup" data-cx="dup">${fmtN(I.dup)} <small>مكرر</small></button><i>=</i><b>${fmtN(D.unified)}</b></div></div>`;
 }
 let CX_LAST=null;
 function renderComp(){
@@ -2518,7 +2524,7 @@ $('#cPdfBtn').onclick = async ()=>{
       <table><thead><tr><th>المحافظة</th><th>المرصود</th><th>بانتظار المراجعة</th><th>المرسل للهيئة</th><th>قيد التدقيق</th><th>المسترجع</th><th>القرارات</th><th>المبالغ (ريال)</th><th>نسبة الجودة</th></tr></thead><tbody>
       ${govs.map(g=>{ const o=D.G[g]; return `<tr><td><b>${esc(g)}</b></td><td>${fmtN(o.n)}</td><td>${fmtN(o.pend)}</td><td>${fmtN(o.sent)}</td><td>${fmtN(o.auth)}</td><td>${fmtN(o.ret)}</td><td>${fmtN(o.iss)}</td><td>${fmtN(Math.round(o.fine))}</td><td>${cxQ(o)==null?'—':cxQ(o)+'%'}</td></tr>`; }).join('')}
       <tr class="tot"><td>الإجمالي</td><td>${fmtN(T.n)}</td><td>${fmtN(T.pend)}</td><td>${fmtN(T.sent)}</td><td>${fmtN(T.auth)}</td><td>${fmtN(T.ret)}</td><td>${fmtN(T.iss)}</td><td>${fmtN(Math.round(T.fine))}</td><td>${cxQ(T)==null?'—':cxQ(T)+'%'}</td></tr></tbody></table>
-      <h2>مبادرة المسح الميداني<small>من تقرير المنصة لنفس الفترة</small></h2>
+      <h2>مبادرة المسح الميداني<small>تراكمي ${esc(I.range)}</small></h2>
       <div class="kp">
         ${kp('المستهدف',fmtN(I.planned),'#0b2e55')}${kp('المنجز',fmtN(I.done),'#0aa59b')}${kp('نسبة الإنجاز',fmtP(I.pct),'#0061b5')}${kp('إجمالي المعاينات',fmtN(I.total),'#278cc4')}${kp('في انتظار المعاينة',fmtN(I.pending),'#d93025')}
       </div>

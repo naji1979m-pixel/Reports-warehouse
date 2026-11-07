@@ -2095,8 +2095,14 @@ function compCls(r){ const vs=(r.vstat||'').trim(), vv=(r.vvisit||'').trim(), de
 const compRetW=r=>{ const vs=(r.vstat||'').trim(); return !(/أرشيف/.test(vs)||vs==='مكتملة'); };
 function toISO(v){ if(v instanceof Date && !isNaN(v)) return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
   const s=normalize(String(v||'')).trim(); let m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/); if(m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
-  m=s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})/); if(m){ let y=+m[3]; if(y<100) y+=2000; return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+  m=s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})/);
+  if(m){ let a=+m[1], b=+m[2], y=+m[3]; if(y<100) y+=2000;
+    /* ملفات منصة مكين: شهر/يوم/سنة (مثل 5/19/2025)، وإذا كان الأول أكبر من 12 فهو يوم/شهر/سنة */
+    let mo=a, da=b; if(a>12 && b<=12){ mo=b; da=a; }
+    if(mo<1||mo>12||da<1||da>31) return null;
+    return y+'-'+String(mo).padStart(2,'0')+'-'+String(da).padStart(2,'0'); }
   return null; }
+const validISO = s => !s ? null : (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(s) ? s : null);
 const canUploadComp = ()=> S.role==='admin' || !!S.canUpload;
 
 async function parseCompFile(file){
@@ -2118,7 +2124,7 @@ async function parseCompFile(file){
     if(out.has(key)) continue;                       /* استبعاد الصفوف المكررة داخل الملف */
     const cs=normalize(t(row,'coords')||t(row,'coords2')); const c=extractCoords(cs);
     const fine=parseFloat(normalize(t(row,'fine')).replace(/[^\d.]/g,''))||0;
-    out.set(key,{ vno:key, visit, gov, region:t(row,'region'), vdate: toISO(g(row,'date'))||toISO(g(row,'date2')), vstat:t(row,'vstat'), vvisit:t(row,'vvisit'), amin:t(row,'amin'),
+    out.set(key,{ vno:key, visit, gov, region:t(row,'region'), vdate: validISO(toISO(g(row,'date'))||toISO(g(row,'date2'))), vstat:t(row,'vstat'), vvisit:t(row,'vvisit'), amin:t(row,'amin'),
       decision:t(row,'decision'), dec_date:String(toISO(g(row,'decDate'))||t(row,'decDate')||''), pres:t(row,'pres'), fine, coords:cs, lat:c?c.lat:null, lng:c?c.lng:null,
       item:t(row,'item'), prop:t(row,'prop'), sev:t(row,'sev'), officer:t(row,'officer'), explain:t(row,'explain').slice(0,1000) });
     byGov[gov]=(byGov[gov]||0)+1;

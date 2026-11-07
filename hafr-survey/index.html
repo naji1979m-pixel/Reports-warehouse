@@ -93,6 +93,38 @@ html,body{overflow-x:hidden}
 .kpi-btn{font:inherit;text-align:right;color:inherit;cursor:pointer;width:100%;position:relative;transition:box-shadow .15s, transform .15s}
 .kpi-btn:hover{box-shadow:0 4px 14px rgba(11,46,85,.12);transform:translateY(-1px)}
 .kpi-btn .kpi-more{display:block;font-style:normal;font-size:11.5px;color:var(--kc);font-weight:600;margin-top:4px}
+#cPerBtns .btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.cx-ban{display:flex;justify-content:space-between;align-items:center;gap:14px;background:linear-gradient(120deg,#0b2e55,#0061b5 60%,#1999af);color:#fff;border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
+.cx-ban h3{margin:4px 0 2px;font-size:24px;color:#fff}.cx-ban p{margin:0;font-weight:600;opacity:.95}.cx-ban small{opacity:.8;font-size:12px}
+.cx-tag{font-size:12px;opacity:.85}.cx-ban img{height:58px;background:#fff;border-radius:12px;padding:6px 10px}
+.cx-path{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:22px;margin-top:12px;position:relative}
+.cx-st{font:inherit;color:inherit;text-align:right;cursor:pointer;background:var(--card);border:1px solid var(--line);border-top:5px solid var(--tone);border-radius:14px;padding:12px 12px 10px;position:relative;display:flex;flex-direction:column;gap:3px;min-width:0;transition:box-shadow .15s,transform .15s}
+.cx-st:hover{box-shadow:0 6px 16px rgba(11,46,85,.13);transform:translateY(-1px)}
+.cx-no{position:absolute;top:-13px;left:12px;width:26px;height:26px;border-radius:50%;background:var(--tone);color:#fff;font-weight:800;font-size:13px;display:grid;place-items:center}
+.cx-stl{font-size:11px;font-weight:700;color:var(--tone)}.cx-l{font-weight:700;font-size:13.5px;line-height:1.35}
+.cx-v{font-size:30px;color:var(--tone);font-variant-numeric:tabular-nums;line-height:1.2}.cx-s{font-size:12px;color:var(--muted)}
+.cx-subs{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.cx-sub{display:flex;justify-content:space-between;gap:6px;font-size:11.5px;padding:4px 7px;border-radius:8px;background:var(--sky);cursor:pointer}
+.cx-sub.w{background:var(--warn-bg);color:var(--warn)}.cx-sub.c{background:var(--bad-bg);color:var(--bad)}
+.cx-ar{display:none}
+@media (min-width:1100px){.cx-ar{display:block;position:absolute;color:var(--muted);font-size:18px}}
+.cx-path>.cx-ar{display:none}
+@media (min-width:1001px){.cx-path>.cx-st:not(:last-child)::after{content:'←';position:absolute;left:-19px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:800;font-size:16px}}
+.cx-row2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.cx-box{background:var(--sky);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.cx-big{font-size:28px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}.cx-big small{font-size:13px;font-weight:600}
+.cx-q .cx-big{color:var(--blue)}
+.cx-two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cx-two span{display:block;font-size:12px;color:var(--muted)}.cx-two b{font-size:20px}
+.cx-td{cursor:pointer;color:var(--blue);font-weight:700}.cx-td:hover{text-decoration:underline}
+.cx-chart{margin-top:12px}.cx-chart img{width:100%;max-width:1100px;display:block;margin:0 auto;border-radius:8px}
+.cx-uni{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;background:var(--card);border:1px solid var(--line);border-right:5px solid var(--ink);border-radius:var(--r);padding:14px 16px}
+.cx-uni>div:first-child{display:flex;flex-direction:column}
+.cx-eq{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.cx-eq span,.cx-dup{font:inherit;font-weight:800;font-size:18px;background:var(--sky);border-radius:10px;padding:4px 10px;border:0;color:inherit}
+.cx-dup{cursor:pointer;color:var(--blue)}.cx-eq small{font-size:11px;font-weight:600;color:var(--muted)}.cx-eq i{font-style:normal;color:var(--muted);font-weight:800}
+.cx-eq>b{font-size:26px;color:var(--ink)}
+@media (max-width:1000px){.cx-path{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){.cx-path{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 10px}.cx-row2{grid-template-columns:1fr}.cx-v{font-size:24px}.cx-ban img{height:42px}.cx-ban h3{font-size:20px}}
 #periodBtns .btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
 .drill-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .drill-tools .in{flex:1;min-width:160px}
@@ -260,6 +292,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
     <button data-tab="add" data-role="editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>إضافة معاينة</button>
     <button data-tab="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>السجل</button>
     <button data-tab="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>التقارير</button>
+    <button data-tab="comp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>التقرير الشامل</button>
     <button data-tab="settings" data-role="admin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>الإعدادات</button>
   </div>
 </nav>
@@ -387,6 +420,33 @@ dialog .db{padding:16px;display:grid;gap:14px}
       </div>
     </div>
     <div id="repPreview" style="margin-top:14px"></div>
+  </section>
+
+  <!-- التقرير الشامل (مستقل) -->
+  <section id="v-comp" hidden>
+    <h2>التقرير الشامل</h2>
+    <p class="hint" style="margin-top:-6px">مخالفات الوحدة الشمالية من التقرير الشامل (منصة مكين) مع بيانات مبادرة المسح الميداني من تقرير المنصة، لنفس الفترة.</p>
+    <div class="card section-gap">
+      <div class="mini" style="font-weight:600">الفترة الزمنية</div>
+      <div class="row-btns" id="cPerBtns">
+        <button type="button" class="btn sm" data-per="all">كامل الفترة</button>
+        <button type="button" class="btn sm" data-per="today">اليوم</button>
+        <button type="button" class="btn sm" data-per="yest">أمس</button>
+        <button type="button" class="btn sm" data-per="week">هذا الأسبوع</button>
+        <button type="button" class="btn sm" data-per="lweek">الأسبوع الماضي</button>
+        <button type="button" class="btn sm" data-per="month">هذا الشهر</button>
+        <button type="button" class="btn sm" data-per="lmonth">الشهر الماضي</button>
+        <button type="button" class="btn sm" data-per="year">هذه السنة</button>
+        <button type="button" class="btn sm" data-per="custom">فترة مخصصة</button>
+      </div>
+      <div class="form">
+        <label class="f">من تاريخ<input class="in" id="cFrom" type="date"></label>
+        <label class="f">إلى تاريخ<input class="in" id="cTo" type="date"></label>
+        <label class="f">المحافظة<select class="in" id="cGov"></select></label>
+      </div>
+      <div class="row-btns"><button class="btn pri" id="cPdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>تحميل PDF</button></div>
+    </div>
+    <div id="cBody" style="margin-top:14px"></div>
     <div class="card section-gap" id="compBox" style="margin-top:14px"></div>
   </section>
 
@@ -846,7 +906,7 @@ function applyRole(){
 function show(tab){
   S.tab=tab; lsSet('hs_tab', tab);
   $$('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
-  ['dash','add','list','reports','settings'].forEach(t=> $('#v-'+t).hidden = t!==tab);
+  ['dash','add','list','reports','comp','settings'].forEach(t=> $('#v-'+t).hidden = t!==tab);
   render();
   window.scrollTo({top:0});
 }
@@ -857,7 +917,8 @@ function render(){
   fillDistrictSelects();
   if(S.tab==='dash') renderDash();
   if(S.tab==='list') renderList();
-  if(S.tab==='reports'){ renderReportPreview(); renderCompBox(); updatePeriodUI(); }
+  if(S.tab==='reports'){ renderReportPreview(); updatePeriodUI(); }
+  if(S.tab==='comp'){ renderComp(); renderCompBox(); }
   if(S.tab==='settings') renderSettings();
 }
 const SEL_PAIRS = [
@@ -939,10 +1000,11 @@ function renderDash(){
   renderMap();
 }
 /* ===== تفاصيل المؤشر عند الضغط على المربع ===== */
-document.addEventListener('click', e=>{ const b=e.target.closest('[data-kpi]'); if(b) showDrill(b.dataset.kpi); });
-function showDrill(key){
-  const dg=$('#dashGov').value;
-  const VV = dg ? S.visits.filter(v=>v.governorate===dg) : S.visits;
+document.addEventListener('click', e=>{ const b=e.target.closest('[data-kpi]'); if(b) showDrill(b.dataset.kpi, b.dataset.krng? {f:$('#cFrom').value, t:$('#cTo').value, g:$('#cGov').value} : null); });
+function showDrill(key, rng){
+  const dg= rng? rng.g : $('#dashGov').value;
+  let VV = dg ? S.visits.filter(v=>v.governorate===dg) : S.visits;
+  if(rng && (rng.f||rng.t)) VV = VV.filter(v=>(!rng.f||(v.visit_date||'')>=rng.f) && (!rng.t||(v.visit_date||'')<=rng.t));
   const SS = dg ? S.sites.filter(x=>(x.governorate||CONFIG.DEFAULT_GOV)===dg) : S.sites;
   const visited = new Set(S.visits.map(v=>v.site_id).filter(Boolean));
   const ds = districtStats(VV, dg||null).filter(r=>r.planned || r.visited);
@@ -1417,7 +1479,7 @@ function renderReportPreview(){
 ['#rFrom','#rTo','#rGov','#rDist'].forEach(id=>$(id).addEventListener('input', ()=>setTimeout(renderReportPreview)));
 /* الفترة الزمنية: أزرار سريعة تعبّي «من تاريخ» و«إلى تاريخ» وتطبّق على كل التقارير والشريحة */
 const isoD = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-function periodRange(k){ const n=new Date(); n.setHours(0,0,0,0); const d=x=>{ const t=new Date(n); t.setDate(t.getDate()+x); return t; };
+function periodRange(k){ if(k==='year'){ const y=new Date(); y.setHours(0,0,0,0); return [y.getFullYear()+'-01-01', isoD(y)]; } const n=new Date(); n.setHours(0,0,0,0); const d=x=>{ const t=new Date(n); t.setDate(t.getDate()+x); return t; };
   const wd=(n.getDay()+1)%7;   /* بداية الأسبوع: السبت */
   switch(k){ case 'today': return [isoD(n),isoD(n)]; case 'yest': return [isoD(d(-1)),isoD(d(-1))];
     case 'week': return [isoD(d(-wd)),isoD(n)]; case 'lweek': return [isoD(d(-wd-7)),isoD(d(-wd-1))];
@@ -2151,7 +2213,7 @@ function markCompDuplicates(compRows, platVisits){
 }
 
 function slideData(){
-  const f=$('#rFrom').value, t=$('#rTo').value;
+  const f=$('#cFrom').value, t=$('#cTo').value;
   const inP = d => d && (!f||d>=f) && (!t||d<=t);
   const comp = (S.comp||[]).filter(r=> (!f&&!t) || inP(r.vdate));
   const plat = S.visits.filter(v=> (!f&&!t) || inP(v.visit_date));
@@ -2286,7 +2348,7 @@ function renderCompBox(){
   const byGov={}; rows.forEach(r=>byGov[r.gov]=(byGov[r.gov]||0)+1);
   const ex=lsGet('hs_slide_extra',{});
   box.innerHTML = `<h3 style="margin:0">التقرير الشامل وشريحة تقرير المخالفات والتفتيش</h3>
-    <p class="hint" style="margin:0">الشريحة تجمع المرصود في المنصة مع التقرير الشامل (منصة مكين) لمحافظات الوحدة الشمالية، وتستبعد المخالفة المكررة إذا كانت بنفس الموقع (30 متر) أو برقم العداد أو الحصر نفسه. الفترة حسب «الفترة الزمنية للتقرير» أعلاه.</p>
+    <p class="hint" style="margin:0">الشريحة تجمع المرصود في المنصة مع التقرير الشامل (منصة مكين) لمحافظات الوحدة الشمالية، وتستبعد المخالفة المكررة إذا كانت بنفس الموقع (30 متر) أو برقم العداد أو الحصر نفسه. الفترة حسب «الفترة الزمنية» أعلى الصفحة.</p>
     <div class="match ${rows.length?'p-ok':'p-warn'}">${rows.length? `التقرير الشامل الحالي: <b>${fmtN(rows.length)}</b> مخالفة للوحدة الشمالية${last?` · رُفع ${new Date(last).toLocaleString('ar-SA-u-ca-gregory-nu-latn',{dateStyle:'medium',timeStyle:'short'})}`:''}${by?` · بواسطة ${esc(by)}`:''}<br><span class="mini">${Object.entries(byGov).map(([g,n])=>`${esc(g)}: ${fmtN(n)}`).join(' · ')}</span>` : 'لم يُرفع التقرير الشامل بعد. الشريحة تعمل ببيانات المنصة فقط حتى يُرفع.'}</div>
     ${canUploadComp()? `<div class="row-btns"><label class="btn pri">رفع التقرير الشامل (Excel)<input type="file" id="compFile" accept=".xlsx,.xls,.csv" hidden></label><span class="hint">الملف الجديد يستبدل السابق. تُحفظ محافظات الوحدة الشمالية فقط.</span></div><div id="compPreview"></div>`
       : `<p class="hint" style="margin:0">رفع التقرير الشامل لمن لديه صلاحية «رفع الملف الشامل» فقط.</p>`}
@@ -2312,11 +2374,163 @@ function renderCompBox(){
         <div class="row-btns"><button class="btn pri sm" id="compGo" ${P.rows.length?'':'disabled'}>اعتماد الملف واستبدال السابق</button><button class="btn sm" id="compCancel">إلغاء</button><span class="hint" id="compSt"></span></div></div>`;
       $('#compCancel').onclick=()=>pv.innerHTML='';
       $('#compGo').onclick=async()=>{ const b=$('#compGo'); b.disabled=true;
-        try{ await DB.replaceComp(P.rows, n=>$('#compSt').textContent=`جاري الرفع ${fmtN(n)} من ${fmtN(P.rows.length)}…`); toast(`تم رفع التقرير الشامل: ${fmtN(P.rows.length)} مخالفة`); renderCompBox(); }
+        try{ await DB.replaceComp(P.rows, n=>$('#compSt').textContent=`جاري الرفع ${fmtN(n)} من ${fmtN(P.rows.length)}…`); toast(`تم رفع التقرير الشامل: ${fmtN(P.rows.length)} مخالفة`); renderCompBox(); renderComp(); }
         catch(e){ $('#compSt').textContent='تعذر الرفع: '+(e.message||e); b.disabled=false; } };
     }catch(e){ pv.innerHTML=`<div class="match p-bad">${esc(e.message||e)}</div>`; }
   };
 }
+
+/* ================== التقرير الشامل (صفحة مستقلة) ================== */
+const CX_C = { n:'#0b2e55', pend:'#b26a00', sent:'#0061b5', auth:'#278cc4', ret:'#d93025', iss:'#0aa59b' };
+const cxZ = ()=>({n:0,pend:0,sent:0,arch:0,auth:0,ret:0,retW:0,retC:0,iss:0,oth:0,fine:0});
+function cxAdd(o,r){ const c=r._c; o.n++; o[c]++; if(c==='ret') o[compRetW(r)?'retW':'retC']++; if(c==='iss'||c==='ret'||c==='auth') o.sent++; if(c==='iss') o.fine+=r.fine||0; }
+const cxQ = o => o.sent? Math.round((o.sent-o.ret)/o.sent*1000)/10 : null;
+const cxP = (a,b) => b? (Math.round(a/b*1000)/10)+'%' : '—';
+function compData(){
+  const f=$('#cFrom').value, t=$('#cTo').value, g=$('#cGov').value;
+  const inP = d => (!f&&!t) || (d && (!f||d>=f) && (!t||d<=t));
+  const comp = (S.comp||[]).filter(r=> inP(r.vdate) && (!g||r.gov===g));
+  comp.forEach(r=> r._c = r._c || compCls(r));
+  const plat = S.visits.filter(v=> inP(v.visit_date) && (!g || (northGov(v.governorate)||CONFIG.DEFAULT_GOV)===g));
+  const platViol = plat.filter(v=>v.result===R_BAD||v.result===R_REM);
+  const dupOf = markCompDuplicates(comp, platViol);
+  const T=cxZ(), G={}; NORTH_GOVS.forEach(x=>G[x]=cxZ());
+  comp.forEach(r=>{ cxAdd(T,r); cxAdd(G[r.gov]||(G[r.gov]=cxZ()), r); });
+  const pGov = g ? (CONFIG.GOVS.find(x=>northGov(x)===g)||g) : null;
+  const ds = districtStats(plat, pGov, null); const planned=ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
+  const st = stats(plat);
+  const I = { planned, done, pct: planned? done/planned : null, pending: planned? Math.max(0,planned-done) : null, total: plat.length,
+    viol: platViol.length, leak: st.leak, err: plat.filter(v=>v.contractor_error).length, dup: dupOf.size };
+  return { f, t, g, comp, plat, platViol, dupOf, T, G, I, ds, unified: comp.length - dupOf.size + platViol.length };
+}
+function cxStep(no, stage, key, label, val, sub, color, extra=''){
+  return `<button type="button" class="cx-st" data-cx="${key}" style="--tone:${color}"><span class="cx-no">${no}</span><span class="cx-stl">${stage}</span><span class="cx-l">${label}</span><b class="cx-v">${fmtN(val)}</b><span class="cx-s">${sub}</span>${extra}</button>`;
+}
+function compHtml(D){
+  const T=D.T, I=D.I, ex=lsGet('hs_slide_extra',{});
+  const ar='<span class="cx-ar" aria-hidden="true">←</span>';
+  const sub=(k,l,v,cls)=>`<span class="cx-sub ${cls||''}" data-cx="${k}"><span>${l}</span><b>${fmtN(v)}</b></span>`;
+  const scope = `${D.g||'جميع محافظات الوحدة الشمالية'} — ${periodText(D.f,D.t)}`;
+  const govs = NORTH_GOVS.filter(g=>D.G[g] && (!D.g||g===D.g));
+  const K=(key,label,val,sub,color)=>`<button type="button" class="kpi kpi-btn" data-kpi="${key}" data-krng="1" style="--kc:${color}"><span>${label}</span><b>${val}</b><i>${sub||''}</i><em class="kpi-more">التفاصيل ‹</em></button>`;
+  return `<div class="cx-ban"><div><span class="cx-tag">شركة المياه الوطنية · إدارة المخالفات والتعديات</span><h3>الملخص التنفيذي</h3><p>${esc(scope)}</p><small>${(S.comp||[]).length?'المصدر: التقرير الشامل (منصة مكين) + تقرير منصة المبادرات':'لم يُرفع التقرير الشامل بعد — تظهر بيانات المبادرة فقط'} · اضغط أي رقم لتفاصيله</small></div><img src="nwc-logo.png" alt="شركة المياه الوطنية"></div>
+  <div class="card"><h3 style="margin:0 0 2px">مسار المخالفة <span class="mini">· من رصد المخالفة إلى إصدار القرار — التقرير الشامل</span></h3>
+    <div class="cx-path">
+      ${cxStep(1,'رصد','n','المرصود',T.n,'كل المخالفات في التقرير الشامل',CX_C.n)}${ar}
+      ${cxStep(2,'مراجعة واعتماد','pend','بانتظار المراجعة والاعتماد',T.pend,cxP(T.pend,T.n)+' من المرصود — لم تُدقق',CX_C.pend)}${ar}
+      ${cxStep(3,'اعتماد الشركة','sent','اعتماد مدير الرقابة',T.sent,cxP(T.sent,T.n)+' من المرصود — معتمدة ومرسلة للهيئة',CX_C.sent, `<span class="cx-subs">${sub('arch','✖ غير معتمدة / غير مكتملة الأركان',T.arch,'c')}</span>`)}${ar}
+      ${cxStep(4,'تدقيق الهيئة','auth','قيد التدقيق لدى الهيئة',T.auth,cxP(T.auth,T.sent)+' من المرسل',CX_C.auth)}${ar}
+      ${cxStep(5,'مسترجع','ret','المسترجع',T.ret,cxP(T.ret,T.sent)+' من المرسل',CX_C.ret, T.ret?`<span class="cx-subs">${sub('retW','⏳ في انتظار الاستكمال',T.retW,'w')}${sub('retC','🗄 مؤرشفة أو مغلقة',T.retC,'c')}</span>`:'')}${ar}
+      ${cxStep(6,'قرار','iss','القرارات الصادرة',T.iss,cxP(T.iss,T.sent)+' من المرسل',CX_C.iss)}
+    </div>
+    <div class="cx-row2">
+      <div class="cx-box"><b>المبالغ المعتمدة</b><div class="cx-big" style="color:var(--teal)">${fmtN(Math.round(T.fine))} <small>ريال</small></div><span class="mini">مجموع قيمة المخالفات ذات القرارات الصادرة</span></div>
+      <div class="cx-box"><b>الفاقد المسترجع والتكاليف</b><div class="cx-two"><div><span>الفاقد المائي المسترجع</span><b>${ex.m3!=null&&ex.m3!==''?fmtN(ex.m3)+' <small>م³</small>':'—'}</b></div><div><span>القيمة المالية</span><b>${ex.sar!=null&&ex.sar!==''?fmtN(ex.sar)+' <small>ريال</small>':'—'}</b></div></div><span class="mini">تُحدَّث من خانات الشريحة أسفل الصفحة</span></div>
+      <div class="cx-box cx-q"><b>نسبة الجودة</b><div class="cx-big">${cxQ(T)==null?'—':cxQ(T)+'%'}</div><span class="mini">نسبة ما قبلته الهيئة من أول مرة دون استرجاع = (المرسل − المسترجع) ÷ المرسل</span></div>
+    </div>
+  </div>
+  <div class="card section-gap" style="margin-top:14px"><h3 style="margin:0">حسب المحافظة <span class="mini">· التقرير الشامل</span></h3>
+    <div class="tbl-wrap"><table><thead><tr><th>المحافظة</th><th>المرصود</th><th>بانتظار المراجعة والاعتماد</th><th>المرسل للهيئة</th><th>قيد التدقيق لدى الهيئة</th><th>المسترجع</th><th>القرارات الصادرة</th><th>المبالغ المعتمدة</th><th>نسبة الجودة</th></tr></thead><tbody>
+    ${govs.map(g=>{ const o=D.G[g]; const c=(k,v)=>`<td class="cx-td" data-cx="${k}" data-cg="${esc(g)}">${fmtN(v)}</td>`; return `<tr style="cursor:default"><td><b>${esc(g)}</b></td>${c('n',o.n)}${c('pend',o.pend)}${c('sent',o.sent)}${c('auth',o.auth)}${c('ret',o.ret)}${c('iss',o.iss)}<td>${fmtN(Math.round(o.fine))}</td><td><b>${cxQ(o)==null?'—':cxQ(o)+'%'}</b></td></tr>`; }).join('')}
+    <tr class="tot" style="cursor:default;font-weight:800;background:var(--sky)"><td>الإجمالي</td><td>${fmtN(T.n)}</td><td>${fmtN(T.pend)}</td><td>${fmtN(T.sent)}</td><td>${fmtN(T.auth)}</td><td>${fmtN(T.ret)}</td><td>${fmtN(T.iss)}</td><td>${fmtN(Math.round(T.fine))}</td><td>${cxQ(T)==null?'—':cxQ(T)+'%'}</td></tr>
+    </tbody></table></div></div>
+  <div class="card section-gap" style="margin-top:14px"><h3 style="margin:0">مبادرة المسح الميداني <span class="mini">· من تقرير المنصة لنفس الفترة</span></h3>
+    <div class="kpis" style="margin:0">
+      ${K('planned','المستهدف',fmtN(I.planned),'المواقع في ملفات الأحياء','#0b2e55')}
+      ${K('done','المنجز',fmtN(I.done),'مواقع تمت معاينتها','#0aa59b')}
+      ${K('pct','نسبة الإنجاز',fmtP(I.pct),'المنجز ÷ المستهدف','#0061b5')}
+      ${K('total','إجمالي المعاينات',fmtN(I.total),'المسجلة في المنصة','#278cc4')}
+      ${K('pending','في انتظار المعاينة',fmtN(I.pending),'المتبقي من المستهدف','#d93025')}
+      ${K('viol','التعديات المرصودة',fmtN(I.viol),I.total?fmtP(I.viol/I.total)+' من المعاينات':'','#c23a32')}
+      ${K('leak','توصيلات بها تسريب',fmtN(I.leak),'','#1999af')}
+      ${K('err','أخطاء رصد المقاول',fmtN(I.err),'','#b26a00')}
+    </div>
+    <div class="cx-chart" id="cxChart" hidden><img alt="المنجز والمتبقي"></div>
+  </div>
+  <div class="cx-uni"><div><b>إجمالي المخالفات الموحّد</b><span class="mini">التقرير الشامل + التعديات المرصودة في المبادرة، بعد استبعاد المكرر</span></div>
+    <div class="cx-eq"><span>${fmtN(D.comp.length)} <small>الشامل</small></span><i>+</i><span>${fmtN(I.viol)} <small>المبادرة</small></span><i>−</i><button type="button" class="cx-dup" data-cx="dup">${fmtN(I.dup)} <small>مكرر</small></button><i>=</i><b>${fmtN(D.unified)}</b></div></div>`;
+}
+let CX_LAST=null;
+function renderComp(){
+  const sel=$('#cGov'); if(sel && !sel.options.length){ sel.innerHTML='<option value="">جميع محافظات الوحدة الشمالية</option>'+NORTH_GOVS.map(g=>`<option>${esc(g)}</option>`).join(''); sel.value=lsGet('hs_cgov',''); }
+  const k=lsGet('hs_cperiod','all'); $$('#cPerBtns [data-per]').forEach(b=>b.classList.toggle('on', b.dataset.per===k));
+  const D = CX_LAST = compData();
+  $('#cBody').innerHTML = compHtml(D);
+  drawDoneChart(D.ds, D.I.planned, D.I.done, 10).then(ch=>{ const b=$('#cxChart'); if(!b||CX_LAST!==D) return; b.hidden=!ch; if(ch) b.querySelector('img').src=ch.data; });
+}
+function compDrill(key, gov){
+  const D=CX_LAST||compData();
+  const NAMES={n:'المرصود',pend:'بانتظار المراجعة والاعتماد',sent:'اعتماد مدير الرقابة — المرسل للهيئة',arch:'غير معتمدة / غير مكتملة الأركان',auth:'قيد التدقيق لدى الهيئة',ret:'المسترجع',retW:'مسترجعة في انتظار الاستكمال',retC:'مسترجعة مؤرشفة أو مغلقة',iss:'القرارات الصادرة',dup:'مكررة بين التقرير الشامل والمبادرة'};
+  let L=D.comp.filter(r=> !gov || r.gov===gov);
+  const f={n:()=>true, sent:r=>['iss','ret','auth'].includes(r._c), retW:r=>r._c==='ret'&&compRetW(r), retC:r=>r._c==='ret'&&!compRetW(r), dup:r=>D.dupOf.has(r.vno)}[key] || (r=>r._c===key);
+  L=L.filter(f).sort((a,b)=>(b.vdate||'').localeCompare(a.vdate||''));
+  const MAX=500;
+  $('#drTitle').textContent=`${NAMES[key]||''} · ${gov||D.g||'الوحدة الشمالية'} · ${fmtN(L.length)}`;
+  $('#drBody').innerHTML=`<div class="drill-tools"><input class="in" id="drQ" placeholder="بحث برقم الزيارة أو المعرف أو البند أو المفتش"><span class="mini" id="drCount">${fmtN(L.length)} مخالفة</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>معرف المخالفة</th><th>رقم الزيارة</th><th>المحافظة</th><th>التاريخ</th><th>البند</th><th>حالة المخالفة</th><th>قرار مدير الرقابة</th><th>المبلغ</th>${key==='dup'?'<th>المعاينة في المنصة</th>':''}</tr></thead><tbody id="drRows">
+    ${L.slice(0,MAX).map(r=>`<tr style="cursor:default" data-q="${esc(normalize([r.vno,r.visit,r.item,r.officer,r.region].join(' ')))}"><td>${esc(r.vno)}</td><td>${esc(r.visit)}</td><td>${esc(r.gov)}</td><td>${fmtD(r.vdate)}</td><td style="max-width:260px">${esc(r.item||'—')}</td><td>${esc(r.vstat||r.vvisit||'—')}</td><td>${esc(r.decision||'—')}</td><td>${r.fine?fmtN(r.fine):'—'}</td>${key==='dup'?`<td><button class="btn sm" data-open="${D.dupOf.get(r.vno)}">فتح</button></td>`:''}</tr>`).join('') || '<tr><td colspan="9" class="empty">لا توجد مخالفات</td></tr>'}
+    </tbody></table></div>${L.length>MAX?`<p class="hint">يظهر أول ${MAX}. استخدم البحث للوصول لمخالفة محددة.</p>`:''}`;
+  const q=$('#drQ'); q.oninput=()=>{ const t=normalize(q.value.trim()); let n=0; $$('#drRows tr[data-q]').forEach(r=>{ const ok=!t||r.dataset.q.includes(t); r.hidden=!ok; if(ok) n++; }); $('#drCount').textContent=fmtN(n)+' مخالفة'; };
+  $$('#drBody [data-open]').forEach(b=>b.onclick=()=>{ $('#drill').close(); openDetail(b.dataset.open); });
+  $('#drill').showModal();
+}
+$('#cBody').addEventListener('click', e=>{ const sub=e.target.closest('.cx-sub[data-cx]'); const b=sub||e.target.closest('[data-cx]'); if(!b) return; e.stopPropagation(); compDrill(b.dataset.cx, b.dataset.cg||''); });
+$('#cPerBtns').addEventListener('click', e=>{ const b=e.target.closest('[data-per]'); if(!b) return; const k=b.dataset.per; lsSet('hs_cperiod',k);
+  if(k==='custom'){ renderComp(); $('#cFrom').focus(); try{ $('#cFrom').showPicker(); }catch(_){} return; }
+  const [f,t]=periodRange(k); $('#cFrom').value=f; $('#cTo').value=t; lsSet('hs_crange',[f,t]); renderComp(); });
+['#cFrom','#cTo'].forEach(id=>$(id).addEventListener('change', ()=>{ lsSet('hs_cperiod','custom'); lsSet('hs_crange',[$('#cFrom').value,$('#cTo').value]); renderComp(); }));
+$('#cGov').addEventListener('change', ()=>{ lsSet('hs_cgov',$('#cGov').value); renderComp(); });
+(()=>{ const k=lsGet('hs_cperiod','all'); const [f,t] = k==='custom'? lsGet('hs_crange',['','']) : periodRange(k); $('#cFrom').value=f||''; $('#cTo').value=t||''; })();
+
+/* PDF للتقرير الشامل */
+$('#cPdfBtn').onclick = async ()=>{
+  const btn=$('#cPdfBtn'), html0=btn.innerHTML; btn.disabled=true; btn.textContent='جاري التجهيز…';
+  try{
+    const D=compData(), T=D.T, I=D.I, ex=lsGet('hs_slide_extra',{});
+    const chart = await drawDoneChart(D.ds, I.planned, I.done, 8);
+    const govs = NORTH_GOVS.filter(g=>D.G[g] && (!D.g||g===D.g));
+    const kp=(l,v,c,s='')=>`<div style="--c:${c}"><span>${l}</span><b>${v}</b>${s?`<i>${s}</i>`:''}</div>`;
+    $('#printArea').innerHTML = `<div class="pr">
+      <div class="ph"><div><div class="eb">شركة المياه الوطنية · إدارة المخالفات والتعديات</div><h1>التقرير الشامل — الملخص التنفيذي</h1><div class="un">مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية</div></div><img src="nwc-logo.png" alt="شركة المياه الوطنية"></div>
+      <div class="band"></div>
+      <div class="meta"><div><span>الفترة</span><b>${esc(periodText(D.f,D.t))}</b></div><div><span>النطاق</span><b>${esc(D.g||'جميع محافظات الوحدة الشمالية')}</b></div><div><span>تاريخ التقرير</span><b>${fmtD(today())}</b></div><div><span>أعدّه</span><b>${esc(S.userName||'—')}</b></div></div>
+      <h2>مسار المخالفة<small>المصدر: التقرير الشامل (منصة مكين)</small></h2>
+      <div class="kp" style="grid-template-columns:repeat(6,1fr)">
+        ${kp('1. المرصود',fmtN(T.n),'#0b2e55','كل المخالفات')}
+        ${kp('2. بانتظار المراجعة',fmtN(T.pend),'#b26a00',cxP(T.pend,T.n)+' من المرصود')}
+        ${kp('3. اعتماد مدير الرقابة',fmtN(T.sent),'#0061b5',cxP(T.sent,T.n)+' · غير معتمدة '+fmtN(T.arch))}
+        ${kp('4. قيد تدقيق الهيئة',fmtN(T.auth),'#278cc4',cxP(T.auth,T.sent)+' من المرسل')}
+        ${kp('5. المسترجع',fmtN(T.ret),'#d93025',`انتظار ${fmtN(T.retW)} · مغلقة ${fmtN(T.retC)}`)}
+        ${kp('6. القرارات الصادرة',fmtN(T.iss),'#0aa59b',cxP(T.iss,T.sent)+' من المرسل')}
+      </div>
+      <div class="kp" style="grid-template-columns:repeat(4,1fr);margin-top:7px">
+        ${kp('نسبة الجودة',cxQ(T)==null?'—':cxQ(T)+'%','#0061b5','(المرسل − المسترجع) ÷ المرسل')}
+        ${kp('المبالغ المعتمدة (ريال)',fmtN(Math.round(T.fine)),'#0aa59b')}
+        ${kp('الفاقد المائي المسترجع (م³)',ex.m3!=null&&ex.m3!==''?fmtN(ex.m3):'—','#1999af')}
+        ${kp('القيمة المالية (ريال)',ex.sar!=null&&ex.sar!==''?fmtN(ex.sar):'—','#1999af')}
+      </div>
+      <h2>حسب المحافظة</h2>
+      <table><thead><tr><th>المحافظة</th><th>المرصود</th><th>بانتظار المراجعة</th><th>المرسل للهيئة</th><th>قيد التدقيق</th><th>المسترجع</th><th>القرارات</th><th>المبالغ (ريال)</th><th>نسبة الجودة</th></tr></thead><tbody>
+      ${govs.map(g=>{ const o=D.G[g]; return `<tr><td><b>${esc(g)}</b></td><td>${fmtN(o.n)}</td><td>${fmtN(o.pend)}</td><td>${fmtN(o.sent)}</td><td>${fmtN(o.auth)}</td><td>${fmtN(o.ret)}</td><td>${fmtN(o.iss)}</td><td>${fmtN(Math.round(o.fine))}</td><td>${cxQ(o)==null?'—':cxQ(o)+'%'}</td></tr>`; }).join('')}
+      <tr class="tot"><td>الإجمالي</td><td>${fmtN(T.n)}</td><td>${fmtN(T.pend)}</td><td>${fmtN(T.sent)}</td><td>${fmtN(T.auth)}</td><td>${fmtN(T.ret)}</td><td>${fmtN(T.iss)}</td><td>${fmtN(Math.round(T.fine))}</td><td>${cxQ(T)==null?'—':cxQ(T)+'%'}</td></tr></tbody></table>
+      <h2>مبادرة المسح الميداني<small>من تقرير المنصة لنفس الفترة</small></h2>
+      <div class="kp">
+        ${kp('المستهدف',fmtN(I.planned),'#0b2e55')}${kp('المنجز',fmtN(I.done),'#0aa59b')}${kp('نسبة الإنجاز',fmtP(I.pct),'#0061b5')}${kp('إجمالي المعاينات',fmtN(I.total),'#278cc4')}${kp('في انتظار المعاينة',fmtN(I.pending),'#d93025')}
+      </div>
+      <div class="kp" style="grid-template-columns:repeat(4,1fr);margin-top:7px">
+        ${kp('التعديات المرصودة',fmtN(I.viol),'#c23a32')}${kp('مكرر في التقرير الشامل',fmtN(I.dup),'#1999af')}${kp('توصيلات بها تسريب',fmtN(I.leak),'#1999af')}${kp('إجمالي المخالفات الموحّد',fmtN(D.unified),'#0b2e55','الشامل + المبادرة − المكرر')}
+      </div>
+      ${chart?`<h2>المنجز والمتبقي<small>المنجز بالأخضر · المتبقي بالأحمر</small></h2><div class="chart"><img src="${chart.data}" alt="" style="width:100%;display:block"></div>`:''}
+      <div class="sig" style="margin-top:18px"><div>أعدّه</div><div>رئيس إدارة المخالفات</div><div>الاعتماد</div></div>
+    </div>`;
+    const imgs=[...$('#printArea').querySelectorAll('img')];
+    await Promise.all(imgs.map(im=> im.complete? 0 : new Promise(r=>{ im.onload=im.onerror=r; setTimeout(r,8000); })));
+    btn.textContent='جاري إنشاء PDF…';
+    await downloadReportPDF($('#printArea').firstElementChild, `التقرير_الشامل_${today()}.pdf`);
+    $('#printArea').innerHTML=''; toast('تم تحميل PDF');
+  }catch(e){ toast('تعذر إنشاء PDF: '+(e.message||e), 6000); console.error(e); }
+  finally{ btn.disabled=false; btn.innerHTML=html0; }
+};
 
 $('#xlsBtn').dataset.html = $('#xlsBtn').innerHTML;
 $('#xlsBtn').onclick = ()=>{ if(typeof ExcelJS!=='undefined') exportExcelWithPhotos(); else exportExcelBasic(); };

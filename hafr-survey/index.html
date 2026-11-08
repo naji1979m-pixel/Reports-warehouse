@@ -2174,6 +2174,9 @@ function eastGov(g){ const n=northGov(g); if(n) return n; let raw=normalize(Stri
   const k=govKey(raw); const hit=EAST_MAP.find(([kk])=>k===kk||k.includes(kk)); return hit? hit[1] : null; }
 function unitOf(g){ const k=govKey(g); const hit=EAST_MAP.find(([kk])=>k===kk); return hit? hit[2] : 'محافظات أخرى'; }
 /* نطاق الاختيار: '' كامل القطاع، 'u:اسم الوحدة'، أو اسم محافظة */
+function govOptionsHtml(){ const extra=[...new Set((S.comp||[]).map(r=>r.gov).filter(g=>g && unitOf(g)==='محافظات أخرى'))].sort();
+  return '<option value="">جميع المحافظات</option>'+EAST_UNITS.map(X=>`<optgroup label="${esc(X.u)}"><option value="u:${esc(X.u)}">كامل ${esc(X.u)}</option>${X.govs.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('')}</optgroup>`).join('')
+    +(extra.length?`<optgroup label="محافظات أخرى">${extra.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('')}</optgroup>`:''); }
 function inScope(gov, sel){ if(!sel) return true; if(sel.startsWith('u:')) return unitOf(gov)===sel.slice(2); return gov===sel; }
 function scopeHasNorth(sel){ return !sel || sel==='u:الوحدة الشمالية' || !!northGov(sel); }
 function scopeLabel(sel){ if(!sel) return 'القطاع الشرقي — جميع المحافظات'; if(sel.startsWith('u:')) return 'القطاع الشرقي — '+sel.slice(2); return 'القطاع الشرقي — '+unitOf(sel)+' — '+sel; }
@@ -2254,16 +2257,22 @@ function initRangeText(t){ const a=initStart(); return `من ${a?fmtD(a):'بدا
 function slideData(){
   const f=$('#cFrom').value, t=$('#cTo').value;
   const inP = d => d && (!f||d>=f) && (!t||d<=t);
-  const comp = (S.comp||[]).filter(r=> northGov(r.gov) && ((!f&&!t) || inP(r.vdate)));
-  const plat = S.visits.filter(v=> (!f&&!t) || inP(v.visit_date));
+  const sc = (()=>{ const el=$('#slGov'); return el? el.value : lsGet('hs_slgov','u:الوحدة الشمالية'); })();
+  const hasN = scopeHasNorth(sc), ng = northGov(sc)||'';
+  const comp = (S.comp||[]).filter(r=> inScope(r.gov, sc) && ((!f&&!t) || inP(r.vdate)));
+  const plat = !hasN? [] : S.visits.filter(v=> ((!f&&!t) || inP(v.visit_date)) && (!ng || (northGov(v.governorate)||CONFIG.DEFAULT_GOV)===ng));
   const platViol = plat.filter(v=>v.result===R_BAD||v.result===R_REM);
   const dupOf = markCompDuplicates(comp, platViol);
   comp.forEach(r=> r._c = r._c || compCls(r));
   const o={ vis:0, n:0, iss:0, sent:0, retW:0, archData:0, rej:0, pend:0, platOnly:0, fine:0, G:{} };
-  NORTH_GOVS.forEach(g=> o.G[g]={l:g, vis:new Set(), platVis:0, n:0, iss:0, fine:0});
+  /* صفوف الجداول: الوحدات عند اختيار القطاع كاملاً، والمحافظات عند اختيار وحدة أو محافظة */
+  const rowOf = g => !sc ? unitOf(g) : g;
+  const rowLabels = !sc ? EAST_UNITS.map(X=>X.u) : sc.startsWith('u:') ? ((EAST_UNITS.find(X=>X.u===sc.slice(2))||{govs:[]}).govs) : [sc];
+  rowLabels.forEach(g=> o.G[g]={l:g, vis:new Set(), platVis:0, n:0, iss:0, fine:0});
+  const zOf = g => { const k=rowOf(g); return o.G[k] || (o.G[k]={l:k, vis:new Set(), platVis:0, n:0, iss:0, fine:0}); };
   /* كل مخالفة في الملف الشامل تقع في خانة واحدة فقط، فمجموع الخانات = المرصود:
      معتمدة من مدير الرقابة + غير معتمدة + مؤرشفة لعدم توفر بيانات المخالف + بانتظار المراجعة والاعتماد + تعديات المبادرة غير المسجلة في الشامل */
-  comp.forEach(r=>{ const c=r._c, z=o.G[r.gov], dec=(r.decision||'').trim();
+  comp.forEach(r=>{ const c=r._c, z=zOf(r.gov), dec=(r.decision||'').trim();
     if(c==='iss'||c==='auth'||c==='ret') o.sent++;
     else if(dec==='غير معتمدة') o.rej++;
     else if(c==='arch') o.archData++;
@@ -2275,9 +2284,10 @@ function slideData(){
   const dupIds=new Set(dupOf.values());
   const compVisits=new Set(comp.map(r=>r.visit||r.vno));
   const platU = plat.filter(v=>!dupIds.has(v.id)), platViolU = platViol.filter(v=>!dupIds.has(v.id));
-  platU.forEach(v=>{ const g=northGov(v.governorate)||CONFIG.DEFAULT_GOV; const z=o.G[g]; if(z) z.platVis++; });
-  platViolU.forEach(v=>{ const g=northGov(v.governorate)||CONFIG.DEFAULT_GOV; const z=o.G[g]; if(z) z.n++; });
-  o.rows = NORTH_GOVS.map(g=>{ const z=o.G[g]; return {l:g, vis:z.vis.size+z.platVis, n:z.n, iss:z.iss, fine:z.fine}; });
+  platU.forEach(v=>{ zOf(northGov(v.governorate)||CONFIG.DEFAULT_GOV).platVis++; });
+  platViolU.forEach(v=>{ zOf(northGov(v.governorate)||CONFIG.DEFAULT_GOV).n++; });
+  o.rows = Object.values(o.G).map(z=>({l:z.l, vis:z.vis.size+z.platVis, n:z.n, iss:z.iss, fine:z.fine}));
+  if(o.rows.length>7) o.rows = o.rows.filter(r=>r.vis||r.n||r.fine).slice(0,9);
   o.vis = compVisits.size + platU.length;
   o.platOnly = platViolU.length;
   /* تعديات المبادرة المكررة في الشامل أخذت حالتها من الشامل، وغير المسجلة في مكين لم تُراجع بعد فتُحسب «بانتظار المراجعة والاعتماد» */
@@ -2286,11 +2296,14 @@ function slideData(){
   /* نسبة الاعتماد: ما اعتمده مدير الرقابة بالشركة ÷ المخالفات المرصودة في الفترة */
   o.rate = o.n? Math.round(o.sent/o.n*1000)/10 : 0;
   /* المبادرة */
-  const cum = initCum(t, null), cumViol = cum.filter(v=>v.result===R_BAD||v.result===R_REM).length;
-  const ds = districtStats(cum, null, null); const planned=ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
+  const cum = hasN? initCum(t, ng||null) : [], cumViol = cum.filter(v=>v.result===R_BAD||v.result===R_REM).length;
+  const pGov = ng ? (CONFIG.GOVS.find(x=>northGov(x)===ng)||ng) : null;
+  const ds = hasN? districtStats(cum, pGov, null) : []; const planned=ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
   const I = { planned, done, pending: planned? Math.max(0,planned-done) : 0, pct: planned? done/planned : null, inspected: cum.length, viol: cumViol,
-    violRate: cum.length? cumViol/cum.length : 0, dup: dupOf.size, leak: cum.filter(v=>v.leak).length, err: cum.filter(v=>v.contractor_error).length, range: initRangeText(t) };
-  return { o, I, compN: comp.length, dupN: dupOf.size, f, t };
+    violRate: cum.length? cumViol/cum.length : 0, dup: dupOf.size, leak: cum.filter(v=>v.leak).length, err: cum.filter(v=>v.contractor_error).length, range: hasN? initRangeText(t) : 'خاصة بالوحدة الشمالية' };
+  const unitTxt = !sc? 'جميع الوحدات' : sc.startsWith('u:')? sc.slice(2).replace(/^الوحدة /,'') : unitOf(sc).replace(/^الوحدة /,'');
+  const govTxt = !sc || sc.startsWith('u:')? 'جميع المحافظات' : sc;
+  return { o, I, compN: comp.length, dupN: dupOf.size, f, t, sc, hasN, unitTxt, govTxt };
 }
 function slideNotes(D){ const o=D.o, I=D.I, out=[];
   const top=o.rows.slice().sort((a,b)=>b.n-a.n)[0];
@@ -2321,7 +2334,7 @@ async function drawViolSlide(){
   ['#0aa59b','#1999af','#278cc4','#0061b5','#0b2e55'].forEach((col,i)=>{ x.fillStyle=col; x.fillRect(44+i*1832/5,148,1832/5,6); });
   /* شريط البيانات */
   card(44,166,1832,58,'#eaf1f8'); F(21,700);
-  T(`القطاع: الشرقي        الوحدة: الشمالية        الفترة من: ${D.f?fmtD(D.f):'بداية البيانات'}   إلى: ${D.t?fmtD(D.t):fmtD(today())}        تاريخ الإصدار: ${fmtD(today())}`,960,196,NAVY,'center');
+  T(`القطاع: الشرقي      الوحدة: ${D.unitTxt}      المحافظة: ${D.govTxt}      الفترة من: ${D.f?fmtD(D.f):'بداية البيانات'}   إلى: ${D.t?fmtD(D.t):fmtD(today())}        تاريخ الإصدار: ${fmtD(today())}`,960,196,NAVY,'center');
   /* المؤشرات الخمسة */
   const K=[['01','الزيارات الميدانية',fmtN(o.vis),NAVY],['02','المخالفات المرصودة',fmtN(o.n),CYAN],['03','بانتظار المراجعة والاعتماد من مدير الرقابة بالشركة',fmtN(o.pend),'#b26a00'],['04','المخالفات المعتمدة من مدير الرقابة بالشركة',fmtN(o.sent),TEAL],['05','المخالفات غير المعتمدة لعدم اكتمال أركان المخالفة',fmtN(o.rej),o.rej?RED:NAVY],['06','نسبة الاعتماد',o.rate+'%',BLUE],['07','بانتظار استكمال البيانات',fmtN(o.archData),GRAY],['08','المعتمد من الهيئة السعودية للمياه',fmtN(o.iss),SKY]];
   const NK=K.length, KG=16, kw=(1832-(NK-1)*KG)/NK;
@@ -2402,7 +2415,11 @@ function renderCompBox(){
   const byGov={}; rows.forEach(r=>byGov[r.gov]=(byGov[r.gov]||0)+1);
   const ex=lsGet('hs_slide_extra',{});
   box.innerHTML = `<h3 style="margin:0">التقرير الشامل وشريحة تقرير المخالفات والتفتيش</h3>
-    <p class="hint" style="margin:0">الشريحة تجمع المرصود في المنصة مع التقرير الشامل (منصة مكين) لمحافظات الوحدة الشمالية، وتستبعد المخالفة المكررة إذا كانت بنفس الموقع (30 متر) أو برقم العداد أو الحصر نفسه. الفترة حسب «الفترة الزمنية» أعلى الصفحة.</p>
+    <p class="hint" style="margin:0">الشريحة تجمع التقرير الشامل (منصة مكين) مع المرصود في مبادرة المسح الميداني، وتستبعد المخالفة المكررة إذا كانت بنفس الموقع (30 متر) أو برقم العداد أو الحصر نفسه. الفترة حسب «الفترة الزمنية» أعلى الصفحة.</p>
+    <div class="form">
+      <label class="f">القطاع<select class="in" id="slSec"><option>القطاع الشرقي</option></select></label>
+      <label class="f">الوحدة / المحافظة في الشريحة<select class="in" id="slGov">${govOptionsHtml()}</select></label>
+    </div>
     <div class="match ${rows.length?'p-ok':'p-warn'}">${rows.length? `التقرير الشامل الحالي: <b>${fmtN(rows.length)}</b> مخالفة للقطاع الشرقي${last?` · رُفع ${new Date(last).toLocaleString('ar-SA-u-ca-gregory-nu-latn',{dateStyle:'medium',timeStyle:'short'})}`:''}${by?` · بواسطة ${esc(by)}`:''}<br><span class="mini">${Object.entries(byGov).map(([g,n])=>`${esc(g)}: ${fmtN(n)}`).join(' · ')}</span>` : 'لم يُرفع التقرير الشامل بعد. الشريحة تعمل ببيانات المنصة فقط حتى يُرفع.'}</div>
     ${canUploadComp()? `<div class="row-btns"><label class="btn pri">رفع التقرير الشامل (Excel)<input type="file" id="compFile" accept=".xlsx,.xls,.csv" hidden></label><span class="hint">الملف الجديد يستبدل السابق. تُحفظ محافظات القطاع الشرقي (الوحدة الشمالية، وحدة أعمال الدمام، الوحدة الجنوبية).</span></div><div id="compPreview"></div>`
       : `<p class="hint" style="margin:0">رفع التقرير الشامل لمن لديه صلاحية «رفع الملف الشامل» فقط.</p>`}
@@ -2415,6 +2432,8 @@ function renderCompBox(){
     <div id="slidePrev"></div>`;
   const sv=()=>{ const n=v=>{ const t=normalize(String(v||'')).replace(/[^\d.]/g,''); return t===''?null:+t; }; lsSet('hs_slide_extra',{m3:n($('#slM3').value), sar:n($('#slSar').value), notes:$('#slNotes').value}); };
   ['slM3','slSar','slNotes'].forEach(id=>$('#'+id).oninput=sv);
+  { const sg=$('#slGov'), v=lsGet('hs_slgov','u:الوحدة الشمالية'); sg.value=[...sg.options].some(o=>o.value===v)? v : 'u:الوحدة الشمالية';
+    sg.onchange=()=>{ lsSet('hs_slgov', sg.value); if($('#slidePrev').innerHTML) exportViolSlide('see', $('#slSee')); }; }
   [['slSee','see'],['slPpt','ppt'],['slPdf','pdf'],['slPng','png']].forEach(([id,k])=>$('#'+id).onclick=e=>exportViolSlide(k,e.currentTarget));
   const fi=$('#compFile'); if(fi) fi.onchange=async()=>{
     const file=fi.files[0]; fi.value=''; if(!file) return;
@@ -2521,8 +2540,7 @@ let CX_LAST=null;
 function renderComp(){
   const sel=$('#cGov'); if(sel){ const extra=[...new Set((S.comp||[]).map(r=>r.gov).filter(g=>g && unitOf(g)==='محافظات أخرى'))].sort();
     const sig=extra.join('|'); if(sel.dataset.sig!==sig || !sel.options.length){ const cur=sel.value||lsGet('hs_cgov','');
-      sel.innerHTML='<option value="">جميع المحافظات</option>'+EAST_UNITS.map(X=>`<optgroup label="${esc(X.u)}"><option value="u:${esc(X.u)}">كامل ${esc(X.u)}</option>${X.govs.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('')}</optgroup>`).join('')
-        +(extra.length?`<optgroup label="محافظات أخرى">${extra.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('')}</optgroup>`:'');
+      sel.innerHTML=govOptionsHtml();
       sel.dataset.sig=sig; sel.value=[...sel.options].some(o=>o.value===cur)? cur : ''; } }
   const k=lsGet('hs_cperiod','all'); $$('#cPerBtns [data-per]').forEach(b=>b.classList.toggle('on', b.dataset.per===k));
   const D = CX_LAST = compData();

@@ -103,7 +103,7 @@ dialog.wide{max-width:min(1200px,97vw)}
 #srRes tr[data-sri]{cursor:pointer}
 .sr-det td{background:#f7fafd}.sr-kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px 14px;padding:6px 2px}
 .sr-kv div{display:flex;flex-direction:column;border-bottom:1px dashed var(--line);padding:3px 0}.sr-kv span{font-size:11.5px;color:var(--muted)}.sr-kv b{font-size:13px;font-weight:600;word-break:break-word}
-#cPerBtns .btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+#slPerBtns .btn.on,#cPerBtns .btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
 .cx-ban{display:flex;justify-content:space-between;align-items:center;gap:14px;background:linear-gradient(120deg,#0b2e55,#0061b5 60%,#1999af);color:#fff;border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
 .cx-ban h3{margin:4px 0 2px;font-size:24px;color:#fff}.cx-ban p{margin:0;font-weight:600;opacity:.95}.cx-ban small{opacity:.8;font-size:12px}
 .cx-tag{font-size:12px;opacity:.85}.cx-ban img{height:58px;background:#fff;border-radius:12px;padding:6px 10px}
@@ -2255,7 +2255,7 @@ function initStart(){ return S.visits.reduce((a,v)=> v.visit_date && (northGov(v
 function initCum(t, gov){ const a=initStart(); return S.visits.filter(v=> (!a || (v.visit_date||'')>=a) && (!t || (v.visit_date||'')<=t) && (!gov || (northGov(v.governorate)||CONFIG.DEFAULT_GOV)===gov)); }
 function initRangeText(t){ const a=initStart(); return `من ${a?fmtD(a):'بداية المبادرة'} إلى ${fmtD(t||today())}`; }
 function slideData(){
-  const f=$('#cFrom').value, t=$('#cTo').value;
+  const f=($('#slFrom')||$('#cFrom')).value, t=($('#slTo')||$('#cTo')).value;
   const inP = d => d && (!f||d>=f) && (!t||d<=t);
   const sc = (()=>{ const el=$('#slGov'); return el? el.value : lsGet('hs_slgov','u:الوحدة الشمالية'); })();
   const hasN = scopeHasNorth(sc), ng = northGov(sc)||'';
@@ -2415,10 +2415,16 @@ function renderCompBox(){
   const byGov={}; rows.forEach(r=>byGov[r.gov]=(byGov[r.gov]||0)+1);
   const ex=lsGet('hs_slide_extra',{});
   box.innerHTML = `<h3 style="margin:0">التقرير الشامل وشريحة تقرير المخالفات والتفتيش</h3>
-    <p class="hint" style="margin:0">الشريحة تجمع التقرير الشامل (منصة مكين) مع المرصود في مبادرة المسح الميداني، وتستبعد المخالفة المكررة إذا كانت بنفس الموقع (30 متر) أو برقم العداد أو الحصر نفسه. الفترة حسب «الفترة الزمنية» أعلى الصفحة.</p>
+    <p class="hint" style="margin:0">الشريحة تجمع التقرير الشامل (منصة مكين) مع المرصود في مبادرة المسح الميداني، وتستبعد المخالفة المكررة إذا كانت بنفس الموقع (30 متر) أو برقم العداد أو الحصر نفسه. حدّد القطاع والمحافظة وفترة الشريحة من الخانات التالية.</p>
     <div class="form">
       <label class="f">القطاع<select class="in" id="slSec"><option>القطاع الشرقي</option></select></label>
       <label class="f">الوحدة / المحافظة في الشريحة<select class="in" id="slGov">${govOptionsHtml()}</select></label>
+    </div>
+    <div class="mini" style="font-weight:600">فترة الشريحة</div>
+    <div class="row-btns" id="slPerBtns">${[['all','كامل الفترة'],['today','اليوم'],['yest','أمس'],['week','هذا الأسبوع'],['lweek','الأسبوع الماضي'],['month','هذا الشهر'],['lmonth','الشهر الماضي'],['year','هذه السنة'],['custom','فترة مخصصة']].map(([k,l])=>`<button type="button" class="btn sm" data-per="${k}">${l}</button>`).join('')}</div>
+    <div class="form">
+      <label class="f">من تاريخ<input class="in" id="slFrom" type="date"></label>
+      <label class="f">إلى تاريخ<input class="in" id="slTo" type="date"></label>
     </div>
     <div class="match ${rows.length?'p-ok':'p-warn'}">${rows.length? `التقرير الشامل الحالي: <b>${fmtN(rows.length)}</b> مخالفة للقطاع الشرقي${last?` · رُفع ${new Date(last).toLocaleString('ar-SA-u-ca-gregory-nu-latn',{dateStyle:'medium',timeStyle:'short'})}`:''}${by?` · بواسطة ${esc(by)}`:''}<br><span class="mini">${Object.entries(byGov).map(([g,n])=>`${esc(g)}: ${fmtN(n)}`).join(' · ')}</span>` : 'لم يُرفع التقرير الشامل بعد. الشريحة تعمل ببيانات المنصة فقط حتى يُرفع.'}</div>
     ${canUploadComp()? `<div class="row-btns"><label class="btn pri">رفع التقرير الشامل (Excel)<input type="file" id="compFile" accept=".xlsx,.xls,.csv" hidden></label><span class="hint">الملف الجديد يستبدل السابق. تُحفظ محافظات القطاع الشرقي (الوحدة الشمالية، وحدة أعمال الدمام، الوحدة الجنوبية).</span></div><div id="compPreview"></div>`
@@ -2432,6 +2438,13 @@ function renderCompBox(){
     <div id="slidePrev"></div>`;
   const sv=()=>{ const n=v=>{ const t=normalize(String(v||'')).replace(/[^\d.]/g,''); return t===''?null:+t; }; lsSet('hs_slide_extra',{m3:n($('#slM3').value), sar:n($('#slSar').value), notes:$('#slNotes').value}); };
   ['slM3','slSar','slNotes'].forEach(id=>$('#'+id).oninput=sv);
+  { const prev=()=>{ if($('#slidePrev').innerHTML) exportViolSlide('see', $('#slSee')); };
+    const mark=()=>{ const k=lsGet('hs_slperiod','month'); $$('#slPerBtns [data-per]').forEach(b=>b.classList.toggle('on', b.dataset.per===k)); };
+    const k0=lsGet('hs_slperiod','month'); const [f0,t0]= k0==='custom'? lsGet('hs_slrange',['','']) : periodRange(k0); $('#slFrom').value=f0||''; $('#slTo').value=t0||''; mark();
+    $('#slPerBtns').onclick=e=>{ const b=e.target.closest('[data-per]'); if(!b) return; const k=b.dataset.per; lsSet('hs_slperiod',k); mark();
+      if(k==='custom'){ $('#slFrom').focus(); try{ $('#slFrom').showPicker(); }catch(_){} return; }
+      const [f,t]=periodRange(k); $('#slFrom').value=f; $('#slTo').value=t; prev(); };
+    ['slFrom','slTo'].forEach(id=>$('#'+id).onchange=()=>{ lsSet('hs_slperiod','custom'); lsSet('hs_slrange',[$('#slFrom').value,$('#slTo').value]); mark(); prev(); }); }
   { const sg=$('#slGov'), v=lsGet('hs_slgov','u:الوحدة الشمالية'); sg.value=[...sg.options].some(o=>o.value===v)? v : 'u:الوحدة الشمالية';
     sg.onchange=()=>{ lsSet('hs_slgov', sg.value); if($('#slidePrev').innerHTML) exportViolSlide('see', $('#slSee')); }; }
   [['slSee','see'],['slPpt','ppt'],['slPdf','pdf'],['slPng','png']].forEach(([id,k])=>$('#'+id).onclick=e=>exportViolSlide(k,e.currentTarget));

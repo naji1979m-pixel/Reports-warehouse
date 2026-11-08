@@ -436,7 +436,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
   <!-- التقرير الشامل (مستقل) -->
   <section id="v-comp" hidden>
     <h2>التقرير الشامل</h2>
-    <p class="hint" style="margin-top:-6px">مخالفات الوحدة الشمالية من التقرير الشامل (منصة مكين) مع بيانات مبادرة المسح الميداني من تقرير المنصة، لنفس الفترة.</p>
+    <p class="hint" style="margin-top:-6px">مخالفات القطاع الشرقي من التقرير الشامل (منصة مكين)، مع بيانات مبادرة المسح الميداني (الوحدة الشمالية) من تقرير المنصة.</p>
     <div class="card section-gap">
       <div class="mini" style="font-weight:600">الفترة الزمنية</div>
       <div class="row-btns" id="cPerBtns">
@@ -453,6 +453,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
       <div class="form">
         <label class="f">من تاريخ<input class="in" id="cFrom" type="date"></label>
         <label class="f">إلى تاريخ<input class="in" id="cTo" type="date"></label>
+        <label class="f">القطاع<select class="in" id="cSec"><option>القطاع الشرقي</option></select></label>
         <label class="f">المحافظة<select class="in" id="cGov"></select></label>
       </div>
       <div class="row-btns"><button class="btn pri" id="cPdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>تحميل PDF</button></div>
@@ -595,7 +596,7 @@ const DB = {
         this.fetchAll('survey_districts')
       ]);
       S.sites=sites; S.visits=visits; S.daily=daily; S.districts=dists;
-      try{ S.comp = await this.fetchAll('survey_comprehensive','*','vno'); }catch(e){ S.comp=[]; }
+      try{ S.comp = await this.fetchAll('survey_comprehensive','vno,visit,gov,region,vdate,vstat,vvisit,amin,decision,dec_date,pres,fine,coords,lat,lng,item,prop,sev,officer,explain,uploaded_at,uploaded_by','vno'); S.compData=false; }catch(e){ S.comp=[]; }
     } else {
       const [sites, visits, media, daily, dists] = await Promise.all([IDB.all('sites'),IDB.all('visits'),IDB.all('media'),IDB.all('daily'),IDB.all('districts')]);
       const byV = {}; media.forEach(m=>{ (byV[m.visit_id] ||= []).push(m); });
@@ -618,7 +619,7 @@ const DB = {
         if(error) throw error; onProgress&&onProgress(Math.min(i+500,all.length)); }
       if(noData){ all.forEach(r=>delete r.data); setTimeout(()=>toast('رُفع الملف بأعمدة مختصرة. شغّل سطر SQL الخاص بعمود data في Supabase ثم أعد الرفع ليشمل البحث جميع الأعمدة', 9000), 1500); }
     } else { await IDB.clear('comp'); await IDB.putMany('comp', all); }
-    S.comp=all;
+    S.comp=all; S.compData=true;
   },
   async addDistrict(gov, name){
     const d={id:uid(), governorate:gov, name, created_at:new Date().toISOString()};
@@ -1017,7 +1018,7 @@ function renderDash(){
   renderMap();
 }
 /* ===== تفاصيل المؤشر عند الضغط على المربع ===== */
-document.addEventListener('click', e=>{ const b=e.target.closest('[data-kpi]'); if(b) showDrill(b.dataset.kpi, b.dataset.krng? {f:'', t:$('#cTo').value, g:$('#cGov').value} : null); });
+document.addEventListener('click', e=>{ const b=e.target.closest('[data-kpi]'); if(b) showDrill(b.dataset.kpi, b.dataset.krng? {f:'', t:$('#cTo').value, g:northGov($('#cGov').value)||''} : null); });
 function showDrill(key, rng){
   const dg= rng? rng.g : $('#dashGov').value;
   let VV = dg ? S.visits.filter(v=> rng? (northGov(v.governorate)||CONFIG.DEFAULT_GOV)===dg : v.governorate===dg) : S.visits;
@@ -2162,6 +2163,20 @@ const NORTH_GOVS=['حفر الباطن','الخفجي','النعيرية','قر�
 const govKey=g=>normalize(String(g||'')).replace(/^\s*(محافظة|محافظه|مدينة|مدينه)\s+/,'').replace(/[إأآ]/g,'ا').replace(/ة/g,'ه').replace(/^ال(?=قريه)/,'').replace(/\s+/g,' ').trim();
 const NORTH_KEYS=NORTH_GOVS.map(govKey);
 function northGov(g){ const k=govKey(g); const i=NORTH_KEYS.findIndex(n=>k===n||k.includes(n)); return i>=0? NORTH_GOVS[i] : null; }
+/* القطاع الشرقي: الوحدات ومحافظاتها */
+const EAST_UNITS=[
+  {u:'الوحدة الشمالية', govs:NORTH_GOVS},
+  {u:'وحدة أعمال الدمام', govs:['الدمام','الخبر','الظهران','الجبيل','البيضاء','القطيف','رأس تنورة','سيهات','صفوى','عنك']},
+  {u:'الوحدة الجنوبية', govs:['الأحساء','بقيق']} ];
+const EAST_ALIAS=[[/البيظاء/,'البيضاء'],[/الهفوف|المبرز|الاحساء|الإحساء/,'الأحساء'],[/ابقيق|أبقيق/,'بقيق'],[/راس تنوره|رأس تنوره/,'رأس تنورة']];
+const EAST_MAP=(()=>{ const m=[]; EAST_UNITS.forEach(U=>U.govs.forEach(g=>m.push([govKey(g),g,U.u]))); return m; })();
+function eastGov(g){ const n=northGov(g); if(n) return n; let raw=normalize(String(g||'')).trim(); for(const [re,v] of EAST_ALIAS) if(re.test(raw)) raw=v;
+  const k=govKey(raw); const hit=EAST_MAP.find(([kk])=>k===kk||k.includes(kk)); return hit? hit[1] : null; }
+function unitOf(g){ const k=govKey(g); const hit=EAST_MAP.find(([kk])=>k===kk); return hit? hit[2] : 'محافظات أخرى'; }
+/* نطاق الاختيار: '' كامل القطاع، 'u:اسم الوحدة'، أو اسم محافظة */
+function inScope(gov, sel){ if(!sel) return true; if(sel.startsWith('u:')) return unitOf(gov)===sel.slice(2); return gov===sel; }
+function scopeHasNorth(sel){ return !sel || sel==='u:الوحدة الشمالية' || !!northGov(sel); }
+function scopeLabel(sel){ if(!sel) return 'القطاع الشرقي — جميع المحافظات'; if(sel.startsWith('u:')) return 'القطاع الشرقي — '+sel.slice(2); return 'القطاع الشرقي — '+unitOf(sel)+' — '+sel; }
 /* نفس تصنيف منصة الجودة والتدقيق للمرحلة */
 const HQ_ISS=["إعتماد المخالفة إرسالها","بانتظار الاعتماد النهائي"], HQ_RETVS=["بانتظار المراجعة والاعتماد","","مكتملة","مرسلة الى الأرشيف","مرسلة إلى الأرشيف"];
 const RET_AMIN=["إرسال لمدير الرقابة لاستكمال النواقص","العودة إلى أخصائي التفتيش","العودة إلى المدقق مع التعليق"];
@@ -2198,7 +2213,7 @@ async function parseCompFile(file){
   let total=0; const out=new Map(), byGov={};
   for(const row of best.aoa.slice(best.hi+1)){
     if(!row.some(c=>String(c).trim()!=='')) continue; total++;
-    const gov = northGov(t(row,'gov')); if(!gov) continue;
+    const gov = eastGov(t(row,'gov')) || (/شرق/.test(t(row,'region'))? (t(row,'gov').replace(/^\s*(محافظة|محافظه)\s+/,'').trim()||null) : null); if(!gov) continue;
     const vno=t(row,'vno'), visit=t(row,'visit'); if(!vno && !visit) continue;
     const key = vno || (visit+'|'+t(row,'item'));
     if(out.has(key)) continue;                       /* استبعاد الصفوف المكررة داخل الملف */
@@ -2239,7 +2254,7 @@ function initRangeText(t){ const a=initStart(); return `من ${a?fmtD(a):'بدا
 function slideData(){
   const f=$('#cFrom').value, t=$('#cTo').value;
   const inP = d => d && (!f||d>=f) && (!t||d<=t);
-  const comp = (S.comp||[]).filter(r=> (!f&&!t) || inP(r.vdate));
+  const comp = (S.comp||[]).filter(r=> northGov(r.gov) && ((!f&&!t) || inP(r.vdate)));
   const plat = S.visits.filter(v=> (!f&&!t) || inP(v.visit_date));
   const platViol = plat.filter(v=>v.result===R_BAD||v.result===R_REM);
   const dupOf = markCompDuplicates(comp, platViol);
@@ -2388,8 +2403,8 @@ function renderCompBox(){
   const ex=lsGet('hs_slide_extra',{});
   box.innerHTML = `<h3 style="margin:0">التقرير الشامل وشريحة تقرير المخالفات والتفتيش</h3>
     <p class="hint" style="margin:0">الشريحة تجمع المرصود في المنصة مع التقرير الشامل (منصة مكين) لمحافظات الوحدة الشمالية، وتستبعد المخالفة المكررة إذا كانت بنفس الموقع (30 متر) أو برقم العداد أو الحصر نفسه. الفترة حسب «الفترة الزمنية» أعلى الصفحة.</p>
-    <div class="match ${rows.length?'p-ok':'p-warn'}">${rows.length? `التقرير الشامل الحالي: <b>${fmtN(rows.length)}</b> مخالفة للوحدة الشمالية${last?` · رُفع ${new Date(last).toLocaleString('ar-SA-u-ca-gregory-nu-latn',{dateStyle:'medium',timeStyle:'short'})}`:''}${by?` · بواسطة ${esc(by)}`:''}<br><span class="mini">${Object.entries(byGov).map(([g,n])=>`${esc(g)}: ${fmtN(n)}`).join(' · ')}</span>` : 'لم يُرفع التقرير الشامل بعد. الشريحة تعمل ببيانات المنصة فقط حتى يُرفع.'}</div>
-    ${canUploadComp()? `<div class="row-btns"><label class="btn pri">رفع التقرير الشامل (Excel)<input type="file" id="compFile" accept=".xlsx,.xls,.csv" hidden></label><span class="hint">الملف الجديد يستبدل السابق. تُحفظ محافظات الوحدة الشمالية فقط.</span></div><div id="compPreview"></div>`
+    <div class="match ${rows.length?'p-ok':'p-warn'}">${rows.length? `التقرير الشامل الحالي: <b>${fmtN(rows.length)}</b> مخالفة للقطاع الشرقي${last?` · رُفع ${new Date(last).toLocaleString('ar-SA-u-ca-gregory-nu-latn',{dateStyle:'medium',timeStyle:'short'})}`:''}${by?` · بواسطة ${esc(by)}`:''}<br><span class="mini">${Object.entries(byGov).map(([g,n])=>`${esc(g)}: ${fmtN(n)}`).join(' · ')}</span>` : 'لم يُرفع التقرير الشامل بعد. الشريحة تعمل ببيانات المنصة فقط حتى يُرفع.'}</div>
+    ${canUploadComp()? `<div class="row-btns"><label class="btn pri">رفع التقرير الشامل (Excel)<input type="file" id="compFile" accept=".xlsx,.xls,.csv" hidden></label><span class="hint">الملف الجديد يستبدل السابق. تُحفظ محافظات القطاع الشرقي (الوحدة الشمالية، وحدة أعمال الدمام، الوحدة الجنوبية).</span></div><div id="compPreview"></div>`
       : `<p class="hint" style="margin:0">رفع التقرير الشامل لمن لديه صلاحية «رفع الملف الشامل» فقط.</p>`}
     <div class="form">
       <label class="f">الفاقد المائي المسترجع (م³)<input class="in" id="slM3" inputmode="decimal" dir="ltr" value="${esc(ex.m3??'')}" placeholder="اختياري"></label>
@@ -2408,8 +2423,8 @@ function renderCompBox(){
       await new Promise(r=>setTimeout(r,30));
       const P = await parseCompFile(file);
       pv.innerHTML = `<div class="vcard"><b>${esc(file.name)}</b>
-        <div class="hint">صفوف الملف: ${fmtN(P.total)} · مخالفات الوحدة الشمالية بعد استبعاد المكرر داخل الملف: <b>${fmtN(P.rows.length)}</b></div>
-        <div class="hint">${Object.entries(P.byGov).map(([g,n])=>`${esc(g)}: ${fmtN(n)}`).join(' · ')||'لا توجد مخالفات لمحافظات الوحدة الشمالية في الملف'}</div>
+        <div class="hint">صفوف الملف: ${fmtN(P.total)} · مخالفات القطاع الشرقي بعد استبعاد المكرر داخل الملف: <b>${fmtN(P.rows.length)}</b></div>
+        <div class="hint">${Object.entries(P.byGov).map(([g,n])=>`${esc(g)}: ${fmtN(n)}`).join(' · ')||'لا توجد مخالفات لمحافظات القطاع الشرقي في الملف'}</div>
         <div class="row-btns"><button class="btn pri sm" id="compGo" ${P.rows.length?'':'disabled'}>اعتماد الملف واستبدال السابق</button><button class="btn sm" id="compCancel">إلغاء</button><span class="hint" id="compSt"></span></div></div>`;
       $('#compCancel').onclick=()=>pv.innerHTML='';
       $('#compGo').onclick=async()=>{ const b=$('#compGo'); b.disabled=true;
@@ -2428,20 +2443,32 @@ const cxP = (a,b) => b? (Math.round(a/b*1000)/10)+'%' : '—';
 function compData(){
   const f=$('#cFrom').value, t=$('#cTo').value, g=$('#cGov').value;
   const inP = d => (!f&&!t) || (d && (!f||d>=f) && (!t||d<=t));
-  const comp = (S.comp||[]).filter(r=> inP(r.vdate) && (!g||r.gov===g));
+  const comp = (S.comp||[]).filter(r=> inP(r.vdate) && inScope(r.gov,g));
   comp.forEach(r=> r._c = r._c || compCls(r));
-  const plat = S.visits.filter(v=> inP(v.visit_date) && (!g || (northGov(v.governorate)||CONFIG.DEFAULT_GOV)===g));
+  const hasN = scopeHasNorth(g), ng = northGov(g)||'';
+  const plat = !hasN? [] : S.visits.filter(v=> inP(v.visit_date) && (!ng || (northGov(v.governorate)||CONFIG.DEFAULT_GOV)===ng));
   const platViol = plat.filter(v=>v.result===R_BAD||v.result===R_REM);
   const dupOf = markCompDuplicates(comp, platViol);
-  const T=cxZ(), G={}; NORTH_GOVS.forEach(x=>G[x]=cxZ());
-  comp.forEach(r=>{ cxAdd(T,r); cxAdd(G[r.gov]||(G[r.gov]=cxZ()), r); });
-  const pGov = g ? (CONFIG.GOVS.find(x=>northGov(x)===g)||g) : null;
-  const cum = initCum(t, g||null), cumViol = cum.filter(v=>v.result===R_BAD||v.result===R_REM).length;
+  const T=cxZ(), G={}, U={};
+  EAST_UNITS.forEach(X=>{ if(!g || inScope(X.govs[0],g) || X.govs.some(x=>inScope(x,g))) X.govs.forEach(x=>{ if(inScope(x,g)) G[x]=cxZ(); }); });
+  comp.forEach(r=>{ cxAdd(T,r); cxAdd(G[r.gov]||(G[r.gov]=cxZ()), r); const u=unitOf(r.gov); cxAdd(U[u]||(U[u]=cxZ()), r); });
+  const pGov = ng ? (CONFIG.GOVS.find(x=>northGov(x)===ng)||ng) : null;
+  const cum = hasN? initCum(t, ng||null) : [], cumViol = cum.filter(v=>v.result===R_BAD||v.result===R_REM).length;
   const ds = districtStats(cum, pGov, null); const planned=ds.reduce((a,r)=>a+r.planned,0), done=ds.reduce((a,r)=>a+r.done,0);
   const st = stats(cum);
   const I = { planned, done, pct: planned? done/planned : null, pending: planned? Math.max(0,planned-done) : null, total: cum.length,
     viol: cumViol, leak: st.leak, err: cum.filter(v=>v.contractor_error).length, dup: dupOf.size, range: initRangeText(t) };
-  return { f, t, g, comp, plat, platViol, dupOf, T, G, I, ds, unified: comp.length - dupOf.size + platViol.length };
+  return { f, t, g, hasN, comp, plat, platViol, dupOf, T, G, U, I, ds, unified: comp.length - dupOf.size + platViol.length };
+}
+/* صفوف جدول المحافظات مجمّعة حسب الوحدة، مع إجمالي لكل وحدة عند عرض القطاع كاملاً */
+function cxGovRows(D){
+  const out=[], units=[...EAST_UNITS.map(X=>X.u), 'محافظات أخرى'];
+  units.forEach(u=>{ const known=(EAST_UNITS.find(X=>X.u===u)||{govs:[]}).govs;
+    const gs=[...known.filter(g=>D.G[g]), ...Object.keys(D.G).filter(g=>!known.includes(g) && unitOf(g)===u)].filter(g=> D.G[g].n>0 || (D.g && !D.g.startsWith('u:')) || (D.g && known.length<=6 && u==='الوحدة الشمالية'));
+    if(!gs.length) return;
+    gs.forEach(g=>out.push({g, o:D.G[g]}));
+    if(!D.g && D.U[u]) out.push({unit:u, o:D.U[u]}); });
+  return out;
 }
 function cxStep(no, stage, key, label, val, sub, color, extra=''){
   return `<button type="button" class="cx-st" data-cx="${key}" style="--tone:${color}"><span class="cx-no">${no}</span><span class="cx-stl">${stage}</span><span class="cx-l">${label}</span><b class="cx-v">${fmtN(val)}</b><span class="cx-s">${sub}</span>${extra}</button>`;
@@ -2450,8 +2477,8 @@ function compHtml(D){
   const T=D.T, I=D.I, ex=lsGet('hs_slide_extra',{});
   const ar='<span class="cx-ar" aria-hidden="true">←</span>';
   const sub=(k,l,v,cls)=>`<span class="cx-sub ${cls||''}" data-cx="${k}"><span>${l}</span><b>${fmtN(v)}</b></span>`;
-  const scope = `${D.g||'جميع محافظات الوحدة الشمالية'} — ${periodText(D.f,D.t)}`;
-  const govs = NORTH_GOVS.filter(g=>D.G[g] && (!D.g||g===D.g));
+  const scope = `${scopeLabel(D.g)} — ${periodText(D.f,D.t)}`;
+  const GR = cxGovRows(D);
   const K=(key,label,val,sub,color)=>`<button type="button" class="kpi kpi-btn" data-kpi="${key}" data-krng="1" style="--kc:${color}"><span>${label}</span><b>${val}</b><i>${sub||''}</i><em class="kpi-more">التفاصيل ‹</em></button>`;
   return `<div class="cx-ban"><div><span class="cx-tag">شركة المياه الوطنية · إدارة المخالفات والتعديات</span><h3>الملخص التنفيذي</h3><p>${esc(scope)}</p><small>${(S.comp||[]).length?'المصدر: التقرير الشامل (منصة مكين) + تقرير منصة المبادرات':'لم يُرفع التقرير الشامل بعد — تظهر بيانات المبادرة فقط'} · اضغط أي رقم لتفاصيله</small></div><img src="nwc-logo.png" alt="شركة المياه الوطنية"></div>
   <div class="card"><h3 style="margin:0 0 2px">مسار المخالفة <span class="mini">· من رصد المخالفة إلى إصدار القرار — التقرير الشامل</span></h3>
@@ -2471,10 +2498,10 @@ function compHtml(D){
   </div>
   <div class="card section-gap" style="margin-top:14px"><h3 style="margin:0">حسب المحافظة <span class="mini">· التقرير الشامل</span></h3>
     <div class="tbl-wrap"><table><thead><tr><th>المحافظة</th><th>المرصود</th><th>بانتظار المراجعة والاعتماد</th><th>المرسل للهيئة</th><th>قيد التدقيق لدى الهيئة</th><th>المسترجع</th><th>القرارات الصادرة</th><th>المبالغ المعتمدة</th><th>نسبة الجودة</th></tr></thead><tbody>
-    ${govs.map(g=>{ const o=D.G[g]; const c=(k,v)=>`<td class="cx-td" data-cx="${k}" data-cg="${esc(g)}">${fmtN(v)}</td>`; return `<tr style="cursor:default"><td><b>${esc(g)}</b></td>${c('n',o.n)}${c('pend',o.pend)}${c('sent',o.sent)}${c('auth',o.auth)}${c('ret',o.ret)}${c('iss',o.iss)}<td>${fmtN(Math.round(o.fine))}</td><td><b>${cxQ(o)==null?'—':cxQ(o)+'%'}</b></td></tr>`; }).join('')}
+    ${GR.map(R=>{ const o=R.o, g=R.unit? 'u:'+R.unit : R.g; const c=(k,v)=>`<td class="cx-td" data-cx="${k}" data-cg="${esc(g)}">${fmtN(v)}</td>`; return `<tr style="cursor:default${R.unit?';background:#eef4fb;font-weight:700':''}"><td>${R.unit?`إجمالي ${esc(R.unit)}`:`<b>${esc(R.g)}</b>`}</td>${c('n',o.n)}${c('pend',o.pend)}${c('sent',o.sent)}${c('auth',o.auth)}${c('ret',o.ret)}${c('iss',o.iss)}<td>${fmtN(Math.round(o.fine))}</td><td><b>${cxQ(o)==null?'—':cxQ(o)+'%'}</b></td></tr>`; }).join('')}
     <tr class="tot" style="cursor:default;font-weight:800;background:var(--sky)"><td>الإجمالي</td><td>${fmtN(T.n)}</td><td>${fmtN(T.pend)}</td><td>${fmtN(T.sent)}</td><td>${fmtN(T.auth)}</td><td>${fmtN(T.ret)}</td><td>${fmtN(T.iss)}</td><td>${fmtN(Math.round(T.fine))}</td><td>${cxQ(T)==null?'—':cxQ(T)+'%'}</td></tr>
     </tbody></table></div></div>
-  <div class="card section-gap" style="margin-top:14px"><h3 style="margin:0">مبادرة المسح الميداني <span class="mini">· تراكمي ${esc(I.range)}</span></h3>
+  ${!D.hasN? '' : `<div class="card section-gap" style="margin-top:14px"><h3 style="margin:0">مبادرة المسح الميداني <span class="mini">· تراكمي ${esc(I.range)}</span></h3>
     <div class="kpis" style="margin:0">
       ${K('planned','المستهدف',fmtN(I.planned),'المواقع في ملفات الأحياء','#0b2e55')}
       ${K('done','المنجز',fmtN(I.done),'مواقع تمت معاينتها','#0aa59b')}
@@ -2488,11 +2515,15 @@ function compHtml(D){
     <div class="cx-chart" id="cxChart" hidden><img alt="المنجز والمتبقي"></div>
   </div>
   <div class="cx-uni"><div><b>إجمالي المخالفات الموحّد</b><span class="mini">التقرير الشامل + التعديات المرصودة في المبادرة، بعد استبعاد المكرر</span></div>
-    <div class="cx-eq"><span>${fmtN(D.comp.length)} <small>الشامل</small></span><i>+</i><span>${fmtN(D.platViol.length)} <small>المبادرة</small></span><i>−</i><button type="button" class="cx-dup" data-cx="dup">${fmtN(I.dup)} <small>مكرر</small></button><i>=</i><b>${fmtN(D.unified)}</b></div></div>`;
+    <div class="cx-eq"><span>${fmtN(D.comp.length)} <small>الشامل</small></span><i>+</i><span>${fmtN(D.platViol.length)} <small>المبادرة</small></span><i>−</i><button type="button" class="cx-dup" data-cx="dup">${fmtN(I.dup)} <small>مكرر</small></button><i>=</i><b>${fmtN(D.unified)}</b></div></div>`}`;
 }
 let CX_LAST=null;
 function renderComp(){
-  const sel=$('#cGov'); if(sel && !sel.options.length){ sel.innerHTML='<option value="">جميع محافظات الوحدة الشمالية</option>'+NORTH_GOVS.map(g=>`<option>${esc(g)}</option>`).join(''); sel.value=lsGet('hs_cgov',''); }
+  const sel=$('#cGov'); if(sel){ const extra=[...new Set((S.comp||[]).map(r=>r.gov).filter(g=>g && unitOf(g)==='محافظات أخرى'))].sort();
+    const sig=extra.join('|'); if(sel.dataset.sig!==sig || !sel.options.length){ const cur=sel.value||lsGet('hs_cgov','');
+      sel.innerHTML='<option value="">جميع المحافظات</option>'+EAST_UNITS.map(X=>`<optgroup label="${esc(X.u)}"><option value="u:${esc(X.u)}">كامل ${esc(X.u)}</option>${X.govs.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('')}</optgroup>`).join('')
+        +(extra.length?`<optgroup label="محافظات أخرى">${extra.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('')}</optgroup>`:'');
+      sel.dataset.sig=sig; sel.value=[...sel.options].some(o=>o.value===cur)? cur : ''; } }
   const k=lsGet('hs_cperiod','all'); $$('#cPerBtns [data-per]').forEach(b=>b.classList.toggle('on', b.dataset.per===k));
   const D = CX_LAST = compData();
   $('#cBody').innerHTML = compHtml(D);
@@ -2501,11 +2532,11 @@ function renderComp(){
 function compDrill(key, gov){
   const D=CX_LAST||compData();
   const NAMES={n:'المرصود',pend:'بانتظار المراجعة والاعتماد',sent:'اعتماد مدير الرقابة — المرسل للهيئة',arch:'غير معتمدة / غير مكتملة الأركان',auth:'قيد التدقيق لدى الهيئة',ret:'المسترجع',retW:'مسترجعة في انتظار الاستكمال',retC:'مسترجعة مؤرشفة أو مغلقة',iss:'القرارات الصادرة',dup:'مكررة بين التقرير الشامل والمبادرة'};
-  let L=D.comp.filter(r=> !gov || r.gov===gov);
+  let L=D.comp.filter(r=> inScope(r.gov, gov));
   const f={n:()=>true, sent:r=>['iss','ret','auth'].includes(r._c), retW:r=>r._c==='ret'&&compRetW(r), retC:r=>r._c==='ret'&&!compRetW(r), dup:r=>D.dupOf.has(r.vno)}[key] || (r=>r._c===key);
   L=L.filter(f).sort((a,b)=>(b.vdate||'').localeCompare(a.vdate||''));
   const MAX=500;
-  $('#drTitle').textContent=`${NAMES[key]||''} · ${gov||D.g||'الوحدة الشمالية'} · ${fmtN(L.length)}`;
+  $('#drTitle').textContent=`${NAMES[key]||''} · ${(gov||D.g||'القطاع الشرقي').replace(/^u:/,'')} · ${fmtN(L.length)}`;
   $('#drBody').innerHTML=`<div class="drill-tools"><input class="in" id="drQ" placeholder="بحث برقم الزيارة أو المعرف أو البند أو المفتش"><span class="mini" id="drCount">${fmtN(L.length)} مخالفة</span></div>
     <div class="tbl-wrap"><table><thead><tr><th>معرف المخالفة</th><th>رقم الزيارة</th><th>المحافظة</th><th>التاريخ</th><th>البند</th><th>حالة المخالفة</th><th>قرار مدير الرقابة</th><th>المبلغ</th>${key==='dup'?'<th>المعاينة في المنصة</th>':''}</tr></thead><tbody id="drRows">
     ${L.slice(0,MAX).map(r=>`<tr style="cursor:default" data-q="${esc(normalize([r.vno,r.visit,r.item,r.officer,r.region].join(' ')))}"><td>${esc(r.vno)}</td><td>${esc(r.visit)}</td><td>${esc(r.gov)}</td><td>${fmtD(r.vdate)}</td><td style="max-width:260px">${esc(r.item||'—')}</td><td>${esc(r.vstat||r.vvisit||'—')}</td><td>${esc(r.decision||'—')}</td><td>${r.fine?fmtN(r.fine):'—'}</td>${key==='dup'?`<td><button class="btn sm" data-open="${D.dupOf.get(r.vno)}">فتح</button></td>`:''}</tr>`).join('') || '<tr><td colspan="9" class="empty">لا توجد مخالفات</td></tr>'}
@@ -2528,12 +2559,12 @@ $('#cPdfBtn').onclick = async ()=>{
   try{
     const D=compData(), T=D.T, I=D.I, ex=lsGet('hs_slide_extra',{});
     const chart = await drawDoneChart(D.ds, I.planned, I.done, 8);
-    const govs = NORTH_GOVS.filter(g=>D.G[g] && (!D.g||g===D.g));
+    const GR = cxGovRows(D);
     const kp=(l,v,c,s='')=>`<div style="--c:${c}"><span>${l}</span><b>${v}</b>${s?`<i>${s}</i>`:''}</div>`;
     $('#printArea').innerHTML = `<div class="pr">
-      <div class="ph"><div><div class="eb">شركة المياه الوطنية · إدارة المخالفات والتعديات</div><h1>التقرير الشامل — الملخص التنفيذي</h1><div class="un">مبادرات إدارة المخالفات والتعديات بالقطاع الشرقي - الوحدة الشمالية</div></div><img src="nwc-logo.png" alt="شركة المياه الوطنية"></div>
+      <div class="ph"><div><div class="eb">شركة المياه الوطنية · إدارة المخالفات والتعديات</div><h1>التقرير الشامل — الملخص التنفيذي</h1><div class="un">إدارة المخالفات والتعديات — القطاع الشرقي</div></div><img src="nwc-logo.png" alt="شركة المياه الوطنية"></div>
       <div class="band"></div>
-      <div class="meta"><div><span>الفترة</span><b>${esc(periodText(D.f,D.t))}</b></div><div><span>النطاق</span><b>${esc(D.g||'جميع محافظات الوحدة الشمالية')}</b></div><div><span>تاريخ التقرير</span><b>${fmtD(today())}</b></div><div><span>أعدّه</span><b>${esc(S.userName||'—')}</b></div></div>
+      <div class="meta"><div><span>الفترة</span><b>${esc(periodText(D.f,D.t))}</b></div><div><span>النطاق</span><b>${esc(scopeLabel(D.g))}</b></div><div><span>تاريخ التقرير</span><b>${fmtD(today())}</b></div><div><span>أعدّه</span><b>${esc(S.userName||'—')}</b></div></div>
       <h2>مسار المخالفة<small>المصدر: التقرير الشامل (منصة مكين)</small></h2>
       <div class="kp" style="grid-template-columns:repeat(6,1fr)">
         ${kp('1. المرصود',fmtN(T.n),'#0b2e55','كل المخالفات')}
@@ -2551,16 +2582,16 @@ $('#cPdfBtn').onclick = async ()=>{
       </div>
       <h2>حسب المحافظة</h2>
       <table><thead><tr><th>المحافظة</th><th>المرصود</th><th>بانتظار المراجعة</th><th>المرسل للهيئة</th><th>قيد التدقيق</th><th>المسترجع</th><th>القرارات</th><th>المبالغ (ريال)</th><th>نسبة الجودة</th></tr></thead><tbody>
-      ${govs.map(g=>{ const o=D.G[g]; return `<tr><td><b>${esc(g)}</b></td><td>${fmtN(o.n)}</td><td>${fmtN(o.pend)}</td><td>${fmtN(o.sent)}</td><td>${fmtN(o.auth)}</td><td>${fmtN(o.ret)}</td><td>${fmtN(o.iss)}</td><td>${fmtN(Math.round(o.fine))}</td><td>${cxQ(o)==null?'—':cxQ(o)+'%'}</td></tr>`; }).join('')}
+      ${GR.map(R=>{ const o=R.o; return `<tr${R.unit?' class="tot"':''}><td>${R.unit?'إجمالي '+esc(R.unit):'<b>'+esc(R.g)+'</b>'}</td><td>${fmtN(o.n)}</td><td>${fmtN(o.pend)}</td><td>${fmtN(o.sent)}</td><td>${fmtN(o.auth)}</td><td>${fmtN(o.ret)}</td><td>${fmtN(o.iss)}</td><td>${fmtN(Math.round(o.fine))}</td><td>${cxQ(o)==null?'—':cxQ(o)+'%'}</td></tr>`; }).join('')}
       <tr class="tot"><td>الإجمالي</td><td>${fmtN(T.n)}</td><td>${fmtN(T.pend)}</td><td>${fmtN(T.sent)}</td><td>${fmtN(T.auth)}</td><td>${fmtN(T.ret)}</td><td>${fmtN(T.iss)}</td><td>${fmtN(Math.round(T.fine))}</td><td>${cxQ(T)==null?'—':cxQ(T)+'%'}</td></tr></tbody></table>
-      <h2>مبادرة المسح الميداني<small>تراكمي ${esc(I.range)}</small></h2>
+      ${D.hasN?`<h2>مبادرة المسح الميداني<small>تراكمي ${esc(I.range)}</small></h2>
       <div class="kp">
         ${kp('المستهدف',fmtN(I.planned),'#0b2e55')}${kp('المنجز',fmtN(I.done),'#0aa59b')}${kp('نسبة الإنجاز',fmtP(I.pct),'#0061b5')}${kp('إجمالي المعاينات',fmtN(I.total),'#278cc4')}${kp('في انتظار المعاينة',fmtN(I.pending),'#d93025')}
       </div>
       <div class="kp" style="grid-template-columns:repeat(4,1fr);margin-top:7px">
         ${kp('التعديات المرصودة',fmtN(I.viol),'#c23a32')}${kp('مكرر في التقرير الشامل',fmtN(I.dup),'#1999af')}${kp('توصيلات بها تسريب',fmtN(I.leak),'#1999af')}${kp('إجمالي المخالفات الموحّد',fmtN(D.unified),'#0b2e55','الشامل + المبادرة − المكرر')}
       </div>
-      ${chart?`<h2>المنجز والمتبقي<small>المنجز بالأخضر · المتبقي بالأحمر</small></h2><div class="chart"><img src="${chart.data}" alt="" style="width:100%;display:block"></div>`:''}
+      ${chart?`<h2>المنجز والمتبقي<small>المنجز بالأخضر · المتبقي بالأحمر</small></h2><div class="chart"><img src="${chart.data}" alt="" style="width:100%;display:block"></div>`:''}`:''}
       <div class="sig" style="margin-top:18px"><div>أعدّه</div><div>رئيس إدارة المخالفات</div><div>الاعتماد</div></div>
     </div>`;
     const imgs=[...$('#printArea').querySelectorAll('img')];
@@ -2595,7 +2626,13 @@ function compIndex(){
 }
 function compRowOut(r, hdr){ const m=new Map(compPairs(r)); return hdr.map(h=>m.get(h)??'').concat(CX_STAGE[r._c]||''); }
 let SR=null; /* آخر نتيجة */
-function srchShow(){
+async function ensureCompData(){
+  if(MODE!=='cloud' || S.compData || !(S.comp||[]).length) return;
+  try{ const rows=await DB.fetchAll('survey_comprehensive','vno,data','vno'); const m=new Map(rows.map(r=>[r.vno,r.data]));
+    S.comp.forEach(r=>{ const d=m.get(r.vno); if(d) r.data=d; }); S.compData=true; SX=null; }catch(e){ console.warn('comp data', e); S.compData=true; }
+}
+async function srchShow(){
+  if(MODE==='cloud' && !S.compData && (S.comp||[]).length){ $('#srBody').innerHTML='<p class="hint">جاري تحميل جميع أعمدة التقرير الشامل للبحث… (مرة واحدة)</p>'; $('#srch').showModal(); await ensureCompData(); }
   const X=compIndex();
   $('#srBody').innerHTML = `<div class="sr-tools">
       <div class="sr-q"><input class="in" id="srQ" placeholder="ابحث بأي قيمة: معرف المخالفة، رقم الزيارة، رقم العداد، اسم المفتش، البند، الحي…" autocomplete="off"><button class="btn pri" id="srGo">بحث</button></div>
@@ -2608,7 +2645,7 @@ function srchShow(){
   $('#srGo').onclick=()=>srchText($('#srQ').value);
   $('#srQ').onkeydown=e=>{ if(e.key==='Enter') srchText($('#srQ').value); };
   $('#srFile').onchange=e=>{ const f=e.target.files[0]; e.target.value=''; if(f) srchFile(f); };
-  $('#srch').showModal(); setTimeout(()=>$('#srQ').focus(),50);
+  if(!$('#srch').open) $('#srch').showModal(); setTimeout(()=>$('#srQ').focus(),50);
 }
 function srchText(q){
   const X=compIndex(), k=nkey(q); if(!k){ $('#srRes').innerHTML=''; return; }

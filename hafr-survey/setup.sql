@@ -131,3 +131,6 @@ create policy cp_upd on survey_comprehensive for update using (survey_can_upload
 create policy cp_del on survey_comprehensive for delete using (survey_can_upload());
 grant select, insert, update, delete on survey_comprehensive to authenticated;
 grant execute on function survey_can_upload() to authenticated;
+
+-- ===== البحث في جميع أعمدة التقرير الشامل =====
+alter table survey_comprehensive add column if not exists data jsonb;

@@ -93,6 +93,16 @@ html,body{overflow-x:hidden}
 .kpi-btn{font:inherit;text-align:right;color:inherit;cursor:pointer;width:100%;position:relative;transition:box-shadow .15s, transform .15s}
 .kpi-btn:hover{box-shadow:0 4px 14px rgba(11,46,85,.12);transform:translateY(-1px)}
 .kpi-btn .kpi-more{display:block;font-style:normal;font-size:11.5px;color:var(--kc);font-weight:600;margin-top:4px}
+.hsearch{margin-inline-start:auto;display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:0;border-radius:999px;padding:7px 14px;font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}
+.hsearch svg{width:17px;height:17px}.hsearch:hover{background:var(--ink)}
+@media (max-width:640px){.hsearch span{display:none}.hsearch{padding:8px}}
+dialog.wide{max-width:min(1200px,97vw)}
+.sr-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sr-q{display:flex;gap:8px;flex:1;min-width:260px}.sr-q .in{flex:1}
+#srFileL svg{width:17px;height:17px}
+.sr-sum{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin:14px 0 8px;padding:10px 12px;background:var(--sky);border-radius:10px}
+#srRes tr[data-sri]{cursor:pointer}
+.sr-det td{background:#f7fafd}.sr-kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px 14px;padding:6px 2px}
+.sr-kv div{display:flex;flex-direction:column;border-bottom:1px dashed var(--line);padding:3px 0}.sr-kv span{font-size:11.5px;color:var(--muted)}.sr-kv b{font-size:13px;font-weight:600;word-break:break-word}
 #cPerBtns .btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
 .cx-ban{display:flex;justify-content:space-between;align-items:center;gap:14px;background:linear-gradient(120deg,#0b2e55,#0061b5 60%,#1999af);color:#fff;border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
 .cx-ban h3{margin:4px 0 2px;font-size:24px;color:#fff}.cx-ban p{margin:0;font-weight:600;opacity:.95}.cx-ban small{opacity:.8;font-size:12px}
@@ -281,6 +291,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
         <small>مبادرة المسح الميداني لأحياء حفر الباطن</small>
       </div>
     </div>
+    <button class="hsearch" id="searchBtn" hidden title="البحث في التقرير الشامل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>بحث</span></button>
     <span class="chip" id="roleChip"></span>
     <button class="link" id="logoutBtn" hidden>خروج</button>
   </div>
@@ -488,6 +499,7 @@ dialog .db{padding:16px;display:grid;gap:14px}
 <datalist id="distList"></datalist>
 <datalist id="errList"><option value="العقار تجاري وليس سكني"><option value="العقار سكني وليس تجاري"><option value="العقار غير مأهول وليس مأهول"><option value="رقم العداد غير صحيح"><option value="رقم الحصر غير صحيح"><option value="قراءة العداد غير صحيحة"><option value="الإحداثيات غير صحيحة"><option value="يوجد تعدٍ ولم يُرصد"><option value="رُصد تعدٍ وهو غير موجود"><option value="الصور لا تخص الموقع"></datalist>
 
+<dialog id="srch" class="wide"><div class="dh"><b>البحث في التقرير الشامل</b><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="srBody"></div></dialog>
 <dialog id="drill"><div class="dh"><b id="drTitle"></b><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="drBody"></div></dialog>
 <dialog id="detail"><div class="dh"><b id="dTitle">تفاصيل المعاينة</b><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="dBody"></div></dialog>
 <dialog id="viewer"><div class="dh" style="background:#000;color:#fff;border-color:#222"><span id="vCap"></span><button class="btn sm" data-close>إغلاق</button></div><div class="db" id="vBody"></div></dialog>
@@ -599,7 +611,12 @@ const DB = {
     const all=rows.map(r=>({...r, ...stamp}));
     if(MODE==='cloud'){
       const {error}=await sb.from('survey_comprehensive').delete().neq('vno','__none__'); if(error) throw error;
-      for(let i=0;i<all.length;i+=500){ const {error}=await sb.from('survey_comprehensive').insert(all.slice(i,i+500)); if(error) throw error; onProgress&&onProgress(Math.min(i+500,all.length)); }
+      let noData=false;
+      for(let i=0;i<all.length;i+=500){ let chunk=all.slice(i,i+500); if(noData) chunk=chunk.map(({data,...r})=>r);
+        let {error}=await sb.from('survey_comprehensive').insert(chunk);
+        if(error && !noData && /data/.test(error.message||'')){ noData=true; ({error}=await sb.from('survey_comprehensive').insert(chunk.map(({data,...r})=>r))); }
+        if(error) throw error; onProgress&&onProgress(Math.min(i+500,all.length)); }
+      if(noData){ all.forEach(r=>delete r.data); setTimeout(()=>toast('رُفع الملف بأعمدة مختصرة. شغّل سطر SQL الخاص بعمود data في Supabase ثم أعد الرفع ليشمل البحث جميع الأعمدة', 9000), 1500); }
     } else { await IDB.clear('comp'); await IDB.putMany('comp', all); }
     S.comp=all;
   },
@@ -2167,6 +2184,7 @@ function toISO(v){ if(v instanceof Date && !isNaN(v)) return v.getFullYear()+'-'
 const validISO = s => !s ? null : (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(s) ? s : null);
 const canUploadComp = ()=> S.role==='admin' || !!S.canUpload;
 
+function cellStr(v){ if(v==null) return ''; if(v instanceof Date){ if(isNaN(v)) return ''; const p=n=>String(n).padStart(2,'0'); const d=`${v.getFullYear()}-${p(v.getMonth()+1)}-${p(v.getDate())}`; return (v.getHours()||v.getMinutes())? `${d} ${p(v.getHours())}:${p(v.getMinutes())}` : d; } return String(v).trim(); }
 async function parseCompFile(file){
   if(typeof XLSX==='undefined') throw new Error('مكتبة Excel لم تُحمّل، حدّث الصفحة');
   const wb = XLSX.read(await file.arrayBuffer(), {type:'array', cellDates:true});
@@ -2188,7 +2206,8 @@ async function parseCompFile(file){
     const fine=parseFloat(normalize(t(row,'fine')).replace(/[^\d.]/g,''))||0;
     out.set(key,{ vno:key, visit, gov, region:t(row,'region'), vdate: validISO(toISO(g(row,'date'))||toISO(g(row,'date2'))), vstat:t(row,'vstat'), vvisit:t(row,'vvisit'), amin:t(row,'amin'),
       decision:t(row,'decision'), dec_date:String(toISO(g(row,'decDate'))||t(row,'decDate')||''), pres:t(row,'pres'), fine, coords:cs, lat:c?c.lat:null, lng:c?c.lng:null,
-      item:t(row,'item'), prop:t(row,'prop'), sev:t(row,'sev'), officer:t(row,'officer'), explain:t(row,'explain').slice(0,1000) });
+      item:t(row,'item'), prop:t(row,'prop'), sev:t(row,'sev'), officer:t(row,'officer'), explain:t(row,'explain').slice(0,1000),
+      data: best.h.map((h,i)=>[h, cellStr(row[i])]).filter(p=>p[0] && p[1]!=='') });
     byGov[gov]=(byGov[gov]||0)+1;
   }
   return { rows:[...out.values()], total, byGov };
@@ -2553,6 +2572,128 @@ $('#cPdfBtn').onclick = async ()=>{
   finally{ btn.disabled=false; btn.innerHTML=html0; }
 };
 
+/* ================== البحث في التقرير الشامل (كل الأعمدة) + تعبئة ملف ================== */
+const CX_STAGE={iss:'صدر قرار من الهيئة',auth:'قيد التدقيق لدى الهيئة',ret:'مسترجعة من الهيئة',arch:'غير معتمدة / مؤرشفة',pend:'بانتظار المراجعة والاعتماد',oth:'أخرى'};
+const STAGE_H='مرحلة المخالفة (حسب المنصة)';
+function nkey(v){ let s=normalize(String(v??'')).trim().replace(/\s+/g,' ').toLowerCase(); if(/^\d+\.0+$/.test(s)) s=s.replace(/\.0+$/,''); return s; }
+function compPairs(r){
+  if(Array.isArray(r.data) && r.data.length) return r.data;
+  const F={vno:COMP_COLS.vno,visit:COMP_COLS.visit,gov:COMP_COLS.gov,region:COMP_COLS.region,vdate:COMP_COLS.date,vstat:COMP_COLS.vstat,vvisit:COMP_COLS.vvisit,amin:COMP_COLS.amin,decision:COMP_COLS.decision,dec_date:COMP_COLS.decDate,pres:COMP_COLS.pres,fine:COMP_COLS.fine,coords:COMP_COLS.coords,item:COMP_COLS.item,prop:COMP_COLS.prop,sev:COMP_COLS.sev,officer:COMP_COLS.officer,explain:COMP_COLS.explain};
+  return Object.entries(F).map(([k,h])=>[h, r[k]==null?'':String(r[k])]).filter(p=>p[1]!=='');
+}
+let SX=null;
+function compIndex(){
+  if(SX && SX.src===S.comp && SX.n===(S.comp||[]).length) return SX;
+  const map=new Map(), hdr=[], hs=new Set(); let full=0;
+  const add=(k,r)=>{ let a=map.get(k); if(!a) map.set(k,a=[]); if(a[a.length-1]!==r) a.push(r); };
+  (S.comp||[]).forEach(r=>{ if(Array.isArray(r.data)&&r.data.length) full++; r._c=r._c||compCls(r); const ps=compPairs(r); let txt='';
+    ps.forEach(([h,v])=>{ if(!hs.has(h)){ hs.add(h); hdr.push(h); } const nv=nkey(v); if(!nv) return; txt+=' '+nv;
+      if(nv.length>=3 && nv.length<=80) add(nv,r);
+      (nv.match(/\d{5,}/g)||[]).forEach(d=>{ if(d!==nv) add(d,r); }); });
+    r._txt=txt; });
+  return SX={src:S.comp, n:(S.comp||[]).length, map, hdr, full};
+}
+function compRowOut(r, hdr){ const m=new Map(compPairs(r)); return hdr.map(h=>m.get(h)??'').concat(CX_STAGE[r._c]||''); }
+let SR=null; /* آخر نتيجة */
+function srchShow(){
+  const X=compIndex();
+  $('#srBody').innerHTML = `<div class="sr-tools">
+      <div class="sr-q"><input class="in" id="srQ" placeholder="ابحث بأي قيمة: معرف المخالفة، رقم الزيارة، رقم العداد، اسم المفتش، البند، الحي…" autocomplete="off"><button class="btn pri" id="srGo">بحث</button></div>
+      <label class="btn" id="srFileL"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>رفع ملف Excel أو PDF للبحث بأرقامه<input type="file" id="srFile" accept=".xlsx,.xls,.csv,.pdf" hidden></label>
+    </div>
+    <p class="hint" style="margin:6px 0 0">${X.n? `البحث في ${fmtN(X.n)} مخالفة من التقرير الشامل، في ${fmtN(X.hdr.length)} عمود.` : 'لم يُرفع التقرير الشامل بعد.'}
+    ${X.n && X.full<X.n ? ' <b style="color:var(--warn)">الملف الحالي مرفوع بأعمدة مختصرة، أعد رفع التقرير الشامل ليشمل البحث والتعبئة جميع الأعمدة.</b>':''}
+    عند رفع ملف: تُبحث كل خلية فيه، ويُرجَع لك نفس الملف معبأً بجميع بيانات التقرير الشامل لكل صف.</p>
+    <div id="srRes"></div>`;
+  $('#srGo').onclick=()=>srchText($('#srQ').value);
+  $('#srQ').onkeydown=e=>{ if(e.key==='Enter') srchText($('#srQ').value); };
+  $('#srFile').onchange=e=>{ const f=e.target.files[0]; e.target.value=''; if(f) srchFile(f); };
+  $('#srch').showModal(); setTimeout(()=>$('#srQ').focus(),50);
+}
+function srchText(q){
+  const X=compIndex(), k=nkey(q); if(!k){ $('#srRes').innerHTML=''; return; }
+  let L = X.map.get(k) || [];
+  if(!L.length && k.length>=2){ const parts=k.split(' ').filter(Boolean); L=(S.comp||[]).filter(r=>parts.every(p=>r._txt.includes(p))); }
+  SR={mode:'text', q, rows:L};
+  srchRender(L, `${fmtN(L.length)} مخالفة مطابقة لـ «${esc(q)}»`, [['srDlT','تحميل النتائج بجميع الأعمدة (Excel)']]);
+  const b=$('#srDlT'); if(b) b.onclick=()=>{ const X2=compIndex(); srchDownload([[...X2.hdr, STAGE_H], ...L.map(r=>compRowOut(r,X2.hdr))], null, `بحث_التقرير_الشامل_${today()}.xlsx`); };
+}
+function srchRender(L, title, btns, extra=''){
+  const MAX=300;
+  $('#srRes').innerHTML = `<div class="sr-sum"><b>${title}</b><div class="row-btns" style="margin:0">${btns.map(([id,l])=>`<button class="btn pri sm" id="${id}">${l}</button>`).join('')}</div></div>${extra}
+   ${L.length? `<div class="tbl-wrap"><table><thead><tr><th>معرف المخالفة</th><th>رقم الزيارة</th><th>المحافظة</th><th>التاريخ</th><th>البند</th><th>المرحلة</th><th>المبلغ</th></tr></thead><tbody>
+   ${L.slice(0,MAX).map((r,i)=>`<tr data-sri="${i}"><td>${esc(r.vno)}</td><td>${esc(r.visit)}</td><td>${esc(r.gov)}</td><td>${fmtD(r.vdate)}</td><td style="max-width:260px">${esc(r.item||'—')}</td><td>${esc(CX_STAGE[r._c]||'')}</td><td>${r.fine?fmtN(r.fine):'—'}</td></tr>`).join('')}
+   </tbody></table></div>${L.length>MAX?`<p class="hint">يظهر أول ${MAX}، والتحميل يشمل الكل.</p>`:''}<p class="hint">اضغط أي صف لعرض جميع بياناته.</p>`:''}`;
+  $$('#srRes tr[data-sri]').forEach(tr=>tr.onclick=()=>{
+    const nx=tr.nextElementSibling; if(nx && nx.classList.contains('sr-det')){ nx.remove(); return; }
+    const r=L[+tr.dataset.sri]; const d=document.createElement('tr'); d.className='sr-det';
+    d.innerHTML=`<td colspan="7"><div class="sr-kv">${compPairs(r).map(([h,v])=>`<div><span>${esc(h)}</span><b>${esc(v)}</b></div>`).join('')}<div><span>${STAGE_H}</span><b>${esc(CX_STAGE[r._c]||'')}</b></div></div></td>`;
+    tr.after(d); });
+}
+async function srchFile(file){
+  const X=compIndex(); if(!X.n){ toast('لم يُرفع التقرير الشامل بعد'); return; }
+  $('#srRes').innerHTML=`<p class="hint">جاري قراءة «${esc(file.name)}» والبحث…</p>`;
+  try{
+    if(/\.pdf$/i.test(file.name)) return await srchPdf(file, X);
+    if(typeof XLSX==='undefined') throw new Error('مكتبة Excel لم تُحمّل، حدّث الصفحة');
+    const wb=XLSX.read(await file.arrayBuffer(), {type:'array', cellDates:true});
+    let aoa=[], sheet='';
+    wb.SheetNames.forEach(n=>{ const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:false,blankrows:false}); if(a.length>aoa.length){ aoa=a; sheet=n; } });
+    if(!aoa.length) throw new Error('الملف فارغ');
+    let hi=0; for(let i=0;i<Math.min(10,aoa.length);i++){ if(aoa[i].filter(c=>String(c).trim()!=='').length>=2){ hi=i; break; } }
+    const head=aoa[hi].map((h,i)=>String(h||'').trim()||('عمود '+(i+1))), body=aoa.slice(hi+1).filter(r=>r.some(c=>String(c).trim()!==''));
+    const W=Math.max(head.length, ...body.map(r=>r.length));
+    while(head.length<W) head.push('عمود '+(head.length+1));
+    /* اختيار أعمدة المفتاح: العمود اللي قيمه تتطابق مع مخالفات محددة (1-20 مطابقة) في أكثر الصفوف */
+    const hits=v=>{ const k=nkey(v); if(!k) return null; let a=X.map.get(k); if(a&&a.length<=20) return a;
+      for(const d of (k.match(/\d{5,}/g)||[])){ a=X.map.get(d); if(a&&a.length<=20) return a; } return null; };
+    const score=new Array(W).fill(0); body.forEach(r=>{ for(let c=0;c<W;c++) if(hits(r[c])) score[c]++; });
+    const top=Math.max(...score);
+    if(!top){ $('#srRes').innerHTML=`<div class="match p-bad">ما لقيت أي قيمة من «${esc(file.name)}» في التقرير الشامل. تأكد أن الملف فيه أرقام زيارات أو معرفات مخالفات أو أرقام عدادات.</div>`; return; }
+    const keys=score.map((s,c)=>[s,c]).filter(([s])=>s>=Math.max(1,top*0.5)).sort((a,b)=>b[0]-a[0]).map(x=>x[1]);
+    const outHead=[...head, 'نتيجة البحث', 'عدد المطابقات', ...X.hdr, STAGE_H];
+    const out=[outHead], found=[], seen=new Set(); let ok=0, miss=0;
+    body.forEach(r=>{ const row=head.map((_,c)=>r[c]??'');
+      let M=null; for(const c of keys){ const a=hits(r[c]); if(a && (!M || a.length<M.length)) M=a; }
+      if(!M){ miss++; out.push([...row,'غير موجود في التقرير الشامل',0]); return; }
+      ok++; M.forEach(m=>{ out.push([...row,'موجود',M.length, ...compRowOut(m,X.hdr)]); if(!seen.has(m)){ seen.add(m); found.push(m); } }); });
+    const name=file.name.replace(/\.[^.]+$/,'')+'_معبأ_من_التقرير_الشامل.xlsx';
+    SR={mode:'file', out, name};
+    srchRender(found, `«${esc(file.name)}»: ${fmtN(body.length)} صف — وُجد ${fmtN(ok)}، غير موجود ${fmtN(miss)}`, [['srDlF','تحميل الملف معبأً (Excel)']],
+      `<p class="hint">عمود البحث: ${keys.map(c=>'«'+esc(head[c])+'»').join('، ')}${sheet?` · الورقة «${esc(sheet)}»`:''}. الصف اللي له أكثر من مخالفة يتكرر بعدد مخالفاته.</p>`);
+    $('#srDlF').onclick=()=>srchDownload(out, [['ملخص البحث',''],['الملف',file.name],['عدد الصفوف',body.length],['موجود',ok],['غير موجود',miss],['عدد المخالفات المطابقة',found.length],['تاريخ البحث',today()]], name);
+  }catch(e){ $('#srRes').innerHTML=`<div class="match p-bad">تعذرت قراءة الملف: ${esc(e.message||e)}</div>`; console.error(e); }
+}
+async function srchPdf(file, X){
+  const pdfjs = await loadLib('pdfjsLib', ['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js','https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js']);
+  try{ pdfjs.GlobalWorkerOptions.workerSrc = [...document.scripts].map(s=>s.src).find(s=>/pdf\.min\.js$/.test(s)).replace(/pdf\.min\.js$/,'pdf.worker.min.js'); }catch(_){}
+  const doc = await pdfjs.getDocument({data: new Uint8Array(await file.arrayBuffer())}).promise;
+  const toks=[], seenT=new Set();
+  for(let p=1;p<=doc.numPages;p++){
+    $('#srRes').innerHTML=`<p class="hint">جاري قراءة الصفحة ${p} من ${doc.numPages}…</p>`;
+    const tc=await (await doc.getPage(p)).getTextContent(); const txt=normalize(tc.items.map(i=>i.str).join(' \n '));
+    (txt.match(/[A-Za-z0-9][A-Za-z0-9\-\/_.]{3,}[A-Za-z0-9]/g)||[]).concat(txt.match(/\d{5,}/g)||[]).forEach(t=>{ const k=nkey(t); if(!seenT.has(k) && /\d{5,}/.test(k)){ seenT.add(k); toks.push([k,p]); } });
+  }
+  const outHead=['الرقم في ملف PDF','الصفحة','نتيجة البحث','عدد المطابقات', ...X.hdr, STAGE_H];
+  const out=[outHead], miss=[['الرقم في ملف PDF','الصفحة']], found=[], seen=new Set(); let ok=0;
+  toks.forEach(([k,p])=>{ const a=X.map.get(k); if(a && a.length<=20){ ok++; a.forEach(m=>{ out.push([k,p,'موجود',a.length,...compRowOut(m,X.hdr)]); if(!seen.has(m)){ seen.add(m); found.push(m); } }); } else miss.push([k,p]); });
+  const name=file.name.replace(/\.[^.]+$/,'')+'_معبأ_من_التقرير_الشامل.xlsx';
+  srchRender(found, `«${esc(file.name)}»: ${fmtN(toks.length)} رقم في الملف — وُجد ${fmtN(ok)} في التقرير الشامل (${fmtN(found.length)} مخالفة)`, [['srDlF','تحميل النتائج معبأة (Excel)']],
+    toks.length? '' : '<div class="match p-bad">ما لقيت أرقام في ملف PDF. إذا كان الملف صورة ممسوحة ضوئياً فما فيه نص يُقرأ؛ استخدم ملف Excel بدلاً منه.</div>');
+  $('#srDlF').onclick=()=>srchDownload(out, null, name, miss.length>1? miss : null);
+}
+function srchDownload(aoa, summary, name, missAoa){
+  if(typeof XLSX==='undefined'){ toast('مكتبة Excel لم تُحمّل، حدّث الصفحة'); return; }
+  const wb=XLSX.utils.book_new(); wb.Workbook={Views:[{RTL:true}]};
+  const ws=XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=aoa[0].map((h,i)=>({wch:Math.min(45,Math.max(10,String(h).length+2, ...aoa.slice(1,200).map(r=>String(r[i]??'').length*0.9)))}));
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:aoa.length-1,c:aoa[0].length-1}})};
+  XLSX.utils.book_append_sheet(wb, ws, 'النتائج');
+  if(missAoa){ const w2=XLSX.utils.aoa_to_sheet(missAoa); w2['!cols']=[{wch:24},{wch:8}]; XLSX.utils.book_append_sheet(wb, w2, 'غير موجود'); }
+  if(summary){ const w3=XLSX.utils.aoa_to_sheet(summary); w3['!cols']=[{wch:24},{wch:40}]; XLSX.utils.book_append_sheet(wb, w3, 'ملخص'); }
+  XLSX.writeFile(wb, name); toast('تم تحميل الملف');
+}
+$('#searchBtn').onclick=srchShow;
+
 $('#xlsBtn').dataset.html = $('#xlsBtn').innerHTML;
 $('#xlsBtn').onclick = ()=>{ if(typeof ExcelJS!=='undefined') exportExcelWithPhotos(); else exportExcelBasic(); };
 function exportExcelBasic(){
@@ -2800,9 +2941,10 @@ async function afterLogin(){
   $('#logoutBtn').hidden=false;
   await startApp();
 }
-function showLogin(){ $('#v-login').hidden=false; $('#tabs').hidden=true; ['dash','add','list','reports','settings'].forEach(t=>$('#v-'+t).hidden=true); }
+function showLogin(){ $('#v-login').hidden=false; $('#tabs').hidden=true; ['dash','add','list','reports','comp','settings'].forEach(t=>$('#v-'+t).hidden=true); }
 
 async function startApp(){
+  $('#searchBtn').hidden=false;
   $('#v-login').hidden=true; $('#tabs').hidden=false;
   try{ await DB.loadAll(); }catch(e){ toast('تعذر تحميل البيانات: '+e.message, 6000); }
   buildSiteIdx(); applyRole(); fillDistrictSelects(); bindSelPairs();
